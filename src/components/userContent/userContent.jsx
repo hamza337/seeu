@@ -8,10 +8,7 @@ const UsersContent = () => {
 
   const menu = [
     { label: 'Language Setting', icon: <Globe size={20} />, path: '/user/language-setting' },
-    { label: 'Privacy Policy', icon: <Shield size={20} />, path: '/user/privacy-policy' },
-    { label: 'User Agreement', icon: <FileText size={20} />, path: '/user/user-agreement' },
     { label: 'Wallet', icon: <Wallet size={20} />, path: '/user/wallet' },
-    { label: 'Contact Us', icon: <Phone size={20} />, path: '/user/contact' },
     { label: 'Sign Out', icon: <LogOut size={20} />, path: null }, // no path now
   ];
 

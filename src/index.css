@@ -17,10 +17,10 @@
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
   min-width: 320px;
   min-height: 100vh;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 h1 {
@@ -33,4 +33,29 @@ h1 {
     color: #213547;
     background-color: #ffffff;
   }
+}
+
+/* Hide scrollbar by default, show on hover/scroll for modern browsers */
+.scrollbar-hide {
+  scrollbar-width: thin;         /* Firefox */
+  scrollbar-color: #888 #f1f1f1; /* Firefox */
+}
+.scrollbar-hide::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.scrollbar-hide:hover::-webkit-scrollbar,
+.scrollbar-hide:active::-webkit-scrollbar,
+.scrollbar-hide:focus::-webkit-scrollbar {
+  background: #f1f1f1;
+}
+.scrollbar-hide::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+.scrollbar-hide:hover::-webkit-scrollbar-thumb,
+.scrollbar-hide:active::-webkit-scrollbar-thumb,
+.scrollbar-hide:focus::-webkit-scrollbar-thumb {
+  background: #888;
 }

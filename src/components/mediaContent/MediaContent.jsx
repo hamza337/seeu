@@ -69,7 +69,7 @@ const MediaContent = () => {
   };
 
   return (
-    <div className="px-6 sm:px-10 lg:px-20 py-10 flex flex-col gap-6">
+    <div className="w-full px-6 sm:px-10 lg:px-20 py-10 flex flex-col gap-6">
       {/* Heading */}
       <h2 className="text-2xl font-bold text-black">Media</h2>
 
@@ -94,9 +94,9 @@ const MediaContent = () => {
       </div>
 
       {/* Media Cards */}
-      <div className="flex flex-col gap-4 mt-6">
+      <div className="flex flex-col gap-4 mt-6 w-full">
         {(activeTab === 'uploads' ? mediaData.uploads : mediaData.downloads).map((item) => (
-          <Link to={`/media/${item.id}`} key={item.id} className="bg-white p-4 rounded-lg shadow-lg flex gap-4 relative">
+          <Link to={`/media/${item.id}`} key={item.id} className="bg-white p-4 rounded-lg shadow-lg flex gap-4 relative w-full">
             {/* Image */}
             <img src={item.photoUrl} alt="Media" className="w-1/4 h-36 object-cover rounded-md" />
 

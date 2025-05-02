@@ -32,11 +32,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="/media/:id/buy-now" element={<Payment />} />
           <Route path="user" element={<Users />} />
           <Route path="user/language-setting" element={<LanguageSetting />} />
-          <Route path="user/privacy-policy" element={<PrivacyPolicy />} />
-          <Route path="user/user-agreement" element={<UserAgreement />} />
+          <Route path="privacy-policy" element={<PrivacyPolicy />} />
+          <Route path="user-agreement" element={<UserAgreement />} />
           <Route path="user/wallet" element={<Wallet />} />
           <Route path="user/wallet/withdraw-request" element={<WithdrawRequest />} />
-          <Route path="user/contact" element={<ContactUs />} />
+          <Route path="/contact-us" element={<ContactUs />} />
 
         </Route>
       </Routes>
