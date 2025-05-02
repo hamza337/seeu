@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom';
 
 export default function Topbar() {
   return (
-    <div className="w-full flex justify-end items-center px-2 py-1 bg-amber-500">
+    <div className="w-full flex justify-end items-center px-2 py-1 bg-transparent">
       <div className="flex items-center gap-6">
         <NavLink to="/login" className="text-black font-normal hover:underline">
           Login
