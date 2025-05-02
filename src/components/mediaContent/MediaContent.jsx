@@ -69,7 +69,7 @@ const MediaContent = () => {
   };
 
   return (
-    <div className="px-6 sm:px-10 lg:px-20 py-6 flex flex-col gap-6">
+    <div className="px-6 sm:px-10 lg:px-20 py-10 flex flex-col gap-6">
       {/* Heading */}
       <h2 className="text-2xl font-bold text-black">Media</h2>
 
