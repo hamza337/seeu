@@ -26,7 +26,7 @@ const HomeContent = () => {
     <div className="w-full h-full px-6 sm:px-10 lg:px-20 flex flex-col gap-2 items-center">
       {/* Logo */}
       <img
-          src="/Poing.svg" // Change to /poing.svg if it's an SVG
+          src="/Poing-Logo-02.png"
           alt="Poing Logo"
           className="h-18 w-18 object-contain"
         />

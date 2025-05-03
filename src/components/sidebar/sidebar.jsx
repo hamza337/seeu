@@ -13,7 +13,7 @@ const Sidebar = () => {
       {/* Logo */}
       <div className="mb-10">
       <img
-          src="/Poing.svg" // Change to /poing.svg if it's an SVG
+          src="/Poing-Logo-02.png" // Change to /poing.svg if it's an SVG
           alt="Poing Logo"
           className="h-14 w-14 object-contain"
         />
