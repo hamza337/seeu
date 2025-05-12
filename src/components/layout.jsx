@@ -46,7 +46,7 @@
 import { Outlet } from 'react-router-dom';
 import Footer from './footer/Footer';
 import Topbar from './topbar/Topbar';
-import Sidebar from './sidebar/Sidebar';
+import Sidebar from './sidebar/sidebar';
 
 export default function Layout() {
   const topbarHeight = 52;
