@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { Home, Image, Users, X } from 'lucide-react';
+import { Home, Image, Settings, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
+import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
 
 export default function Topbar() {
@@ -11,6 +12,7 @@ export default function Topbar() {
   const [error, setError] = useState('');
   const [user, setUser] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const baseUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
@@ -71,8 +73,44 @@ export default function Topbar() {
   return (
     <>
       {/* Topbar */}
-      <div className="w-full flex justify-end items-center px-2 py-1 bg-transparent">
-        <div className="flex items-center gap-6">
+      <div className="w-full flex justify-end items-center px-2 py-1 bg-transparent relative">
+        {/* Help Icon */}
+        <div
+          className="relative group"
+          onMouseEnter={() => setShowHelp(true)}
+          onMouseLeave={() => setShowHelp(false)}
+        >
+          <div className="p-2 rounded-full bg-gray-300">
+            <IoHelpOutline className="text-[#0b4bb2] w-5 h-5 cursor-pointer" />
+          </div>
+          {showHelp && (
+            <div className="absolute right-0 top-10 w-150 p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-50">
+              <p className="text-lg font-semibold mb-2">About Poing</p>
+              <p className="mb-2">
+                Poing is a smarter, more effective tool for posting and locating lost items, witnesses to events (such as thefts, accidents, or unique moments), as well as lost pets and people — all based on location and time!
+              </p>
+              <p className="mb-2">
+                Our platform connects the entire world through a single map and local time system, eliminating the need to join multiple communities, browse endless boards, or sort through thousands of unrelated posts.
+              </p>
+              <p className="mb-2">
+                Posting is easy: simply upload or record a photo or video via your mobile device or web browser, mark the location and time, and choose whether to offer the media for free, request a fee, or make it available exclusively to one recipient.
+              </p>
+              <p className="mb-2">
+                Searching is just as simple: enter a location, radius, and timeframe to find the item, event, or person you're looking for. If no matching posts are available, you can set a notification alert so others know you're searching — and you'll be notified instantly if a relevant post is created.
+              </p>
+              <p className="font-semibold">
+                Go ahead - Just Poing It!
+              </p>
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-6 ml-4">
+          <NavLink to="/settings">
+            <div className="p-2 rounded-full bg-gray-300">
+              <IoSettings className="text-[#0b4bb2] w-5 h-5 cursor-pointer" />
+            </div>
+          </NavLink>
           {!user ? (
             <>
               <button onClick={() => setModal('login')} className="text-black font-normal hover:underline">Login</button>
@@ -83,7 +121,7 @@ export default function Topbar() {
               <img
                 src="/icons8-male-user-48.png"
                 alt="Profile"
-                className="h-10 w-10 rounded-full object-cover cursor-pointer"
+                className="h-11 w-11 rounded-full object-cover cursor-pointer"
                 onClick={() => setDropdownOpen(prev => !prev)}
               />
               {dropdownOpen && (
@@ -103,12 +141,6 @@ export default function Topbar() {
               )}
             </div>
           )}
-          <NavLink to="/media">
-            <Image className="text-black hover:text-gray-600" />
-          </NavLink>
-          <NavLink to="/user">
-            <Users className="text-black hover:text-gray-600" />
-          </NavLink>
         </div>
       </div>
 

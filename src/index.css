@@ -59,3 +59,31 @@ h1 {
 .scrollbar-hide:focus::-webkit-scrollbar-thumb {
   background: #888;
 }
+
+.gmnoprint a, .gm-style-cc {
+  display: none !important;
+}
+
+.pac-container:after {
+  /* Disclaimer: not needed to show 'powered by Google' if also a Google Map is shown */
+
+  background-image: none !important;
+  height: 0px;
+}
+
+.pac-container:after {
+  /* Disclaimer: not needed to show 'powered by Google' if also a Google Map is shown */
+  content: none !important;
+}
+
+
+.custom-number-input::-webkit-outer-spin-button,
+.custom-number-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Hide spinners for Firefox */
+.custom-number-input[type='number'] {
+  -moz-appearance: textfield;
+}

@@ -30,7 +30,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
           <Route path="media" element={<Media />} />
           <Route path="/media/:id" element={<MediaDetail />} />
           <Route path="/media/:id/buy-now" element={<Payment />} />
-          <Route path="user" element={<Users />} />
+          <Route path="settings" element={<Users />} />
           <Route path="user/language-setting" element={<LanguageSetting />} />
           <Route path="privacy-policy" element={<PrivacyPolicy />} />
           <Route path="user-agreement" element={<UserAgreement />} />

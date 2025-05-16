@@ -13,21 +13,19 @@ export default function SearchDrawer({ isOpen, onClose, selectedEventType, setSe
       } w-64`}
     >
       <div className="p-4 flex justify-between items-center border-b">
-        <h2 className="text-lg font-semibold">Search</h2>
+        <h2 className="text-lg text-black font-semibold">Search</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
-      <div className="p-4 space-y-3">
-        <label className='text-black'>Where</label>
-        <input type="text" className="w-full p-2 border rounded text-black" />
-        <label className='text-black'>When</label>
-        <input type="text" className="w-full p-2 border rounded text-black" />
-        <label className='text-black'>What</label>
+      <div className="p-4 space-y-12">
+        <input type="text" placeholder='Where' className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500" />
+        <input type="text" placeholder='When' className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500" />
+        {/* <label className='text-black'>What</label> */}
         <div className="relative">
           <button
             onClick={handleDropdownToggle}
-            className="w-full p-3 border border-black rounded-lg flex justify-between items-center text-black"
+            className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
           >
-            <span>{selectedEventType || 'Select an Event Type'}</span>
+            <span className='text-gray-800'>{selectedEventType || 'Select an Event Type'}</span>
             <span>{isDropdownOpen ? '▲' : '▼'}</span>
           </button>
           <div
