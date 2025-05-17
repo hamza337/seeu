@@ -58,6 +58,84 @@ const applyJitter = (lat, lng, index, total) => {
   return { lat: newLat, lng: newLng };
 };
 
+// Helper function to load an image and return a Promise
+const loadImage = (url) => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = reject;
+    img.src = url;
+  });
+};
+
+// Function to create a cluster icon on a canvas
+const createClusterIcon = async (count, markers) => {
+  const canvas = document.createElement('canvas');
+  const context = canvas.getContext('2d');
+  const iconSize = 32; // Increased size for the individual icons
+  const padding = 6; // Padding between elements (slightly increased for larger icons)
+  const countAreaWidth = 60; // Fixed width for the count area
+
+  const iconsToDraw = markers.slice(0, 3);
+  const numIcons = iconsToDraw.length;
+
+  // Calculate dimensions
+  const iconAreaWidth = numIcons * (iconSize + padding) - (numIcons > 0 ? padding : 0); // Sum of icon widths + padding between them
+  const totalWidth = countAreaWidth + padding + iconAreaWidth + padding; // Count area + padding + Icons + padding
+  const totalHeight = Math.max(iconSize, 40) + padding * 2; // Height is based on max of iconSize or a base size, plus padding
+
+  canvas.width = totalWidth;
+  canvas.height = totalHeight;
+
+  // Draw rounded background (matches the gray bar)
+  const cornerRadius = totalHeight / 2;
+  context.fillStyle = '#d3d3d3'; // Light gray background color
+  context.shadowColor = 'rgba(0, 0, 0, 0.3)';
+  context.shadowBlur = 3;
+  context.shadowOffsetY = 1;
+  context.beginPath();
+  context.roundRect(0, 0, totalWidth, totalHeight, cornerRadius);
+  context.fill();
+
+  // Draw count text with plus sign on the gray background
+  context.font = 'bold 20px Arial'; // Slightly larger font for count
+  context.fillStyle = '#000'; // Black text color
+  context.textAlign = 'center';
+  context.textBaseline = 'middle';
+  const countText = `+${count}`;
+  const countTextX = padding + countAreaWidth / 2;
+  const countTextY = totalHeight / 2;
+  context.fillText(countText, countTextX, countTextY);
+
+  // Draw icons
+  let currentIconX = padding + countAreaWidth + padding; // Start drawing icons after the count area and padding
+  for (const marker of iconsToDraw) {
+    const icon = marker.getIcon();
+    const iconUrl = typeof icon === 'string' ? icon : icon.url;
+    if (iconUrl) {
+      try {
+        const img = await loadImage(iconUrl);
+        // Center icon vertically
+        context.drawImage(img, currentIconX, (totalHeight - iconSize) / 2, iconSize, iconSize);
+        currentIconX += iconSize + padding;
+      } catch (error) {
+        console.error('Failed to load icon for canvas:', iconUrl, error);
+        // Draw a placeholder or skip if image fails to load
+      }
+    }
+  }
+
+  // Calculate anchor point (center of the total shape)
+  const anchorX = totalWidth / 2;
+  const anchorY = totalHeight / 2;
+
+  return {
+    url: canvas.toDataURL(),
+    scaledSize: new window.google.maps.Size(totalWidth, totalHeight),
+    anchor: new window.google.maps.Point(anchorX, anchorY),
+  };
+};
+
 const HomeContent = () => {
   const [center, setCenter] = useState(defaultCenter);
   const [events, setEvents] = useState([]);
@@ -140,85 +218,67 @@ const HomeContent = () => {
           ? applyJitter(event.latitude, event.longitude, index, group.length)
           : { lat: event.latitude, lng: event.longitude };
 
-        // const categoryImageMap = {
-        //   'Accident': '/accident.svg',
-        //   'Pet': '/pet.svg',
-        //   'Crime': '/crime.svg',
-        //   'Other': '/other.svg',
-        //   'People': '/people.svg'
-        // };
-
-        // if (categoryImageMap[event.category]) {
-        //   return new window.google.maps.Marker({
-        //     position,
-        //     icon: {
-        //       url: categoryImageMap[event.category],
-        //       scaledSize: new window.google.maps.Size(55, 55)
-        //     }
-        //   });
-        // }
-
         let iconUrl = null;
 
-// Try to parse media to check type
-let mediaType = null;
-try {
-  const mediaArray = JSON.parse(event.media);
-  if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-    mediaType = mediaArray[0].type; // 'image' or 'video'
-  }
-} catch (e) {
-  console.warn('Failed to parse media JSON:', event.media);
-}
+      // Try to parse media to check type
+      let mediaType = null;
+      try {
+        const mediaArray = JSON.parse(event.media);
+        if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+          mediaType = mediaArray[0].type; // 'image' or 'video'
+        }
+      } catch (e) {
+        console.warn('Failed to parse media JSON:', event.media);
+      }
 
-// Define dynamic category+mediaType image map
-const dynamicCategoryIcons = {
-  'Accident': {
-    image: '/accident1.svg',
-    video: '/accident2.svg'
-  },
-  'Pet': {
-    image: '/pet1.svg',
-    video: '/pet2.svg'
-  },
-  'Crime': {
-    image: '/crime1.svg',
-    video: '/crime2.svg'
-  },
-  'Other': {
-    image: '/other1.svg',
-    video: '/other2.svg'
-  },
-  'People': {
-    image: '/people1.svg',
-    video: '/people2.svg'
-  }
-};
+      // Define dynamic category+mediaType image map
+      const dynamicCategoryIcons = {
+        'Accident': {
+          image: '/accident1.svg',
+          video: '/accident2.svg'
+        },
+        'Pet': {
+          image: '/pet1.svg',
+          video: '/pet2.svg'
+        },
+        'Crime': {
+          image: '/crime1.svg',
+          video: '/crime2.svg'
+        },
+        'Other': {
+          image: '/other1.svg',
+          video: '/other2.svg'
+        },
+        'People': {
+          image: '/people1.svg',
+          video: '/people2.svg'
+        }
+      };
 
 // Check for dynamic icon
-if (dynamicCategoryIcons[event.category] && mediaType) {
-  iconUrl = dynamicCategoryIcons[event.category][mediaType];
-} else {
-  // Fallback to static icon
-  const staticIcons = {
-    'Accident': '/accident.svg',
-    'Pet': '/pet.svg',
-    'Crime': '/crime.svg',
-    'Other': '/other.svg',
-    'People': '/people.svg'
-  };
-  iconUrl = staticIcons[event.category];
-}
+      if (dynamicCategoryIcons[event.category] && mediaType) {
+        iconUrl = dynamicCategoryIcons[event.category][mediaType];
+      } else {
+        // Fallback to static icon
+        const staticIcons = {
+          'Accident': '/accident.svg',
+          'Pet': '/pet.svg',
+          'Crime': '/crime.svg',
+          'Other': '/other.svg',
+          'People': '/people.svg'
+        };
+        iconUrl = staticIcons[event.category];
+      }
 
-if (iconUrl) {
-  return new window.google.maps.Marker({
-    position,
-    icon: {
-      url: iconUrl,
-      scaledSize: new window.google.maps.Size(100, 100)
-    }
-  });
-}
+      if (iconUrl) {
+        return new window.google.maps.Marker({
+          position,
+          icon: {
+            url: iconUrl,
+            scaledSize: new window.google.maps.Size(100, 100)
+          }
+        });
+      }
 
 
         const IconComponent = iconMap[event.category] || MapPin;
@@ -241,40 +301,23 @@ if (iconUrl) {
       map: mapRef.current,
       renderer: {
         render: ({ count, markers }) => {
-          const iconsToShow = markers.slice(0, 3).map(marker => {
-            const iconUrl = marker.getIcon()?.url;
-            return `<img src="${iconUrl}" style="width:24px;height:24px;margin-right:2px;" />`;
-          }).join('');
-
-          const extraCount = count > 3 ? `<span style="font-weight:bold;margin-left:4px;">+${count - 3}</span>` : '';
-
-          const html = `
-            <div style="display:flex;align-items:center;background-color:#e5e7eb;padding:4px 8px;border-radius:9999px;box-shadow:0 1px 3px rgba(0,0,0,0.3);">
-              ${iconsToShow}
-              ${extraCount}
-            </div>
-          `;
-
-          return new window.google.maps.Marker({
+          // Create a placeholder marker immediately
+          const clusterMarker = new window.google.maps.Marker({
             position: markers[0].getPosition(),
-            icon: {
-              url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(`
-                <svg xmlns='http://www.w3.org/2000/svg' width='64' height='40'>
-                  <foreignObject width='100%' height='100%'>
-                    <div xmlns='http://www.w3.org/1999/xhtml' style="display:flex;align-items:center;background-color:#e5e7eb;padding:4px 8px;border-radius:9999px;box-shadow:0 1px 3px rgba(0,0,0,0.3);">
-                      ${iconsToShow}
-                      ${extraCount}
-                    </div>
-                  </foreignObject>
-                </svg>
-              `)}`,
-              scaledSize: new window.google.maps.Size(64, 40),
-              anchor: new window.google.maps.Point(32, 20)
-            },
-            zIndex: Number(window.google.maps.Marker.MAX_ZINDEX) + count
+            zIndex: Number(window.google.maps.Marker.MAX_ZINDEX) + count,
           });
-        }
-      }
+
+          // Asynchronously create and set the icon
+          createClusterIcon(count, markers).then(iconInfo => {
+            clusterMarker.setIcon(iconInfo);
+          }).catch(error => {
+            console.error('Error creating cluster icon:', error);
+          });
+
+          // Return the placeholder marker synchronously
+          return clusterMarker;
+        },
+      },
     });
   }, [events]);
 
