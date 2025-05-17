@@ -140,23 +140,86 @@ const HomeContent = () => {
           ? applyJitter(event.latitude, event.longitude, index, group.length)
           : { lat: event.latitude, lng: event.longitude };
 
-        const categoryImageMap = {
-          'Accident': '/accident.svg',
-          'Pet': '/pet.svg',
-          'Crime': '/crime.svg',
-          'Other': '/other.svg',
-          'People': '/people.svg'
-        };
+        // const categoryImageMap = {
+        //   'Accident': '/accident.svg',
+        //   'Pet': '/pet.svg',
+        //   'Crime': '/crime.svg',
+        //   'Other': '/other.svg',
+        //   'People': '/people.svg'
+        // };
 
-        if (categoryImageMap[event.category]) {
-          return new window.google.maps.Marker({
-            position,
-            icon: {
-              url: categoryImageMap[event.category],
-              scaledSize: new window.google.maps.Size(55, 55)
-            }
-          });
-        }
+        // if (categoryImageMap[event.category]) {
+        //   return new window.google.maps.Marker({
+        //     position,
+        //     icon: {
+        //       url: categoryImageMap[event.category],
+        //       scaledSize: new window.google.maps.Size(55, 55)
+        //     }
+        //   });
+        // }
+
+        let iconUrl = null;
+
+// Try to parse media to check type
+let mediaType = null;
+try {
+  const mediaArray = JSON.parse(event.media);
+  if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+    mediaType = mediaArray[0].type; // 'image' or 'video'
+  }
+} catch (e) {
+  console.warn('Failed to parse media JSON:', event.media);
+}
+
+// Define dynamic category+mediaType image map
+const dynamicCategoryIcons = {
+  'Accident': {
+    image: '/accident1.svg',
+    video: '/accident2.svg'
+  },
+  'Pet': {
+    image: '/pet1.svg',
+    video: '/pet2.svg'
+  },
+  'Crime': {
+    image: '/crime1.svg',
+    video: '/crime2.svg'
+  },
+  'Other': {
+    image: '/other1.svg',
+    video: '/other2.svg'
+  },
+  'People': {
+    image: '/people1.svg',
+    video: '/people2.svg'
+  }
+};
+
+// Check for dynamic icon
+if (dynamicCategoryIcons[event.category] && mediaType) {
+  iconUrl = dynamicCategoryIcons[event.category][mediaType];
+} else {
+  // Fallback to static icon
+  const staticIcons = {
+    'Accident': '/accident.svg',
+    'Pet': '/pet.svg',
+    'Crime': '/crime.svg',
+    'Other': '/other.svg',
+    'People': '/people.svg'
+  };
+  iconUrl = staticIcons[event.category];
+}
+
+if (iconUrl) {
+  return new window.google.maps.Marker({
+    position,
+    icon: {
+      url: iconUrl,
+      scaledSize: new window.google.maps.Size(100, 100)
+    }
+  });
+}
+
 
         const IconComponent = iconMap[event.category] || MapPin;
         return new window.google.maps.Marker({
