@@ -1,59 +1,264 @@
-import { X, SquareActivity, PawPrint, Bike, Camera, MapPin } from 'lucide-react';
-import { useState } from 'react';
+import { X, SquareActivity, PawPrint, Bike, Camera, Users, MapPin, Glasses, Lock } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
+import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import axios from 'axios';
 
-export default function SearchDrawer({ isOpen, onClose, selectedEventType, setSelectedEventType }) {
+const ResultsDrawer = ({ results, onClose, onEventClick }) => {
+  const categoryIcons = {
+    'Accident': <SquareActivity size={20} className="text-red-500" />,
+    'Pet': <PawPrint size={20} className="text-blue-500" />,
+    'Lost & Found': <Glasses size={20} className="text-purple-500" />,
+    'Crime': <Camera size={20} className="text-orange-500" />,
+    'People': <Users size={20} className="text-green-500" />,
+    'Other': <MapPin size={20} className="text-gray-500" />
+  };
+
+  return (
+    <div className="fixed top-0 left-80 h-[80vh] w-1/2 bg-white shadow-lg z-50 mt-[10vh] rounded-lg overflow-hidden">
+      <div className="p-4 flex justify-between items-center border-b">
+        <h2 className="text-lg text-black font-semibold">Search Results</h2>
+        <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
+      </div>
+      <div className="overflow-y-auto h-[calc(80vh-4rem)] p-4 scrollbar-hide">
+        {results && results.message === "No events found. Search marker saved." ? (
+          <div className="text-center text-gray-600 mt-8">
+            <p className="text-lg font-semibold mb-2">No events found.</p>
+            <p>Your search criteria have been saved as a search marker.</p>
+            {results.searchMarker && (
+              <div className="mt-4 p-4 bg-gray-100 rounded-lg text-left">
+                <p className="font-medium">Saved Search Marker:</p>
+                <p className="text-sm">Category: {results.searchMarker.label}</p>
+                <p className="text-sm">Lat: {results.searchMarker.lat}, Lng: {results.searchMarker.lng}</p>
+              </div>
+            )}
+          </div>
+        ) : (
+          Object.entries(results || {}).map(([distance, events]) => (
+            <div key={distance} className="mb-6">
+              <h3 className="text-lg font-semibold text-gray-800 mb-3">{distance}</h3>
+              <div className="space-y-4">
+                {Array.isArray(events) && events.map((event) => (
+                  <div 
+                    key={event.id} 
+                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
+                    onClick={() => {
+                      console.log('Event card clicked:', event.id, event.latitude, event.longitude);
+                      onEventClick(event.latitude, event.longitude);
+                      onClose();
+                    }}
+                  >
+                    <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
+                      {event.media && event.media[0] ? (
+                        event.media[0].type === 'video' ? (
+                          <video 
+                            src={event.media[0].url} 
+                            className="w-full h-full object-cover"
+                            controls
+                          />
+                        ) : (
+                          <img 
+                            src={event.media[0].url} 
+                            alt={event.title}
+                            className="w-full h-full object-cover"
+                          />
+                        )
+                      ) : (
+                        <div className="w-full h-full flex items-center justify-center bg-gray-300">
+                          <Camera size={24} className="text-gray-500" />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        {categoryIcons[event.category]}
+                        <h4 className="font-medium text-gray-900">{event.title}</h4>
+                      </div>
+                      <p className="text-sm text-gray-600 mb-2">{event.address}</p>
+                      <div className="flex items-center gap-2">
+                        {!event.isFree && (
+                          <span className="text-sm font-medium text-green-600">${event.price}</span>
+                        )}
+                        {event.isExclusive && (
+                          <span className="flex items-center gap-1 text-sm text-purple-600">
+                            <Lock size={14} />
+                            Exclusive
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default function SearchDrawer({ isOpen, onClose, selectedEventType, setSelectedEventType, onEventClick }) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [location, setLocation] = useState({ lat: null, lng: null, address: '' });
+  const [searchResults, setSearchResults] = useState(null);
+  const autocompleteRef = useRef(null);
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
+    libraries: ['places']
+  });
+
+  useEffect(() => {
+    if (!isOpen) {
+      console.log('SearchDrawer: Clearing state due to isOpen becoming false.');
+      setSelectedEventType(null);
+      setSelectedDate(null);
+      setLocation({ lat: null, lng: null, address: '' });
+      setSearchResults(null);
+      if (autocompleteRef.current) {
+        setLocation(prev => ({ ...prev, address: '' }));
+      }
+    }
+  }, [isOpen, setSelectedEventType, setSelectedDate, setLocation, setSearchResults]);
+
 
   const handleDropdownToggle = () => setIsDropdownOpen(!isDropdownOpen);
 
+  const handlePlaceChanged = () => {
+    if (autocompleteRef.current) {
+      const place = autocompleteRef.current.getPlace();
+      if (place.geometry) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        console.log('Selected Location Coordinates:', { lat, lng });
+        setLocation({
+          lat,
+          lng,
+          address: place.formatted_address
+        });
+      }
+    }
+  };
+
+  const handleSearch = async () => {
+    if (!selectedEventType || !location.lat || !location.lng) {
+      console.log('Please select an event type and location');
+      return;
+    }
+
+    try {
+      let formattedDate = '';
+      if (selectedDate) {
+        const year = selectedDate.getFullYear();
+        const month = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const day = String(selectedDate.getDate()).padStart(2, '0');
+        formattedDate = `${year}-${month}-${day}`;
+      }
+
+      const response = await axios.get('http://3.111.86.115/events/search', {
+        params: {
+          query: selectedEventType,
+          lat: location.lat,
+          lng: location.lng,
+          date: formattedDate
+        }
+      });
+      console.log('Search Results:', response.data);
+      setSearchResults(response.data);
+    } catch (error) {
+      console.error('Error searching events:', error);
+    }
+  };
+
   return (
-    <div
-      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-60 transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-14' : '-translate-x-full'
-      } w-64`}
-    >
-      <div className="p-4 flex justify-between items-center border-b">
-        <h2 className="text-lg text-black font-semibold">Search</h2>
-        <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
-      </div>
-      <div className="p-4 space-y-12">
-        <input type="text" placeholder='Where' className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500" />
-        <input type="text" placeholder='When' className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500" />
-        {/* <label className='text-black'>What</label> */}
-        <div className="relative">
-          <button
-            onClick={handleDropdownToggle}
-            className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
-          >
-            <span className='text-gray-800'>{selectedEventType || 'Select an Event Type'}</span>
-            <span>{isDropdownOpen ? '▲' : '▼'}</span>
-          </button>
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
-              isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
-            } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
-          >
-            {[{ label: 'Accident', icon: <SquareActivity size={16} /> },
-              { label: 'Theft', icon: <PawPrint size={16} /> },
-              { label: 'Animal', icon: <Bike size={16} /> },
-              { label: 'Crime', icon: <Camera size={16} /> },
-              { label: 'Other', icon: <MapPin size={16} color="black" /> }].map((item) => (
-              <div
-                key={item.label}
-                onClick={() => {
-                  setSelectedEventType(item.label);
-                  setIsDropdownOpen(false);
-                }}
-                className="py-1 px-3 text-black hover:bg-gray-100 cursor-pointer flex justify-between items-center"
-              >
-                <span>{item.label}</span>
-                <span>{item.icon}</span>
-              </div>
-            ))}
-          </div>
+    <>
+      <div
+        className={`fixed top-0 left-0 h-full bg-white shadow-lg z-60 transition-transform duration-300 ease-in-out ${
+          isOpen ? 'translate-x-14' : '-translate-x-full'
+        } w-64`}
+      >
+        <div className="p-4 flex justify-between items-center border-b">
+          <h2 className="text-lg text-black font-semibold">Search</h2>
+          <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
         </div>
-        <button className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Search</button>
+        <div className="p-4 space-y-12">
+          {isLoaded && (
+            <Autocomplete
+              onLoad={ref => (autocompleteRef.current = ref)}
+              onPlaceChanged={handlePlaceChanged}
+            >
+              <input
+                type="text"
+                placeholder="Where"
+                value={location.address}
+                onChange={(e) => setLocation(prev => ({ ...prev, address: e.target.value }))}
+                className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
+              />
+            </Autocomplete>
+          )}
+          <div className="relative">
+            <DatePicker
+              selected={selectedDate}
+              onChange={(date) => setSelectedDate(date)}
+              placeholderText="When"
+              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
+              dateFormat="MMMM d, yyyy"
+              isClearable
+              showPopperArrow={false}
+            />
+          </div>
+          <div className="relative">
+            <button
+              onClick={handleDropdownToggle}
+              className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
+            >
+              <span className='text-gray-800'>{selectedEventType || 'Select an Event Type'}</span>
+              <span>{isDropdownOpen ? '▲' : '▼'}</span>
+            </button>
+            <div
+              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+                isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
+              } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
+            >
+              {[{ label: 'Accident', icon: <SquareActivity size={16} /> },
+                { label: 'Pet', icon: <PawPrint size={16} /> },
+                { label: 'Lost & Found', icon: <Glasses size={16} /> },
+                { label: 'Crime', icon: <Camera size={16} /> },
+                { label: 'People', icon: <Users size={16} /> },
+                { label: 'Other', icon: <MapPin size={16} color="black" /> }].map((item) => (
+                <div
+                  key={item.label}
+                  onClick={() => {
+                    setSelectedEventType(item.label);
+                    setIsDropdownOpen(false);
+                  }}
+                  className="py-1 px-3 text-black hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                >
+                  <span>{item.label}</span>
+                  <span>{item.icon}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+          <button 
+            onClick={handleSearch}
+            className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+          >
+            Search
+          </button>
+        </div>
       </div>
-    </div>
+      {searchResults && (
+        <ResultsDrawer 
+          results={searchResults} 
+          onClose={onClose}
+          onEventClick={onEventClick} 
+        />
+      )}
+    </>
   );
 }

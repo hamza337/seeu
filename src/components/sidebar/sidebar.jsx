@@ -1,14 +1,34 @@
 import { Home, Search, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import SearchDrawer from './drawers/SearchDrawer';
 import LocationDrawer from './drawers/LocationDrawer';
+import { useMap } from '../../contexts/MapContext';
 
 export default function Sidebar() {
   const [activeDrawer, setActiveDrawer] = useState(null);
+  const [selectedEventType, setSelectedEventType] = useState(null);
+  const { setMapFocusLocation, mapFocusLocation, focusMapFn } = useMap();
+  const clearMapFocusTimeoutRef = useRef(null);
 
   const toggleDrawer = (drawer) => {
     setActiveDrawer((prev) => (prev === drawer ? null : drawer));
+
+    // Clear map focus only when opening the search drawer
+    if (drawer === 'search') {
+      console.log('Opening search drawer, clearing map focus.');
+      setMapFocusLocation(null);
+    }
+  };
+
+  const handleEventClick = (lat, lng) => {
+    console.log('handleEventClick called with:', { lat, lng });
+    console.log('Value of focusMapFn in Sidebar:', focusMapFn);
+    console.log('Calling focusMapFn.');
+    if (focusMapFn) {
+      focusMapFn(lat, lng);
+    }
+    setActiveDrawer(null);
   };
 
   return (
@@ -30,12 +50,15 @@ export default function Sidebar() {
 
       <SearchDrawer
         isOpen={activeDrawer === 'search'}
-        onClose={() => setActiveDrawer(null)}
+        onClose={() => toggleDrawer(null)}
+        selectedEventType={selectedEventType}
+        setSelectedEventType={setSelectedEventType}
+        onEventClick={handleEventClick}
       />
 
       <LocationDrawer
         isOpen={activeDrawer === 'location'}
-        onClose={() => setActiveDrawer(null)}
+        onClose={() => toggleDrawer(null)}
       />
     </>
   );

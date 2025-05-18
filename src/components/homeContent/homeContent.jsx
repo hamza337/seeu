@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import { useMap } from '../../contexts/MapContext';
 
 const containerStyle = {
   width: '100%',
@@ -35,14 +36,23 @@ const iconMap = {
 
 const libraries = ['places'];
 
-const groupEventsByLatLng = (events) => {
+const groupEventsByLatLng = (items) => {
   const map = new Map();
-  for (const event of events) {
-    const key = `${event.latitude.toFixed(5)},${event.longitude.toFixed(5)}`;
-    if (!map.has(key)) {
-      map.set(key, []);
+  for (const item of items) {
+    // Use item.latitude or item.lat, item.longitude or item.lng
+    const lat = item.latitude || item.lat;
+    const lng = item.longitude || item.lng;
+
+    // Ensure lat and lng are valid numbers before calling toFixed
+    if (typeof lat === 'number' && typeof lng === 'number') {
+      const key = `${lat.toFixed(5)},${lng.toFixed(5)}`;
+      if (!map.has(key)) {
+        map.set(key, []);
+      }
+      map.get(key).push(item);
+    } else {
+       console.warn('Skipping item with invalid coordinates:', item);
     }
-    map.get(key).push(event);
   }
   return Array.from(map.values());
 };
@@ -74,17 +84,22 @@ const createClusterIcon = async (count, markers) => {
   const context = canvas.getContext('2d');
   const iconSize = 32; // Increased size for the individual icons
   const padding = 6; // Padding between elements (slightly increased for larger icons)
-  const countAreaWidth = 60; // Fixed width for the count area
+  const countAreaWidth = 60; // Fixed width reserved for the count area when needed
 
   const iconsToDraw = markers.slice(0, 3);
   const numIcons = iconsToDraw.length;
 
-  // Calculate dimensions
-  const iconAreaWidth = numIcons * (iconSize + padding) - (numIcons > 0 ? padding : 0); // Sum of icon widths + padding between them
-  const totalWidth = countAreaWidth + padding + iconAreaWidth + padding; // Count area + padding + Icons + padding
+  // Calculate dynamic widths
+  const iconAreaWidth = numIcons > 0 ? numIcons * (iconSize + padding) - padding : 0; // Sum of icon widths + padding between them
+  const calculatedCountAreaWidth = count > 3 ? countAreaWidth : 0; // Only include count area width if count > 3
+
+  const totalWidth = calculatedCountAreaWidth + (calculatedCountAreaWidth > 0 ? padding : 0) + iconAreaWidth + (iconAreaWidth > 0 ? padding : 0); // Sum of widths + padding. Add padding only if the element before it exists.
   const totalHeight = Math.max(iconSize, 40) + padding * 2; // Height is based on max of iconSize or a base size, plus padding
 
-  canvas.width = totalWidth;
+  // Ensure a minimum width if there are icons but no count area
+  const finalWidth = Math.max(totalWidth, numIcons > 0 ? iconAreaWidth + padding * 2 : 0);
+
+  canvas.width = finalWidth;
   canvas.height = totalHeight;
 
   // Draw rounded background (matches the gray bar)
@@ -94,7 +109,7 @@ const createClusterIcon = async (count, markers) => {
   context.shadowBlur = 3;
   context.shadowOffsetY = 1;
   context.beginPath();
-  context.roundRect(0, 0, totalWidth, totalHeight, cornerRadius);
+  context.roundRect(0, 0, finalWidth, totalHeight, cornerRadius);
   context.fill();
 
   // Draw count text with plus sign on the gray background
@@ -102,13 +117,24 @@ const createClusterIcon = async (count, markers) => {
   context.fillStyle = '#000'; // Black text color
   context.textAlign = 'center';
   context.textBaseline = 'middle';
-  const countText = `+${count}`;
-  const countTextX = padding + countAreaWidth / 2;
-  const countTextY = totalHeight / 2;
-  context.fillText(countText, countTextX, countTextY);
+
+  let countText = ''; // Initialize countText as empty
+  if (count > 3) {
+    const displayedCount = count - 3;
+    countText = `+${displayedCount}`;
+  }
+
+  // Only draw text if countText is not empty
+  if (countText) {
+    const countTextX = padding + countAreaWidth / 2;
+    const countTextY = totalHeight / 2;
+    context.fillText(countText, countTextX, countTextY);
+  }
 
   // Draw icons
-  let currentIconX = padding + countAreaWidth + padding; // Start drawing icons after the count area and padding
+  // Start drawing icons after the count area and its padding (if count area exists)
+  let currentIconX = (calculatedCountAreaWidth > 0 ? calculatedCountAreaWidth + padding : padding); // Start icons after count area + padding OR just padding if no count area
+
   for (const marker of iconsToDraw) {
     const icon = marker.getIcon();
     const iconUrl = typeof icon === 'string' ? icon : icon.url;
@@ -126,12 +152,12 @@ const createClusterIcon = async (count, markers) => {
   }
 
   // Calculate anchor point (center of the total shape)
-  const anchorX = totalWidth / 2;
+  const anchorX = finalWidth / 2;
   const anchorY = totalHeight / 2;
 
   return {
     url: canvas.toDataURL(),
-    scaledSize: new window.google.maps.Size(totalWidth, totalHeight),
+    scaledSize: new window.google.maps.Size(finalWidth, totalHeight),
     anchor: new window.google.maps.Point(anchorX, anchorY),
   };
 };
@@ -139,6 +165,7 @@ const createClusterIcon = async (count, markers) => {
 const HomeContent = () => {
   const [center, setCenter] = useState(defaultCenter);
   const [events, setEvents] = useState([]);
+  const [searchMarkers, setSearchMarkers] = useState([]);
   const mapRef = useRef(null);
   const markersRef = useRef([]);
   const clustererRef = useRef(null);
@@ -148,6 +175,10 @@ const HomeContent = () => {
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries
   });
+
+  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn } = useMap();
+
+  console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -160,6 +191,22 @@ const HomeContent = () => {
       () => setCenter(defaultCenter)
     );
   }, []);
+
+  // Define the function to focus the map
+  const focusMapOnLocation = useCallback((lat, lng) => {
+    if (mapRef.current && isLoaded) {
+      console.log('Focusing map directly on:', { lat, lng });
+      mapRef.current.panTo({ lat, lng });
+      mapRef.current.setZoom(18); // Adjusted zoom level
+    }
+  }, [isLoaded]); // Depend on isLoaded
+
+  // Set the focusMapOnLocation function in context when it's available
+  useEffect(() => {
+    if (focusMapOnLocation) {
+      setFocusMapFn(() => focusMapOnLocation); // Set the function in context
+    }
+  }, [focusMapOnLocation, setFocusMapFn]); // Depend on the function and its setter
 
   const fetchEvents = async (bounds) => {
     try {
@@ -174,9 +221,11 @@ const HomeContent = () => {
           }
         }
       );
-      setEvents(res.data);
+      console.log('API response:', res.data);
+      setEvents(res.data.events || []);
+      setSearchMarkers(res.data.searchMarkers || []);
     } catch (err) {
-      console.error('Error fetching events:', err);
+      console.error('Error fetching data:', err);
     }
   };
 
@@ -201,7 +250,7 @@ const HomeContent = () => {
   };
 
   useEffect(() => {
-    if (!mapRef.current || !window.google || !events.length) return;
+    if (!mapRef.current || !window.google) return;
 
     if (clustererRef.current) {
       clustererRef.current.clearMarkers();
@@ -210,78 +259,90 @@ const HomeContent = () => {
     markersRef.current.forEach((m) => m.setMap(null));
     markersRef.current = [];
 
-    const groups = groupEventsByLatLng(events);
+    const allItems = [
+      ...(events || []).map(item => ({ ...item, type: 'event' })),
+      ...(searchMarkers || []).map(item => ({ ...item, type: 'searchMarker' }))
+    ];
+
+    if (allItems.length === 0) return;
+
+    const groups = groupEventsByLatLng(allItems);
 
     const newMarkers = groups.flatMap((group) =>
-      group.map((event, index) => {
+      group.map((item, index) => {
         const position = group.length > 1
-          ? applyJitter(event.latitude, event.longitude, index, group.length)
-          : { lat: event.latitude, lng: event.longitude };
+          ? applyJitter(item.latitude || item.lat, item.longitude || item.lng, index, group.length)
+          : { lat: item.latitude || item.lat, lng: item.longitude || item.lng };
 
         let iconUrl = null;
 
-      // Try to parse media to check type
-      let mediaType = null;
-      try {
-        const mediaArray = JSON.parse(event.media);
-        if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-          mediaType = mediaArray[0].type; // 'image' or 'video'
-        }
-      } catch (e) {
-        console.warn('Failed to parse media JSON:', event.media);
-      }
-
-      // Define dynamic category+mediaType image map
-      const dynamicCategoryIcons = {
-        'Accident': {
-          image: '/accident1.svg',
-          video: '/accident2.svg'
-        },
-        'Pet': {
-          image: '/pet1.svg',
-          video: '/pet2.svg'
-        },
-        'Crime': {
-          image: '/crime1.svg',
-          video: '/crime2.svg'
-        },
-        'Other': {
-          image: '/other1.svg',
-          video: '/other2.svg'
-        },
-        'People': {
-          image: '/people1.svg',
-          video: '/people2.svg'
-        }
-      };
-
-// Check for dynamic icon
-      if (dynamicCategoryIcons[event.category] && mediaType) {
-        iconUrl = dynamicCategoryIcons[event.category][mediaType];
-      } else {
-        // Fallback to static icon
-        const staticIcons = {
-          'Accident': '/accident.svg',
-          'Pet': '/pet.svg',
-          'Crime': '/crime.svg',
-          'Other': '/other.svg',
-          'People': '/people.svg'
-        };
-        iconUrl = staticIcons[event.category];
-      }
-
-      if (iconUrl) {
-        return new window.google.maps.Marker({
-          position,
-          icon: {
-            url: iconUrl,
-            scaledSize: new window.google.maps.Size(100, 100)
+        if (item.type === 'event') {
+          let mediaType = null;
+          try {
+            const mediaArray = JSON.parse(item.media);
+            if (Array.isArray(mediaArray) && mediaArray.length > 0) {
+              mediaType = mediaArray[0].type;
+            }
+          } catch (e) {
+            // console.warn('Failed to parse media JSON for event:', item.media);
           }
-        });
-      }
 
+          const dynamicCategoryIcons = {
+            'Accident': {
+              image: '/accident1.svg',
+              video: '/accident2.svg'
+            },
+            'Pet': {
+              image: '/pet1.svg',
+              video: '/pet2.svg'
+            },
+            'Crime': {
+              image: '/crime1.svg',
+              video: '/crime2.svg'
+            },
+            'Other': {
+              image: '/other1.svg',
+              video: '/other2.svg'
+            },
+            'People': {
+              image: '/people1.svg',
+              video: '/people2.svg'
+            }
+          };
 
-        const IconComponent = iconMap[event.category] || MapPin;
+          if (dynamicCategoryIcons[item.category] && mediaType) {
+            iconUrl = dynamicCategoryIcons[item.category][mediaType];
+          } else {
+            const staticIcons = {
+              'Accident': '/accident.svg',
+              'Pet': '/pet.svg',
+              'Crime': '/crime.svg',
+              'Other': '/other.svg',
+              'People': '/people.svg'
+            };
+            iconUrl = staticIcons[item.category];
+          }
+        } else if (item.type === 'searchMarker') {
+          const category = item.label;
+          if (category === 'Accident') {
+            iconUrl = '/accident3.svg';
+          } else {
+            const lowerCaseCategory = category.toLowerCase().replace(/[^a-z0-9]/g, '');
+            iconUrl = `/${lowerCaseCategory}3.svg`;
+          }
+        }
+
+        if (iconUrl) {
+          return new window.google.maps.Marker({
+            position,
+            icon: {
+              url: iconUrl,
+              scaledSize: new window.google.maps.Size(100, 100)
+            },
+          });
+        }
+
+        const IconComponent = iconMap[item.category || item.label] || MapPin;
         return new window.google.maps.Marker({
           position,
           icon: {
@@ -289,37 +350,38 @@ const HomeContent = () => {
               renderToString(<IconComponent color="red" size={32} />)
             )}`,
             scaledSize: new window.google.maps.Size(32, 32)
-          }
+          },
         });
       })
     );
 
     markersRef.current = newMarkers;
 
+    if (clustererRef.current) {
+        clustererRef.current.clearMarkers();
+    }
+
     clustererRef.current = new MarkerClusterer({
       markers: newMarkers,
       map: mapRef.current,
       renderer: {
         render: ({ count, markers }) => {
-          // Create a placeholder marker immediately
           const clusterMarker = new window.google.maps.Marker({
             position: markers[0].getPosition(),
             zIndex: Number(window.google.maps.Marker.MAX_ZINDEX) + count,
           });
 
-          // Asynchronously create and set the icon
           createClusterIcon(count, markers).then(iconInfo => {
             clusterMarker.setIcon(iconInfo);
           }).catch(error => {
             console.error('Error creating cluster icon:', error);
           });
 
-          // Return the placeholder marker synchronously
           return clusterMarker;
         },
       },
     });
-  }, [events]);
+  }, [events, searchMarkers]);
 
   const badges = [
     { icon: <img src="/accident.svg" alt="Accident" className="w-8 h-8" />, name: 'Accidents' },

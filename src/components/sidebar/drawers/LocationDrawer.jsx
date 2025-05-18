@@ -272,7 +272,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           <DatePicker
             selected={selectedDate}
             onChange={(date) => setSelectedDate(date)}
-            className="w-full p-2 border rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
+            className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
             placeholderText="When"
           />
         </div>
