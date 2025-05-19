@@ -291,11 +291,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
               isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
             } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
           >
-            {[{ label: 'Accident', icon: <SquareActivity size={16} /> },
-              { label: 'People', icon: <PawPrint size={16} /> },
-              { label: 'Pet', icon: <Bike size={16} /> },
-              { label: 'Crime', icon: <Camera size={16} /> },
-              { label: 'Other', icon: <MapPin size={16} color="black" /> },
+            {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-4 h-4" /> },
+              { label: 'People', icon: <img src="/people.svg" alt="People" className="w-4 h-4" /> },
+              { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-4 h-4" /> },
+              { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-4 h-4" /> },
+              { label: 'Other', icon: <img src="/other.svg" alt="Other" className="w-4 h-4" color="black" /> },
+              { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost & Found" className="w-4 h-4" color="black" /> },
             ].map((item) => (
               <div
                 key={item.label}

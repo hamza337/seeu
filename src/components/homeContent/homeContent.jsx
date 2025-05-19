@@ -18,8 +18,8 @@ const containerStyle = {
 };
 
 const defaultCenter = {
-  lat: 25.3176,
-  lng: 82.9739
+  lat: 39.8283, // Approximate geographic center of the contiguous US
+  lng: -98.5795 // Approximate geographic center of the contiguous US
 };
 
 const iconMap = {

@@ -7,12 +7,12 @@ import axios from 'axios';
 
 const ResultsDrawer = ({ results, onClose, onEventClick }) => {
   const categoryIcons = {
-    'Accident': <SquareActivity size={20} className="text-red-500" />,
-    'Pet': <PawPrint size={20} className="text-blue-500" />,
-    'Lost & Found': <Glasses size={20} className="text-purple-500" />,
-    'Crime': <Camera size={20} className="text-orange-500" />,
-    'People': <Users size={20} className="text-green-500" />,
-    'Other': <MapPin size={20} className="text-gray-500" />
+    'Accident': <img src="/accident.svg" alt="Accident" className="w-5 h-5" />,
+    'Pet': <img src="/pet.svg" alt="Pet" className="w-5 h-5" />,
+    'Lost & Found': <img src="/lostnfound.svg" alt="Lost and Found" className="w-5 h-5" />,
+    'Crime': <img src="/crime.svg" alt="Crime" className="w-5 h-5" />,
+    'People': <img src="/people.svg" alt="People" className="w-5 h-5" />,
+    'Other': <img src="/other.svg" alt="Other" className="w-5 h-5" />
   };
 
   return (
@@ -224,12 +224,12 @@ export default function SearchDrawer({ isOpen, onClose, selectedEventType, setSe
                 isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
               } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
             >
-              {[{ label: 'Accident', icon: <SquareActivity size={16} /> },
-                { label: 'Pet', icon: <PawPrint size={16} /> },
-                { label: 'Lost & Found', icon: <Glasses size={16} /> },
-                { label: 'Crime', icon: <Camera size={16} /> },
-                { label: 'People', icon: <Users size={16} /> },
-                { label: 'Other', icon: <MapPin size={16} color="black" /> }].map((item) => (
+              {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-4 h-4" /> },
+                { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-4 h-4" /> },
+                { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-4 h-4" /> },
+                { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-4 h-4" /> },
+                { label: 'People', icon: <img src="/people.svg" alt="People" className="w-4 h-4" /> },
+                { label: 'Other', icon: <img src="/other.svg" alt="Other" className="w-4 h-4" color="black" /> }].map((item) => (
                 <div
                   key={item.label}
                   onClick={() => {
