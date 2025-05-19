@@ -337,13 +337,35 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         </div>
 
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={isFree} onChange={() => setIsFree(!isFree)} />
-          <span className='text-black'>Make it Free</span>
+          <input 
+            type="checkbox" 
+            checked={isFree} 
+            onChange={() => {
+              setIsFree(!isFree);
+              if (!isFree) {
+                setIsExclusive(false);
+              }
+            }}
+            disabled={isExclusive}
+            className={`${isExclusive ? 'opacity-50 cursor-not-allowed' : ''}`}
+          />
+          <span className={`text-black ${isExclusive ? 'opacity-50' : ''}`}>Make it Free</span>
         </label>
 
         <label className="flex items-center gap-2">
-          <input type="checkbox" checked={isExclusive} onChange={() => setIsExclusive(!isExclusive)} />
-          <span className='text-black'>Make it Exclusive</span>
+          <input 
+            type="checkbox" 
+            checked={isExclusive} 
+            onChange={() => {
+              setIsExclusive(!isExclusive);
+              if (!isExclusive) {
+                setIsFree(false);
+              }
+            }}
+            disabled={isFree}
+            className={`${isFree ? 'opacity-50 cursor-not-allowed' : ''}`}
+          />
+          <span className={`text-black ${isFree ? 'opacity-50' : ''}`}>Make it Exclusive</span>
         </label>
 
         {/* <button onClick={handleSubmit} className="w-1/3 justify-self-center ml-50 py-2  hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 cursor-pointer">

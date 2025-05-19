@@ -339,6 +339,7 @@ const HomeContent = () => {
               url: iconUrl,
               scaledSize: new window.google.maps.Size(100, 100)
             },
+            title: `This is a ${item.category || item.label} Event`,
           });
         }
 
@@ -351,6 +352,7 @@ const HomeContent = () => {
             )}`,
             scaledSize: new window.google.maps.Size(32, 32)
           },
+          title: `This is a ${item.category || item.label} Event`,
         });
       })
     );
