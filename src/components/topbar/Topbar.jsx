@@ -3,9 +3,11 @@ import { Home, Image, Settings, X } from 'lucide-react';
 import { NavLink } from 'react-router-dom';
 import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
+import { useMap } from '../../contexts/MapContext';
 
 export default function Topbar() {
-  const [modal, setModal] = useState(null);
+  const [modal, setModal] = useState(false);
+  const [currentModalView, setCurrentModalView] = useState('login');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -14,6 +16,11 @@ export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const baseUrl = import.meta.env.VITE_API_URL;
+  const [otp, setOtp] = useState('');
+  const [resendTimer, setResendTimer] = useState(0);
+  const [isResendDisabled, setIsResendDisabled] = useState(false);
+
+  const { showLoginModal, setShowLoginModal } = useMap();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -21,6 +28,22 @@ export default function Topbar() {
       setUser(JSON.parse(storedUser));
     }
   }, []);
+
+  useEffect(() => {
+    setModal(showLoginModal);
+  }, [showLoginModal]);
+
+  useEffect(() => {
+    let timerId;
+    if (isResendDisabled && resendTimer > 0) {
+      timerId = setTimeout(() => {
+        setResendTimer(prev => prev - 1);
+      }, 1000);
+    } else if (resendTimer === 0 && isResendDisabled) {
+      setIsResendDisabled(false);
+    }
+    return () => clearTimeout(timerId);
+  }, [resendTimer, isResendDisabled]);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -33,7 +56,9 @@ export default function Topbar() {
         password,
       });
       if (response.status === 201) {
-        setModal(null);
+        setModal(false);
+        setShowLoginModal(false);
+        setCurrentModalView('login');
         setEmail('');
         setPassword('');
         setConfirmPassword('');
@@ -55,7 +80,9 @@ export default function Topbar() {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.access_token);
         setUser(response.data.user);
-        setModal(null);
+        setModal(false);
+        setShowLoginModal(false);
+        setCurrentModalView('login');
         setEmail('');
         setPassword('');
         setError('');
@@ -65,9 +92,87 @@ export default function Topbar() {
     }
   };
 
-  const closeModal = () => {
-    setModal(null);
+  const handleSendOtp = async (e) => {
+    e.preventDefault();
     setError('');
+    if (!email) {
+      return setError('Please enter your email address.');
+    }
+    try {
+      const response = await axios.post(`${baseUrl}auth/forgot-password/send-otp`, {
+        email,
+      });
+      if (response.status === 201) {
+        setCurrentModalView('forgotPasswordVerifyOtp');
+        setResendTimer(60);
+        setIsResendDisabled(true);
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to send OTP.');
+    }
+  };
+
+  const handleVerifyOtp = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (!otp || otp.length !== 6) {
+      return setError('Please enter a valid 6-digit OTP.');
+    }
+    try {
+      const response = await axios.post(`${baseUrl}auth/forgot-password/verify-otp`, {
+        email,
+        otp
+      });
+      if (response.status === 201) {
+        setCurrentModalView('forgotPasswordResetPassword');
+        setOtp('');
+        setPassword('');
+        setConfirmPassword('');
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to verify OTP.');
+    }
+  };
+
+  const handleResetPassword = async (e) => {
+    e.preventDefault();
+    setError('');
+    if (password !== confirmPassword) {
+      return setError('Passwords do not match.');
+    }
+    if (!password || password.length < 6) {
+      return setError('Password must be at least 6 characters long.');
+    }
+    try {
+      const response = await axios.post(`${baseUrl}auth/forgot-password/reset`, {
+        email,
+        newPassword: password
+      });
+      if (response.status === 201) {
+        alert('Password reset successfully! Please login with your new password.');
+        closeModal();
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Failed to reset password.');
+    }
+  };
+
+  const closeModal = () => {
+    setModal(false);
+    setShowLoginModal(false);
+    setCurrentModalView('login');
+    setError('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
+  };
+
+  const switchModalView = (view) => {
+    setCurrentModalView(view);
+    setError('');
+    setEmail('');
+    setPassword('');
+    setConfirmPassword('');
   };
 
   return (
@@ -112,10 +217,7 @@ export default function Topbar() {
             </div>
           </NavLink>
           {!user ? (
-            <>
-              <button onClick={() => setModal('login')} className="text-black font-normal hover:underline">Login</button>
-              <button onClick={() => setModal('signup')} className="text-black font-normal hover:underline">Sign Up</button>
-            </>
+            <button onClick={() => { setShowLoginModal(true); setCurrentModalView('login'); }} className="text-black font-normal hover:underline">Login</button>
           ) : (
             <div className="relative">
               <img
@@ -145,59 +247,208 @@ export default function Topbar() {
       </div>
 
       {/* Modal */}
-      {modal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[90%] max-w-md mx-auto relative">
+      {showLoginModal && (
+        <div className="fixed opacity-100 inset-0 bg-grey flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-[90%] max-w-md mx-auto relative z-70">
             <button onClick={closeModal} className="absolute top-3 right-3 text-gray-600 hover:text-black">
               <X size={20} />
             </button>
-            <h2 className="text-xl text-black font-semibold mb-4 text-center">
-              {modal === 'login' ? 'Login to your account' : 'Create an account'}
-            </h2>
-            {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
-            <form onSubmit={modal === 'login' ? handleLogin : handleSignUp} className="space-y-4">
+            {currentModalView === 'login' && (
               <div>
-                <label className="block text-black text-sm font-medium mb-1">Email</label>
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                  placeholder="you@example.com"
-                  required
-                />
+                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Login to your account</h2>
+                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
+                 <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Login
+                    </button>
+                 </form>
+                 <div className="mt-4 text-center">
+                     <p className="text-black text-sm">Don't have an account yet? <button onClick={() => switchModalView('signup')} className="text-blue-600 hover:underline">Sign Up</button></p>
+                     <button onClick={() => switchModalView('forgotPasswordSendOtp')} className="text-sm text-blue-600 hover:underline mt-2">Forget password ?</button>
+                 </div>
               </div>
+            )}
+
+            {currentModalView === 'signup' && (
               <div>
-                <label className="block text-black text-sm font-medium mb-1">Password</label>
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                  placeholder="••••••••"
-                  required
-                />
+                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Create an account</h2>
+                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
+                 <form onSubmit={handleSignUp} className="space-y-4">
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Confirm Password</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Sign Up
+                    </button>
+                 </form>
+                 <div className="mt-4 text-center">
+                     <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline">Back to Login</button>
+                 </div>
               </div>
-              {modal === 'signup' && (
-                <div>
-                  <label className="block text-black text-sm font-medium mb-1">Confirm Password</label>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                    placeholder="••••••••"
-                    required
-                  />
-                </div>
-              )}
-              <button
-                type="submit"
-                className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
-              >
-                {modal === 'login' ? 'Login' : 'Sign Up'}
-              </button>
-            </form>
+            )}
+
+            {currentModalView === 'forgotPasswordSendOtp' && (
+               <div>
+                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Reset Password</h2>
+                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
+                 <form onSubmit={handleSendOtp} className="space-y-4">
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Email</label>
+                      <input
+                        type="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Send OTP
+                    </button>
+                 </form>
+                 <div className="mt-4 text-center">
+                     <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline">Back to Login</button>
+                 </div>
+               </div>
+            )}
+
+            {currentModalView === 'forgotPasswordVerifyOtp' && (
+               <div>
+                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Verify OTP</h2>
+                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
+                 <form onSubmit={handleVerifyOtp} className="space-y-4">
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Enter 6-digit OTP</label>
+                      <input
+                        type="text"
+                        value={otp}
+                        onChange={(e) => setOtp(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none text-center tracking-widest"
+                        placeholder="••••••"
+                        maxLength="6"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Verify OTP
+                    </button>
+                 </form>
+                 <div className="mt-4 text-center">
+                     {isResendDisabled ? (
+                        <p className="text-gray-600 text-sm">Resend OTP in {resendTimer}s</p>
+                     ) : (
+                        <button onClick={handleSendOtp} className="text-sm text-blue-600 hover:underline">Resend OTP</button>
+                     )}
+                     <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline ml-4">Back to Login</button>
+                 </div>
+               </div>
+            )}
+
+            {currentModalView === 'forgotPasswordResetPassword' && (
+               <div>
+                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Set New Password</h2>
+                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
+                 <form onSubmit={handleResetPassword} className="space-y-4">
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">New Password</label>
+                      <input
+                        type="password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-black text-sm font-medium mb-1">Confirm New Password</label>
+                      <input
+                        type="password"
+                        value={confirmPassword}
+                        onChange={(e) => setConfirmPassword(e.target.value)}
+                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        placeholder="••••••••"
+                        required
+                      />
+                    </div>
+                    <button
+                      type="submit"
+                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                    >
+                      Reset Password
+                    </button>
+                 </form>
+                 <div className="mt-4 text-center">
+                      <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline">Back to Login</button>
+                 </div>
+               </div>
+            )}
+
           </div>
         </div>
       )}

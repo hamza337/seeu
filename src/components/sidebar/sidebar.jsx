@@ -8,7 +8,7 @@ import { useMap } from '../../contexts/MapContext';
 export default function Sidebar() {
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState(null);
-  const { setMapFocusLocation, mapFocusLocation, focusMapFn } = useMap();
+  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal } = useMap();
   const clearMapFocusTimeoutRef = useRef(null);
 
   const toggleDrawer = (drawer) => {
@@ -34,16 +34,16 @@ export default function Sidebar() {
   return (
     <>
       {/* Fixed Sidebar */}
-      <div className="h-full w-14 bg-white flex flex-col items-center py-4 shadow-md fixed left-0 top-0 z-50">
+      <div className={` pt-14 h-full w-14 bg-white flex flex-col items-center py-4 shadow-md fixed left-0 top-0 z-50 transition-opacity duration-300`}>
         <Link to="/">
-          <Home className="text-black mb-6 hover:text-blue-500" />
+          <Home className="text-black mb-12 hover:text-blue-500" title="Go to Home" />
         </Link>
 
-        <button onClick={() => toggleDrawer('search')}>
-          <Search className="text-black mb-6 hover:text-blue-500" />
+        <button onClick={() => toggleDrawer('search')} title="Search for Events">
+          <Search className="text-black mb-44 hover:text-blue-500" />
         </button>
 
-        <button onClick={() => toggleDrawer('location')}>
+        <button onClick={() => toggleDrawer('location')} title="Post an Event">
           <MapPin className="text-black hover:text-blue-500" />
         </button>
       </div>

@@ -3,7 +3,7 @@ import BackButton from '../../../components/backBtn/backButton';
 
 const ContactUs = () => {
   return (
-    <div className="px-6 sm:px-10 lg:px-20 py-6 flex flex-col gap-8">
+    <div className="px-6 sm:px-10 lg:px-20 py-6 flex flex-col gap-4">
       {/* Back Button with Heading */}
       <BackButton heading="Contact Us" />
 
@@ -15,11 +15,7 @@ const ContactUs = () => {
         </div>
         <div className="flex items-center gap-3">
           <Mail className="text-black" size={20} />
-          <p className="text-sm">hello@pawas.com</p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Phone className="text-black" size={20} />
-          <p className="text-sm">+32 23 456 543</p>
+          <p className="text-sm">support@poingit.com</p>
         </div>
       </div>
 

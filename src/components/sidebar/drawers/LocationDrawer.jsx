@@ -220,14 +220,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       ref={drawerRef}
       className={`fixed top-0 left-0 h-full bg-white shadow-lg z-70 transition-transform duration-300 ease-in-out ${
         isOpen ? 'translate-x-14' : '-translate-x-full'
-      } w-2/3`}
+      } w-1/3`}
     >
-      <div className="px-4 pt-4 pb-0 flex justify-between items-center border-b">
+      <div className="px-4 pt-11 pb-0 flex justify-between items-center border-b">
         <h2 className="text-lg font-semibold"></h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
 
-      <div className="p-4 space-y-4 overflow-y-auto">
+      <div className="p-4 space-y-2 overflow-y-auto">
         <img src="/PoingLogo.svg" alt="Poing Logo" className="w-40 justify-self-center object-contain" />
 
         <label className="block w-full p-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-center cursor-pointer">
@@ -280,7 +280,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         <div className="relative">
           <button
             onClick={handleDropdownToggle}
-            className="w-full p-3 pl-4 pr-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
+            className="w-3/4 p-3 pl-4 pr-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
           >
             <span className="text-black">{selectedEventType || 'Select an Event Type'}</span>
             <span className="text-black">{isDropdownOpen ? '▲' : '▼'}</span>
@@ -289,14 +289,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           <div
             className={`overflow-hidden transition-all duration-300 ease-in-out ${
               isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
-            } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
+            } absolute top-full left-0 w-3/4 bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
           >
             {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-4 h-4" /> },
-              { label: 'People', icon: <img src="/people.svg" alt="People" className="w-4 h-4" /> },
               { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-4 h-4" /> },
-              { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-4 h-4" /> },
-              { label: 'Other', icon: <img src="/other.svg" alt="Other" className="w-4 h-4" color="black" /> },
               { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost & Found" className="w-4 h-4" color="black" /> },
+              { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-4 h-4" /> },
+              { label: 'People', icon: <img src="/people.svg" alt="People" className="w-4 h-4" /> },
+              { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-4 h-4" color="black" /> },
             ].map((item) => (
               <div
                 key={item.label}

@@ -7,8 +7,8 @@ const UsersContent = () => {
   const [showModal, setShowModal] = useState(false);
 
   const menu = [
-    { label: 'Language Setting', icon: <Globe size={20} />, path: '/user/language-setting' },
-    { label: 'Wallet', icon: <Wallet size={20} />, path: '/user/wallet' },
+    { label: 'Language Setting', icon: <Globe size={20} />, path: '/settings/language-setting' },
+    { label: 'Wallet', icon: <Wallet size={20} />, path: '/settings/wallet' },
     { label: 'Sign Out', icon: <LogOut size={20} />, path: null }, // no path now
   ];
 

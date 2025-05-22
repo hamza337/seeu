@@ -33,11 +33,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/media/:id" element={<MediaDetail />} />
             <Route path="/media/:id/buy-now" element={<Payment />} />
             <Route path="settings" element={<Users />} />
-            <Route path="user/language-setting" element={<LanguageSetting />} />
+            <Route path="settings/language-setting" element={<LanguageSetting />} />
             <Route path="privacy-policy" element={<PrivacyPolicy />} />
             <Route path="user-agreement" element={<UserAgreement />} />
-            <Route path="user/wallet" element={<Wallet />} />
-            <Route path="user/wallet/withdraw-request" element={<WithdrawRequest />} />
+            <Route path="settings/wallet" element={<Wallet />} />
+            <Route path="settings/wallet/withdraw-request" element={<WithdrawRequest />} />
             <Route path="/contact-us" element={<ContactUs />} />
 
           </Route>

@@ -56,7 +56,7 @@ export default function Layout() {
   return (
     <div className="relative min-h-screen w-full bg-gray-100 overflow-hidden">
       {/* Fixed Topbar */}
-      <div className="fixed top-0 left-0 w-full z-50">
+      <div className="fixed top-0 left-0 w-full z-70">
         <Topbar />
       </div>
 
