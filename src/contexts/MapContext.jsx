@@ -10,6 +10,11 @@ export const MapProvider = ({ children }) => {
   const [categorizedSearchResults, setCategorizedSearchResults] = useState(null);
   const [notifyMeParams, setNotifyMeParams] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
+  const [refreshEvents, setRefreshEvents] = useState(0);
+
+  const triggerRefreshEvents = () => {
+    setRefreshEvents(prev => prev + 1);
+  };
 
   const updateMapFocusLocation = (location) => {
     console.log('MapProvider: Updating mapFocusLocation to:', location);
@@ -58,7 +63,9 @@ export const MapProvider = ({ children }) => {
       notifyMeParams,
       setNotifyMeParams: updateNotifyMeParams,
       showLoginModal,
-      setShowLoginModal: updateShowLoginModal
+      setShowLoginModal: updateShowLoginModal,
+      refreshEvents,
+      triggerRefreshEvents,
     }}>
       {children}
     </MapContext.Provider>

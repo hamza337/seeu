@@ -60,17 +60,24 @@ const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotif
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
       <div className="overflow-y-auto h-[calc(80vh-4rem)] p-4 scrollbar-hide">
+        {/* Notify Me Section (always visible when params are available) */}
+        {notifyMeParams && ( // Check if notifyMeParams exist
+           <div className="text-center text-gray-600 mt-2 mb-6 p-4 bg-gray-100 rounded-lg">
+             <p className="text-lg font-semibold mb-2">Can't find what you are looking for?</p>
+             <button
+               onClick={onNotifyMeClick}
+               className="mt-2 w-auto bg-[#0868a8] text-white py-2 px-4 rounded hover:cursor-pointer"
+             >
+               Notify Me
+             </button>
+           </div>
+        )}
+
+        {/* Display based on search results */}
         {results && results.status === 404 ? (
           <div className="text-center text-gray-600 mt-8">
             <p className="text-lg font-semibold mb-2">No Record found.</p>
-            {notifyMeParams && (
-               <button
-                 onClick={onNotifyMeClick}
-                 className="mt-4 w-auto bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600"
-               >
-                 Notify Me
-               </button>
-            )}
+            {/* Notify Me button is now handled in the section above */}
           </div>
         ) : results && results.message === "No events found. Search marker saved." ? (
           <div className="text-center text-gray-600 mt-8">
@@ -83,7 +90,7 @@ const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotif
               </div>
             )}
           </div>
-        ) : (
+        ) : ( /* Display search results categories */
           frontendCategories.map(category => (
             <div key={category} className="mb-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-3">{category}</h3>
@@ -187,27 +194,59 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     if (!isOpen) {
       console.log('SearchDrawer: Clearing state due to isOpen becoming false.');
       setSelectedCategories([]);
-      setStartDate(null);
-      setEndDate(null);
-      setLocation({ lat: null, lng: null, address: '' });
-      setSearchResults(null);
-      setDateRangeError('');
-      setCategoryError('');
       setNotifyMeParams(null);
-      if (autocompleteRef.current) {
-        setLocation(prev => ({ ...prev, address: '' }));
-      }
-      setSearchLocation(null);
+      setSearchResults(null);
     }
-  }, [isOpen, setSelectedCategories, setStartDate, setEndDate, setLocation, setSearchResults, setSearchLocation, setNotifyMeParams]);
+  }, [isOpen, setSelectedCategories, setNotifyMeParams, setSearchResults]);
 
   useEffect(() => {
-    setSetSearchAddressFn(() => (address, lat, lng) => {
-      console.log('SearchDrawer: Setting location from map:', { address, lat, lng });
-      setLocation({ address, lat, lng });
-    });
-    return () => setSetSearchAddressFn(null);
-  }, [setSetSearchAddressFn]);
+    if (isOpen) {
+      console.log('SearchDrawer: Setting setSearchAddressFn in context.');
+      setSetSearchAddressFn(() => (address, lat, lng) => {
+        console.log('SearchDrawer: Setting location from map:', { address, lat, lng });
+        setLocation({ address, lat, lng });
+        // Force update the input field
+        if (autocompleteRef.current) {
+          const input = autocompleteRef.current.input;
+          if (input) {
+            input.value = address;
+          } else {
+            console.warn('SearchDrawer: Autocomplete input element not found.');
+          }
+        } else {
+          console.warn('SearchDrawer: Autocomplete reference not found.');
+        }
+      });
+    } else {
+      console.log('SearchDrawer: Clearing setSearchAddressFn in context.');
+      setSetSearchAddressFn(null);
+    }
+    // Cleanup function
+    return () => {
+      console.log('SearchDrawer: Running cleanup for setSearchAddressFn effect.');
+      // Only clear if it's still our function
+      setSetSearchAddressFn(prevFn => {
+          // Check if the function in context is the one we set
+          if (prevFn && prevFn.toString() === ((address, lat, lng) => {
+              console.log('SearchDrawer: Setting location from map:', { address, lat, lng });
+              setLocation({ address, lat, lng });
+              // Force update the input field
+              if (autocompleteRef.current) {
+                const input = autocompleteRef.current.input;
+                if (input) {
+                  input.value = address;
+                } else {
+                  console.warn('SearchDrawer: Autocomplete input element not found.');
+                }
+              }
+            }).toString()) {
+              return null;
+          } else {
+              return prevFn; // Keep the function if it's not ours
+          }
+      });
+    };
+  }, [isOpen, setSetSearchAddressFn, setLocation]);
 
   const handleDropdownToggle = () => setIsDropdownOpen(!isDropdownOpen);
 
@@ -239,6 +278,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     debouncedPlaceChanged();
   };
 
+  // Add this new function to handle marker drag updates
+  const handleMarkerDrag = (newAddress, lat, lng) => {
+    console.log('SearchDrawer: Updating address from marker drag:', { newAddress, lat, lng });
+    setLocation({ address: newAddress, lat, lng });
+  };
+
   useEffect(() => {
     return () => { debouncedPlaceChanged.cancel(); };
   }, [debouncedPlaceChanged]);
@@ -255,9 +300,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
 
     setDateRangeError('');
     setCategoryError('');
-    setNotifyMeParams(null);
-    setSearchResults(null);
-    setCategorizedSearchResults(null);
+    // Keep notifyMeParams and searchResults for now, clear them after fetching
 
     try {
       let dateFrom = null;
@@ -288,6 +331,13 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       });
       console.log('Search Results:', response.data);
       setSearchResults(response.data);
+
+      // Always set notifyMeParams after a search
+      setNotifyMeParams({
+          lng: location.lng,
+          categories: selectedCategories,
+          lat: location.lat,
+      });
 
       const newCategorizedResults = {};
       const frontendCategories = ['within 1 mile', 'within 3 miles', 'within 5 miles', 'within 6-200 miles'];
@@ -363,6 +413,22 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       }
   };
 
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const dropdownNode = document.querySelector('.search-dropdown-container');
+      if (dropdownNode && !dropdownNode.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isDropdownOpen]);
+
   return (
     <>
       <div
@@ -417,6 +483,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
               dateFormat="MMMM d, yyyy"
               isClearable
               showPopperArrow={false}
+              maxDate={new Date()}
             />
             {dateRangeError && <p className="text-red-500 text-sm mt-1">{dateRangeError}</p>}
           </div>
@@ -433,7 +500,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
               <span>{isDropdownOpen ? '▲' : '▼'}</span>
             </button>
             <div
-              className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              className={`overflow-hidden transition-all duration-300 ease-in-out search-dropdown-container ${
                 isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
               } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
             >
@@ -490,7 +557,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           </div>
              <button
                onClick={handleSearch}
-               className="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600"
+               className="w-full bg-[#0868a8] text-white py-2 rounded hover:cursor-pointer"
              >
                Search
              </button>

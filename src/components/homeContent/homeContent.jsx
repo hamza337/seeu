@@ -172,15 +172,16 @@ const HomeContent = () => {
   const boundsChangedTimeoutRef = useRef(null);
   const geocoderRef = useRef(null); // Ref for Geocoder
   const [activeView, setActiveView] = useState('mapView'); // Add state for active view
+  const [showLoginModal, setShowLoginModal] = useState(false); // Add state for login modal
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries
   });
 
-  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults } = useMap();
+  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents } = useMap();
 
-  console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation, 'searchLocation:', searchLocation);
+  console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation, 'searchLocation:', searchLocation, 'refreshEvents:', refreshEvents);
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition(
@@ -193,6 +194,17 @@ const HomeContent = () => {
       () => setCenter(defaultCenter)
     );
   }, []);
+
+  // Effect to trigger event fetching when refreshEvents changes
+  useEffect(() => {
+    if (mapRef.current && activeView === 'mapView') { // Only fetch events if in mapView
+      const bounds = mapRef.current.getBounds();
+      if (bounds) {
+        console.log('refreshEvents changed, fetching events.');
+        fetchEvents(bounds);
+      }
+    }
+  }, [refreshEvents, mapRef.current, activeView]); // Depend on refreshEvents, mapRef.current and activeView
 
   // Effect to initialize Geocoder once map is loaded
   useEffect(() => {
@@ -329,7 +341,9 @@ const HomeContent = () => {
           try {
             const mediaArray = JSON.parse(item.media);
             if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-              mediaType = mediaArray[0].type;
+              // Check if any media is a video
+              const hasVideo = mediaArray.some(media => media.type === 'video');
+              mediaType = hasVideo ? 'video' : 'image';
             }
           } catch (e) {
             // console.warn('Failed to parse media JSON for event:', item.media);
@@ -387,21 +401,26 @@ const HomeContent = () => {
               url: iconUrl,
               scaledSize: new window.google.maps.Size(100, 100)
             },
-            title: `This is a ${item.category || item.label} Event`,
+            title: item.type === 'event' 
+              ? `This is a${('AEIOUaeiou'.indexOf(item.category[0]) !== -1) ? 'n' : ''} ${item.category} Event`
+              : `Someone is searching for ${item.label} events`,
             draggable: false, // Event markers are not draggable
           });
         }
 
         const IconComponent = iconMap[item.category || item.label] || MapPin;
+        // Fallback for markers without specific icons (should use event/search logic too)
         return new window.google.maps.Marker({
           position,
           icon: {
             url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-              renderToString(<IconComponent color="red" size={32} />)
+              renderToString(<IconComponent color={item.type === 'searchMarker' ? "blue" : "red"} size={32} />)
             )}`,
             scaledSize: new window.google.maps.Size(32, 32)
           },
-          title: `This is a ${item.category || item.label} Event`,
+          title: item.type === 'event' 
+            ? `This is a${('AEIOUaeiou'.indexOf(item.category[0]) !== -1) ? 'n' : ''} ${item.category} Event`
+            : `Someone is searching for ${item.label} events`,
           draggable: false, // Event markers are not draggable
         });
       })
@@ -469,7 +488,7 @@ const HomeContent = () => {
                       url: iconUrl,
                       scaledSize: new window.google.maps.Size(100, 100) // Keep size consistent
                   },
-                  title: `Search: ${item.label}`,
+                  title: `Someone is searching for ${item.label} events`, // Specific tooltip for search markers
                   draggable: false, // Search markers from API response are not draggable
               });
            }
@@ -484,7 +503,7 @@ const HomeContent = () => {
                    )}`,
                    scaledSize: new window.google.maps.Size(32, 32)
                },
-               title: `Search: ${item.label}`,
+               title: `Someone is searching for ${item.label} events`, // Specific tooltip for search markers
                draggable: false, // Search markers from API response are not draggable
            });
       });
@@ -594,7 +613,40 @@ const HomeContent = () => {
                           onClick={(e) => { // Add event handler
                               e.stopPropagation(); // Prevent card click event from firing
                               console.log('Download button clicked for event:', event.id);
-                              // Add download logic here later if needed
+                              
+                              const token = localStorage.getItem('token');
+
+                              if (!token) {
+                                  console.log('User not authenticated. Showing login modal.');
+                                  setShowLoginModal(true); // Show login modal
+                                  return; // Stop execution if not authenticated
+                              }
+
+                              const eventId = event.id; // Get the event ID
+                              const purchaseUrl = `${import.meta.env.VITE_API_URL}stripe/purchase/${eventId}`;
+
+                              axios.post(purchaseUrl,{}, {
+                                headers: {
+                                  'Authorization': `Bearer ${localStorage.getItem('token')}`
+                                }
+                              })
+                              .then(response => {
+                                  console.log('Stripe purchase API response:', response.data);
+                                  if (response.data && response.data.url) {
+                                      // Redirect to Stripe page in the same tab
+                                      window.location.href = response.data.url;
+                                  } else {
+                                      alert('Failed to get Stripe checkout URL from API.');
+                                  }
+                              })
+                              .catch(error => {
+                                  console.error('Error calling Stripe purchase API:', error);
+                                  alert(error.response?.data?.message || 'Failed to initiate purchase. Please try again.');
+                                  // Optionally check for 401 and show login modal again
+                                  if (error.response && error.response.status === 401) {
+                                       setShowLoginModal(true);
+                                  }
+                              });
                           }}
                           className="bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600"
                        >
@@ -619,8 +671,8 @@ const HomeContent = () => {
   return (
     <div className="w-full h-full px-4 sm:px-8 lg:px-12 overflow-hidden">
       <div className="w-full flex flex-col items-center">
-        <img src="/PoingLogo.svg" alt="Poing Logo" className="w-50 object-contain" />
-        <p className="text-gray-600 text-center">The only search, find or post tool for lost items, pets, people, witnesses and event by location and time.</p>
+        <img src="/brandLogo.png" alt="Poing Logo" className="w-30 object-contain" />
+        <p className="text-gray-600 text-lg mb-4 text-center">The only search, find or post tool for lost items, pets, people, witnesses and event by location and time.</p>
       </div>
 
       <div className="flex w-full h-[calc(100%-7.5rem)] gap-4 bg-gray-100">
@@ -630,13 +682,13 @@ const HomeContent = () => {
            <div className="absolute top-4 right-4 z-10 flex space-x-2">
               <button
                  onClick={() => setActiveView('mapView')}
-                 className={`px-4 py-2 text-sm font-medium rounded-md ${activeView === 'mapView' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                 className={`px-4 py-2 text-sm font-medium rounded-md ${activeView === 'mapView' ? 'bg-[#0868a8] text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
               >
                  Map View
               </button>
               <button
                  onClick={() => setActiveView('listView')}
-                 className={`px-4 py-2 text-sm font-medium rounded-md ${activeView === 'listView' ? 'bg-blue-500 text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
+                 className={`px-4 py-2 text-sm font-medium rounded-md ${activeView === 'listView' ? 'bg-[#0868a8] text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
               >
                  List View
               </button>
@@ -661,23 +713,20 @@ const HomeContent = () => {
                 {/* Movable Search Marker */}
                 {console.log('Rendering search marker?', searchLocation, isLoaded)}
                 {searchLocation && isLoaded && (
+                  console.log('Rendering search marker at:', searchLocation),
                   <Marker
                     position={searchLocation}
-                    draggable={true} // Make it draggable
+                    draggable={true}
                     onDragEnd={(event) => {
                       const newLat = event.latLng.lat();
                       const newLng = event.latLng.lng();
                       console.log('Search marker drag ended. New coordinates:', { lat: newLat, lng: newLng });
-                      // Update searchLocation in context (implicitly updates map position and triggers geocoding)
-                      // setSearchLocation({ lat: newLat, lng: newLng }); // Not needed, map updates automatically
-                      // Geocode new position and update address in SearchDrawer
                       geocodeLatLng(newLat, newLng);
                     }}
                     icon={{
-                      // url: '/red_pin.svg', // Use a distinct icon for the movable search marker
-                      // scaledSize: new window.google.maps.Size(40, 40), // Adjust size as needed
-                      // anchor: new window.google.maps.Point(20, 40), // Adjust anchor point to bottom center
-                      // Using default Google Maps marker for testing
+                      url: '/Ppoing.png',
+                      scaledSize: new window.google.maps.Size(50, 50),
+                      anchor: new window.google.maps.Point(24, 43)
                     }}
                     title="Drag to select location"
                   />

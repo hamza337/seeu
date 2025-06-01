@@ -4,6 +4,7 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
+import { useMap } from '../../../contexts/MapContext';
 
 export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [uploads, setUploads] = useState([]);
@@ -27,19 +28,64 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     libraries: ['places']
   });
 
+  const { triggerRefreshEvents, setSearchLocation, setSetSearchAddressFn } = useMap();
+
+  const categoryPlaceholders = {
+    'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
+    'Pet': "Hi. I just found this sweet dog on Tuesday morning at the grand park. the tag is very blurry . come and get it.",
+    'Lost & Found': "Hi. I found these glasses on a seat in the stadium last night after the concert. attached are some photos, if it's your reach out with description and you can receive them from me. Sorry for the small charge to cover the time involved",
+    'Crime': "Hi, My security camera captured this bike theft in front of the movie theater, I don't know who's bike it is but here is a video of the guy who cut the lock.",
+    'People': "Hi, we started chatting last week at the event and made plans to meet but I never took your number, hopefully you recognize us in the photo and reach out.",
+    'Other': "Hi, I walked down the street last night and witnessed this fireball falling out of the sky."
+  };
+
+  const recommendedPrices = {
+    'Accident': 10,
+    'Pet': 20,
+    'Lost & Found': 30,
+    'Crime': 40,
+    'People': 50,
+    'Other': 60,
+  };
+
+  // Set up the search address function in context
+  useEffect(() => {
+    setSetSearchAddressFn(() => (newAddress, lat, lng) => {
+      console.log('LocationDrawer: Setting location from map:', { newAddress, lat, lng });
+      setAddress(newAddress);
+    });
+    return () => setSetSearchAddressFn(null);
+  }, [setSetSearchAddressFn]);
+
+  // Clear state when drawer closes
+  useEffect(() => {
+    if (!isOpen) {
+      setAddress('');
+    }
+  }, [isOpen]);
+
   useEffect(() => {
     function handleClickOutside(event) {
       const drawerNode = drawerRef.current;
-      const autocompleteSuggestions = autocompleteRef.current
-  
+      const autocompleteNode = autocompleteRef.current?.input;
+      const dropdownNode = document.querySelector('.location-dropdown-container');
+
+      // Check if the clicked element is inside the Google Autocomplete suggestions container
+      const isClickInsideAutocompleteSuggestions = event.target.closest('.pac-container');
+      
+      // Check if the clicked element is inside the Google Map container
+      const isClickInsideMap = event.target.closest('.gm-style');
+
       const isClickInsideDrawer = drawerNode && drawerNode.contains(event.target);
-      const isClickInsideAutocomplete = autocompleteSuggestions && autocompleteSuggestions.contains(event.target);
-  
-      if (!isClickInsideDrawer && !isClickInsideAutocomplete) {
+      const isClickInsideAutocomplete = autocompleteNode && autocompleteNode.contains(event.target);
+      const isClickInsideDropdown = dropdownNode && dropdownNode.contains(event.target);
+
+      // Close drawer only if the click is outside the drawer, autocomplete input, dropdown, autocomplete suggestions, AND the map
+      if (!isClickInsideDrawer && !isClickInsideAutocomplete && !isClickInsideDropdown && !isClickInsideAutocompleteSuggestions && !isClickInsideMap) {
         onClose();
       }
     }
-  
+
     if (isOpen) {
       document.addEventListener('mousedown', handleClickOutside);
     }
@@ -47,7 +93,26 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [isOpen, onClose]);
-  
+
+  // Separate effect for dropdown click-outside handling
+  useEffect(() => {
+    function handleDropdownClickOutside(event) {
+      const dropdownNode = document.querySelector('.location-dropdown-container');
+      const dropdownButton = document.querySelector('.location-dropdown-button');
+      
+      if (dropdownNode && !dropdownNode.contains(event.target) && 
+          dropdownButton && !dropdownButton.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    }
+
+    if (isDropdownOpen) {
+      document.addEventListener('mousedown', handleDropdownClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleDropdownClickOutside);
+    };
+  }, [isDropdownOpen]);
 
   const handleDropdownToggle = () => setIsDropdownOpen(!isDropdownOpen);
 
@@ -56,64 +121,66 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     const files = Array.from(e.target.files);
     if (files.length === 0) return;
 
-    const containsVideo = files.some(file => file.type.startsWith('video/'));
-    const containsImage = files.some(file => file.type.startsWith('image/'));
-
-    if (containsVideo && containsImage) {
-      setFileError('You can upload either videos or images, not both.');
+    // Check total file count
+    if (files.length > 10) {
+      setFileError('You can upload a maximum of 10 files (images or videos).');
       setUploads([]);
-      e.target.value = null;
+      e.target.value = null; // Clear the input
       return;
     }
 
-    if (containsVideo) {
-      if (files.length > 1) {
-        setFileError('You can only upload one video at a time.');
-        setUploads([]);
-        e.target.value = null;
-        return;
-      }
-      if (!files[0].type.startsWith('video/')) {
-        setFileError('Invalid file type. Please select a video.');
-        setUploads([]);
-        e.target.value = null;
-        return;
-      }
-      setUploads(files);
-    } else if (containsImage) {
-      if (files.length > 10) {
-        setFileError('You can upload a maximum of 10 images.');
-        setUploads([]);
-        e.target.value = null;
-        return;
-      }
-      const imageFiles = files.filter(file => file.type.startsWith('image/'));
-      if (imageFiles.length !== files.length) {
-          setFileError('All selected files must be images.');
-          setUploads([]);
-          e.target.value = null;
-          return;
-      }
-      setUploads(imageFiles);
-    } else {
-      setFileError('Please upload supported file types (images or videos).');
+    // Validate file types (allow images and videos, reject others)
+    const supportedFiles = files.filter(file => 
+      file.type.startsWith('image/') || file.type.startsWith('video/')
+    );
+
+    if (supportedFiles.length !== files.length) {
+      setFileError('Some selected files are not supported. Please upload only images or videos.');
       setUploads([]);
-      e.target.value = null;
+      e.target.value = null; // Clear the input
+      return;
     }
+
+    // Allow both images and videos, no separate checks for just one type
+    setUploads(supportedFiles);
+    e.target.value = null; // Clear the input after processing
   };
 
   const removeUpload = (index) => {
     const newUploads = [...uploads];
     newUploads.splice(index, 1);
     setUploads(newUploads);
+    // Re-evaluate file errors after removal if needed, though the main check is on adding.
+    if (newUploads.length > 10) {
+         setFileError('You can upload a maximum of 10 files (images or videos).');
+     } else {
+         setFileError('');
+     }
   };
 
   const handlePlaceChanged = () => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
-      if (place && place.formatted_address) {
+      console.log('LocationDrawer: Place selected:', place);
+      if (place.geometry) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        console.log('LocationDrawer: Setting search location:', { lat, lng });
+        setSearchLocation({ lat, lng });
         setAddress(place.formatted_address);
+      } else if (place.hasOwnProperty('name')) {
+        console.log('LocationDrawer: Place has no geometry, using name only');
+        setAddress(place.name);
+        setSearchLocation(null);
+      } else {
+        console.log('LocationDrawer: Place has no geometry or name');
+        setAddress(autocompleteRef.current.getPlace().name || '');
+        setSearchLocation(null);
       }
+    } else {
+      console.log('LocationDrawer: No autocomplete reference');
+      setAddress('');
+      setSearchLocation(null);
     }
   };    
 
@@ -187,7 +254,11 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         date: selectedDate.toISOString(),
       };
 
-      const createEventRes = await axios.post(`${baseUrl}events/create-event`, createEventPayload);
+      const createEventRes = await axios.post(`${baseUrl}events/create-event`, createEventPayload, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
 
       if (createEventRes.status === 201 || createEventRes.status === 200) {
         alert('Event uploaded successfully!');
@@ -208,6 +279,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             const input = document.querySelector('input[placeholder="Where"]');
             if(input) input.value = '';
         }
+        triggerRefreshEvents(); // Trigger map refresh
       }
     } catch (err) {
       console.error('Upload process failed:', err);
@@ -218,17 +290,15 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   return (
     <div
       ref={drawerRef}
-      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-70 transition-transform duration-300 ease-in-out ${
-        isOpen ? 'translate-x-14' : '-translate-x-full'
-      } w-1/3`}
+      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-70 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-14' : '-translate-x-full'} w-1/3 flex flex-col`}
     >
-      <div className="px-4 pt-11 pb-0 flex justify-between items-center border-b">
+      <div className="px-4 pt-11 pb-0 flex justify-between items-center border-b flex-shrink-0">
         <h2 className="text-lg font-semibold"></h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
 
-      <div className="p-4 space-y-2 overflow-y-auto">
-        <img src="/PoingLogo.svg" alt="Poing Logo" className="w-40 justify-self-center object-contain" />
+      <div className="flex flex-col px-4 pb-4 pt-0 space-y-2 overflow-y-auto custom-scrollbar flex-grow min-h-0 h-0">
+        <img src="/brandLogo.png" alt="Poing Logo" className="w-25 object-contain self-center" />
 
         <label className="block w-full p-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-center cursor-pointer">
           <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} />
@@ -259,7 +329,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
         <div className="flex gap-2">
         {isLoaded && (
-            <Autocomplete onLoad={ref => (autocompleteRef.current = ref)} onPlaceChanged={handlePlaceChanged}>
+            <Autocomplete 
+              onLoad={ref => (autocompleteRef.current = ref)} 
+              onPlaceChanged={handlePlaceChanged}
+            >
               <input
                 type="text"
                 placeholder="Where"
@@ -274,20 +347,21 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             onChange={(date) => setSelectedDate(date)}
             className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
             placeholderText="When"
+            maxDate={new Date()}
           />
         </div>
 
         <div className="relative">
           <button
             onClick={handleDropdownToggle}
-            className="w-3/4 p-3 pl-4 pr-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
+            className="w-3/4 p-3 pl-4 pr-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center location-dropdown-button"
           >
             <span className="text-black">{selectedEventType || 'Select an Event Type'}</span>
             <span className="text-black">{isDropdownOpen ? '▲' : '▼'}</span>
           </button>
 
           <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            className={`overflow-hidden transition-all duration-300 ease-in-out location-dropdown-container ${
               isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
             } absolute top-full left-0 w-3/4 bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
           >
@@ -301,7 +375,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
               <div
                 key={item.label}
                 onClick={() => {
-                  setSelectedEventType(item.label);
+                  setSelectedEventType(item.label.replace(' & ',''));
                   setIsDropdownOpen(false);
                 }}
                 className="py-1 px-3 text-black hover:bg-gray-100 cursor-pointer flex justify-between items-center"
@@ -314,10 +388,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         </div>
 
         <textarea
-          placeholder="Description"
+          placeholder={selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
+          className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar min-h-[120px]"
           rows={4}
         />
 
@@ -327,7 +401,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           </span>
           <input
             type="number"
-            value={price}
+            value={isFree ? "0" : price}
             onChange={(e) => setPrice(e.target.value)}
             onWheel={(e) => e.target.blur()}
             placeholder="Price"
@@ -335,6 +409,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             disabled={isFree}
           />
         </div>
+
+        {selectedEventType !== 'Select cateogry' && recommendedPrices[selectedEventType] !== undefined && (
+          <p className="text-gray-600 text-sm mt-1">
+            Recommended price for {selectedEventType} event is {recommendedPrices[selectedEventType]} USD.
+          </p>
+        )}
 
         <label className="flex items-center gap-2">
           <input 
@@ -368,15 +448,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           <span className={`text-black ${isFree ? 'opacity-50' : ''}`}>Make it Exclusive</span>
         </label>
 
-        {/* <button onClick={handleSubmit} className="w-1/3 justify-self-center ml-50 py-2  hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 cursor-pointer">
-          Post It
-        </button> */}
-        <button onClick={handleSubmit} className="w-1/3 justify-self-center py-2 hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2">
-          <span>
-            <span className="text-blue-600 text-3xl">P</span>
-            <span className="text-gray-800 text-3xl">oing It</span>
-          </span>
-          <img src="/marker.svg" alt="Map Marker" className="w-10 h-10 text-blue-600" />
+        <button onClick={handleSubmit} className="w-1/3 py-2 hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 self-center">
+          <img src="/brandLogo.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />
         </button>
       </div>
     </div>

@@ -40,11 +40,11 @@ export default function Sidebar() {
         </Link>
 
         <button onClick={() => toggleDrawer('search')} title="Search for Events">
-          <Search className="text-black mb-44 hover:text-blue-500" />
+          <Search className="text-black mb-44 hover:text-blue-500 rotate-90" />
         </button>
 
         <button onClick={() => toggleDrawer('location')} title="Post an Event">
-          <MapPin className="text-black hover:text-blue-500" />
+          <img src="/Ppoing.png" alt="Poing App Icon" className="w-10" />
         </button>
       </div>
 
