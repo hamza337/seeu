@@ -28,7 +28,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     libraries: ['places']
   });
 
-  const { triggerRefreshEvents, setSearchLocation, setSetSearchAddressFn } = useMap();
+  const { triggerRefreshEvents, setSearchLocation, setSetSearchAddressFn, isSidebarExpanded } = useMap();
+
+  // Define collapsed and expanded sidebar widths in pixels
+  const collapsedSidebarWidthPx = 12; // Corresponding to w-14
+  const expandedSidebarWidthPx = 27; // Corresponding to w-64
+
+  // Calculate dynamic translation for the drawer when open
+  const openTranslateX = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
 
   const categoryPlaceholders = {
     'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
@@ -290,7 +297,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   return (
     <div
       ref={drawerRef}
-      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-70 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-14' : '-translate-x-full'} w-1/3 flex flex-col`}
+      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-70 transition-transform duration-300 ease-in-out w-1/3 flex flex-col`}
+      style={{
+        transform: `translateX(${isOpen ? openTranslateX : -100}%)` // Use dynamic translation
+      }}
     >
       <div className="px-4 pt-11 pb-0 flex justify-between items-center border-b flex-shrink-0">
         <h2 className="text-lg font-semibold"></h2>

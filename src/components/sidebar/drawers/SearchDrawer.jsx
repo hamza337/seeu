@@ -7,7 +7,7 @@ import axios from 'axios';
 import { debounce } from 'lodash';
 import { useMap } from '../../../contexts/MapContext';
 
-const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotifyMeClick }) => {
+const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotifyMeClick, isSidebarExpanded, collapsedSidebarWidthPx, expandedSidebarWidthPx }) => {
 
   const categoryIcons = {
     'Accident': <img src="/accident.svg" alt="Accident" className="w-5 h-5" />,
@@ -54,7 +54,14 @@ const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotif
   const { showLoginModal } = useMap();
 
   return (
-    <div className={`fixed top-0 left-80 h-[80vh] w-1/2 bg-white shadow-lg z-50 mt-[10vh] rounded-lg overflow-hidden transition-opacity duration-300`}>
+    <div className={`fixed top-0 h-[80vh] w-1/2 bg-white shadow-lg z-50 mt-[10vh] rounded-lg overflow-hidden transition-opacity duration-300`}
+      style={{
+        left: `${isSidebarExpanded 
+          ? expandedSidebarWidthPx + 256 + 20 // sidebar expanded width + search drawer width + gap
+          : collapsedSidebarWidthPx + 256 + 20  // sidebar collapsed width + search drawer width + gap
+        }px` // Adjust left based on sidebar width + search drawer width + desired gap
+      }}
+    >
       <div className="p-4 flex justify-between items-center border-b">
         <h2 className="text-lg text-black font-semibold">Search Results</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
@@ -187,8 +194,16 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     notifyMeParams,
     setNotifyMeParams,
     setShowLoginModal,
-    showLoginModal
+    showLoginModal,
+    isSidebarExpanded
   } = useMap();
+
+  // Define collapsed and expanded sidebar widths in pixels
+  const collapsedSidebarWidthPx = 25; // Corresponding to w-14
+  const expandedSidebarWidthPx = 56; // Corresponding to w-64
+
+  // Calculate dynamic translation for the drawer when open
+  const openTranslateX = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
 
   useEffect(() => {
     if (!isOpen) {
@@ -432,7 +447,10 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   return (
     <>
       <div
-        className={`fixed top-0 pt-10 left-0 h-full bg-white shadow-lg z-60 transition-transform duration-300 ease-in-out ${isOpen ? 'translate-x-14' : '-translate-x-full'} w-64`}
+        className={`fixed pt-8 top-0 left-0 h-full bg-white shadow-lg z-60 transition-transform duration-300 ease-in-out w-64`}
+        style={{
+          transform: `translateX(${isOpen ? openTranslateX : -100}%)` // Use dynamic translation
+        }}
       >
         <div className="p-4 flex justify-between items-center border-b">
           <h2 className="text-lg text-black font-semibold">Search</h2>
@@ -570,6 +588,9 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           onEventClick={onEventClick} 
           notifyMeParams={notifyMeParams}
           onNotifyMeClick={handleNotifyMe}
+          isSidebarExpanded={isSidebarExpanded}
+          collapsedSidebarWidthPx={collapsedSidebarWidthPx}
+          expandedSidebarWidthPx={expandedSidebarWidthPx}
         />
       )}
       {searchResults && searchResults.status === 404 && (
@@ -579,6 +600,9 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           onEventClick={onEventClick}
           notifyMeParams={notifyMeParams}
           onNotifyMeClick={handleNotifyMe}
+          isSidebarExpanded={isSidebarExpanded}
+          collapsedSidebarWidthPx={collapsedSidebarWidthPx}
+          expandedSidebarWidthPx={expandedSidebarWidthPx}
         />
       )}
     </>

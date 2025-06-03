@@ -11,6 +11,8 @@ import {
 import { renderToString } from 'react-dom/server';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { useMap } from '../../contexts/MapContext';
+import moment from 'moment'; // Import moment for date formatting
+import { useNavigate } from 'react-router-dom'; // Import useNavigate
 
 const containerStyle = {
   width: '100%',
@@ -162,6 +164,30 @@ const createClusterIcon = async (count, markers) => {
   };
 };
 
+// Helper function to format date
+const formatCreationDate = (dateString) => {
+  if (!dateString) return 'N/A';
+  const date = moment(dateString);
+  return date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'Invalid Date';
+};
+
+// Helper function to parse media JSON and count types
+const parseMediaAndCount = (mediaJson) => {
+  try {
+    const mediaArray = JSON.parse(mediaJson);
+    if (Array.isArray(mediaArray)) {
+      const imageCount = mediaArray.filter(media => media.type === 'image').length;
+      const videoCount = mediaArray.filter(media => media.type === 'video').length;
+      const firstMediaType = mediaArray.length > 0 ? mediaArray[0].type : null;
+      const firstMediaUrl = mediaArray.length > 0 ? mediaArray[0].url : null;
+      return { imageCount, videoCount, firstMediaType, firstMediaUrl };
+    }
+  } catch (e) {
+    console.warn('Failed to parse media JSON:', mediaJson, e);
+  }
+  return { imageCount: 0, videoCount: 0, firstMediaType: null, firstMediaUrl: null };
+};
+
 const HomeContent = () => {
   const [center, setCenter] = useState(defaultCenter);
   const [events, setEvents] = useState([]);
@@ -173,6 +199,10 @@ const HomeContent = () => {
   const geocoderRef = useRef(null); // Ref for Geocoder
   const [activeView, setActiveView] = useState('mapView'); // Add state for active view
   const [showLoginModal, setShowLoginModal] = useState(false); // Add state for login modal
+  const [hoveredEvent, setHoveredEvent] = useState(null); // State for the hovered event
+  const [tooltipPosition, setTooltipPosition] = useState({ x: -1000, y: -1000 }); // Initialize tooltip off-screen
+  const tooltipRef = useRef(null); // Ref for the tooltip div
+  const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -180,6 +210,7 @@ const HomeContent = () => {
   });
 
   const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents } = useMap();
+  const navigate = useNavigate(); // Initialize navigate hook
 
   console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation, 'searchLocation:', searchLocation, 'refreshEvents:', refreshEvents);
 
@@ -267,6 +298,13 @@ const HomeContent = () => {
     mapRef.current = map;
     const bounds = map.getBounds();
     if (bounds) fetchEvents(bounds);
+
+    // Add a click listener to the map to hide tooltip when clicking elsewhere
+    map.addListener('click', () => {
+       setHoveredEvent(null);
+       setTooltipPosition({ x: -1000, y: -1000 }); // Hide tooltip immediately on map click
+    });
+
   }, []);
 
   const handleBoundsChanged = () => {
@@ -309,15 +347,24 @@ const HomeContent = () => {
     }
   }, [setSearchAddressFn]); // Depend on the function to update search address
 
+  // Effect to create markers and clusterer - DEPENDS ONLY ON events and searchMarkers
   useEffect(() => {
     if (!mapRef.current || !window.google) return;
+
+    // Clear old markers and listeners
+    markersRef.current.forEach(marker => {
+       if (marker._listeners) {
+           window.google.maps.event.removeListener(marker._listeners.mouseover);
+           window.google.maps.event.removeListener(marker._listeners.mouseout);
+           delete marker._listeners;
+       }
+       marker.setMap(null);
+    });
+    markersRef.current = [];
 
     if (clustererRef.current) {
       clustererRef.current.clearMarkers();
     }
-
-    markersRef.current.forEach((m) => m.setMap(null));
-    markersRef.current = [];
 
     const allItems = [
       ...(events || []).map(item => ({ ...item, type: 'event' })),
@@ -337,54 +384,64 @@ const HomeContent = () => {
         let iconUrl = null;
 
         if (item.type === 'event') {
-          let mediaType = null;
-          try {
-            const mediaArray = JSON.parse(item.media);
-            if (Array.isArray(mediaArray) && mediaArray.length > 0) {
-              // Check if any media is a video
-              const hasVideo = mediaArray.some(media => media.type === 'video');
-              mediaType = hasVideo ? 'video' : 'image';
-            }
-          } catch (e) {
-            // console.warn('Failed to parse media JSON for event:', item.media);
-          }
-
-          const dynamicCategoryIcons = {
-            'Accident': {
-              image: '/accident1.svg',
-              video: '/accident2.svg'
-            },
-            'Pet': {
-              image: '/pet1.svg',
-              video: '/pet2.svg'
-            },
-            'Crime': {
-              image: '/crime1.svg',
-              video: '/crime2.svg'
-            },
-            'Other': {
-              image: '/other1.svg',
-              video: '/other2.svg'
-            },
-            'People': {
-              image: '/people1.svg',
-              video: '/people2.svg'
-            }
+          const staticIcons = {
+            'Accident': '/accident.svg',
+            'Pet': '/pet.svg',
+            'Crime': '/crime.svg',
+            'Other': '/other.svg',
+            'People': '/people.svg'
           };
+          iconUrl = staticIcons[item.category] || '/default.svg';
 
-          if (dynamicCategoryIcons[item.category] && mediaType) {
-            iconUrl = dynamicCategoryIcons[item.category][mediaType];
-          } else {
-            const staticIcons = {
-              'Accident': '/accident.svg',
-              'Pet': '/pet.svg',
-              'Crime': '/crime.svg',
-              'Other': '/other.svg',
-              'People': '/people.svg'
-            };
-            iconUrl = staticIcons[item.category] || '/default.svg'; // Use a default icon if category not matched
-          }
+          const marker = new window.google.maps.Marker({
+            position,
+            icon: {
+              url: iconUrl,
+              scaledSize: new window.google.maps.Size(60, 60)
+            },
+            title: '',
+            draggable: false,
+          });
+
+          marker.eventData = item; // Store event data on marker
+
+          // Add mouseover and mouseout listeners
+          const mouseoverListener = marker.addListener('mouseover', (event) => {
+             console.log('Mouse over event marker:', item.id);
+             // Clear any pending mouseout timer
+             if (mouseOutTimerRef.current) {
+                 clearTimeout(mouseOutTimerRef.current);
+                 mouseOutTimerRef.current = null;
+             }
+             setHoveredEvent(item);
+
+             // Position tooltip relative to the map container
+             if (mapRef.current && event.domEvent) {
+                 const mapDiv = mapRef.current.getDiv();
+                 const mapRect = mapDiv.getBoundingClientRect();
+                 const tooltipX = event.domEvent.clientX - mapRect.left;
+                 const tooltipY = event.domEvent.clientY - mapRect.top;
+                 setTooltipPosition({ x: tooltipX, y: tooltipY });
+                 console.log('Calculated tooltip position:', { x: tooltipX, y: tooltipY });
+             }
+          });
+
+          const mouseoutListener = marker.addListener('mouseout', () => {
+             console.log('Mouse out event marker:', item.id);
+             // Set a timer to hide the tooltip after a short delay
+             // The tooltip's mouseover will clear this timer if the mouse enters the tooltip
+             mouseOutTimerRef.current = setTimeout(() => {
+                 setHoveredEvent(null);
+                 setTooltipPosition({ x: -1000, y: -1000 }); // Hide tooltip by moving it off-screen
+             }, 100); // Use a slightly longer delay here
+          });
+
+          marker._listeners = { mouseover: mouseoverListener, mouseout: mouseoutListener };
+
+          return marker;
+
         } else if (item.type === 'searchMarker') {
+          // Keep existing logic for search markers
           const category = item.label;
           if (category === 'Accident') {
             iconUrl = '/accident3.svg';
@@ -392,25 +449,24 @@ const HomeContent = () => {
             const lowerCaseCategory = category.toLowerCase().replace(/[^a-z0-9]/g, '');
             iconUrl = `/${lowerCaseCategory}3.svg`;
           }
-        }
 
-        if (iconUrl) {
-          return new window.google.maps.Marker({
-            position,
-            icon: {
-              url: iconUrl,
-              scaledSize: new window.google.maps.Size(100, 100)
-            },
-            title: item.type === 'event' 
-              ? `This is a${('AEIOUaeiou'.indexOf(item.category[0]) !== -1) ? 'n' : ''} ${item.category} Event`
-              : `Someone is searching for ${item.label} events`,
-            draggable: false, // Event markers are not draggable
+          const marker = new window.google.maps.Marker({
+              position,
+              icon: {
+                  url: iconUrl,
+                  scaledSize: new window.google.maps.Size(50, 50),
+                  anchor: new window.google.maps.Point(25, 50)
+              },
+              title: `Someone is searching for ${item.label} events`,
+              draggable: false,
           });
+
+          return marker;
         }
 
+        // Fallback marker (no custom hover logic)
         const IconComponent = iconMap[item.category || item.label] || MapPin;
-        // Fallback for markers without specific icons (should use event/search logic too)
-        return new window.google.maps.Marker({
+        const fallbackMarker = new window.google.maps.Marker({
           position,
           icon: {
             url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
@@ -419,23 +475,27 @@ const HomeContent = () => {
             scaledSize: new window.google.maps.Size(32, 32)
           },
           title: item.type === 'event' 
-            ? `This is a${('AEIOUaeiou'.indexOf(item.category[0]) !== -1) ? 'n' : ''} ${item.category} Event`
+            ? `This is a${(('AEIOUaeiou'.indexOf(item.category?.[0]) !== -1) || (!item.category)) ? 'n' : ''} ${item.category || 'Unknown'} Event`
             : `Someone is searching for ${item.label} events`,
-          draggable: false, // Event markers are not draggable
+          draggable: false,
         });
+
+        return fallbackMarker;
       })
     );
 
     markersRef.current = newMarkers;
+
+    const eventMarkersToCluster = newMarkers.filter(marker => marker.eventData);
 
     if (clustererRef.current) {
         clustererRef.current.clearMarkers();
     }
 
     clustererRef.current = new MarkerClusterer({
-      markers: newMarkers,
+      markers: eventMarkersToCluster,
       map: mapRef.current,
-      renderer: {
+      renderer: { // Keep existing renderer logic
         render: ({ count, markers }) => {
           const clusterMarker = new window.google.maps.Marker({
             position: markers[0].getPosition(),
@@ -451,80 +511,51 @@ const HomeContent = () => {
           return clusterMarker;
         },
       },
+      styles: [ // Add custom cluster styles if needed for size adjustments
+           {
+              url: '/cluster.png', // Your custom cluster icon image
+              width: 53,
+              height: 52,
+              textColor: '#fff',
+              textSize: 11,
+              fontWeight: 'bold'
+           }, // Define more styles for different cluster sizes if needed
+       ]
     });
-  }, [events, searchMarkers]);
 
-  // Effect to handle search markers separately
-  useEffect(() => {
-      if (!mapRef.current || !window.google || !searchMarkers) return; // Depend on searchMarkers
+  }, [events, searchMarkers]); // Dependencies remain events and searchMarkers
 
-      // Filter out existing search markers from markersRef.current and clear them
-      markersRef.current = markersRef.current.filter(marker => {
-           // Assume search markers are draggable (the one we will add below)
-           const isSearchMarker = marker.getDraggable();
-           if (isSearchMarker) {
-               marker.setMap(null);
-           }
-           return !isSearchMarker; // Keep only non-search markers (like event markers)
-      });
+   // Add mouseover and mouseout listeners to the tooltip div
+   useEffect(() => {
+       const tooltipElement = tooltipRef.current;
+       if (tooltipElement) {
+           const handleTooltipMouseover = () => {
+               // Clear the mouseout timer if the mouse enters the tooltip
+               if (mouseOutTimerRef.current) {
+                   clearTimeout(mouseOutTimerRef.current);
+                   mouseOutTimerRef.current = null;
+               }
+           };
 
-      const newSearchMarkers = (searchMarkers || []).map(item => {
-           const position = { lat: item.lat, lng: item.lng };
-           let iconUrl = null;
+           const handleTooltipMouseout = () => {
+               // Set a timer to hide the tooltip after a short delay when mouse leaves tooltip
+                mouseOutTimerRef.current = setTimeout(() => {
+                    setHoveredEvent(null);
+                    setTooltipPosition({ x: -1000, y: -1000 });
+               }, 50); // Short delay
+           };
 
-           // Icon logic for search markers (based on your previous requirement)
-           const category = item.label;
-           if (category === 'Accident') {
-             iconUrl = '/accident3.svg';
-           } else {
-             const lowerCaseCategory = category.toLowerCase().replace(/[^a-z0-9]/g, '');
-             iconUrl = `/${lowerCaseCategory}3.svg`;
-           }
+           tooltipElement.addEventListener('mouseover', handleTooltipMouseover);
+           tooltipElement.addEventListener('mouseout', handleTooltipMouseout);
 
-           if (iconUrl) {
-              return new window.google.maps.Marker({
-                  position,
-                  icon: {
-                      url: iconUrl,
-                      scaledSize: new window.google.maps.Size(100, 100) // Keep size consistent
-                  },
-                  title: `Someone is searching for ${item.label} events`, // Specific tooltip for search markers
-                  draggable: false, // Search markers from API response are not draggable
-              });
-           }
+           return () => {
+               tooltipElement.removeEventListener('mouseover', handleTooltipMouseover);
+               tooltipElement.removeEventListener('mouseout', handleTooltipMouseout);
+           };
+       }
+   }, [hoveredEvent]); // Re-attach listeners when hoveredEvent changes
 
-           // Fallback for icons if needed
-           const IconComponent = iconMap[item.label] || MapPin;
-           return new window.google.maps.Marker({
-               position,
-               icon: {
-                   url: `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(
-                     renderToString(<IconComponent color="blue" size={32} />) // Differentiate icon color
-                   )}`,
-                   scaledSize: new window.google.maps.Size(32, 32)
-               },
-               title: `Someone is searching for ${item.label} events`, // Specific tooltip for search markers
-               draggable: false, // Search markers from API response are not draggable
-           });
-      });
-
-      // Add new search markers from API response to the ref
-      markersRef.current = [...markersRef.current, ...newSearchMarkers];
-
-      // No clustering for API search markers needed based on previous implementation
-
-  }, [searchMarkers]); // Dependency on searchMarkers for this effect
-
-  const badges = [
-    { icon: <img src="/accident.svg" alt="Accident" className="w-8 h-8" />, name: 'Accidents' },
-    { icon: <img src="/pet.svg" alt="Pets" className="w-8 h-8" />, name: 'Pets' },
-    { icon: <img src="/lost.svg" alt="Lost and Found" className="w-8 h-8" />, name: 'Lost and Found' },
-    { icon: <img src="/crime.svg" alt="Crimes" className="w-8 h-8" />, name: 'Crimes' },
-    { icon: <img src="/people.svg" alt="People" className="w-8 h-8" />, name: 'People' },
-    { icon: <img src="/others.svg" alt="People" className="w-8 h-8" />, name: 'Other' }
-  ];
-
-  // Component to render the list view (similar to ResultsDrawer content)
+  // Component to render the list view (keep existing logic)
   const renderListView = () => {
     if (!categorizedSearchResults) {
       return (
@@ -669,14 +700,14 @@ const HomeContent = () => {
   };
 
   return (
-    <div className="w-full h-full px-4 sm:px-8 lg:px-12 overflow-hidden">
+    <div className="w-full h-full px-4 sm:px-8 lg:px-12 overflow-x-hidden">
       <div className="w-full flex flex-col items-center">
         <img src="/brandLogo.png" alt="Poing Logo" className="w-30 object-contain" />
         <p className="text-gray-600 text-lg mb-4 text-center">The only search, find or post tool for lost items, pets, people, witnesses and event by location and time.</p>
       </div>
 
-      <div className="flex w-full h-[calc(100%-7.5rem)] gap-4 bg-gray-100">
-        {/* Map and List View Container */}
+      <div className="flex w-full h-[calc(100%-7.5rem)] bg-gray-100 relative"> {/* Add relative positioning here */}
+        {/* Map and List View Container - Now takes full width */}
         <div className="flex-1 rounded-lg overflow-hidden relative">
            {/* Toggle Buttons */}
            <div className="absolute top-4 right-4 z-10 flex space-x-2">
@@ -695,7 +726,6 @@ const HomeContent = () => {
            </div>
 
           {isLoaded ? (
-            // Conditionally render Map or ListView
             activeView === 'mapView' ? (
               <GoogleMap
                 mapContainerStyle={containerStyle}
@@ -743,16 +773,60 @@ const HomeContent = () => {
               Loading Map...
             </div>
           )}
-        </div>
 
-        {/* Badges */}
-        <div className="w-24 flex flex-col justify-center items-center gap-6 bg-transparent p-4 self-start">
-          {badges.map((badge, idx) => (
-            <div key={idx} className="flex flex-col items-center text-sm text-gray-700">
-              {badge.icon}
-              <span className="mt-1 text-center">{badge.name}</span>
+          {/* Custom Event Tooltip */}
+          {hoveredEvent && tooltipPosition.x > -1000 && (
+            <div
+              ref={tooltipRef} // Attach ref to tooltip div
+              className="event-tooltip absolute z-20 bg-gray-200 text-gray-800 p-3 rounded shadow-lg pointer-events-auto"
+              style={{
+                top: tooltipPosition.y + 15, // Adjust offset as needed
+                left: tooltipPosition.x + 15, // Adjust offset as needed
+                minWidth: '200px', // Ensure minimum width
+                maxWidth: '300px', // Ensure maximum width
+              }}
+            >
+              <h3 className="font-bold text-base mb-1">{hoveredEvent.category || 'Unknown Category'}</h3>
+              <p className="text-xs mb-1">{hoveredEvent.address || 'No address'}</p>
+              <p className="text-xs text-red-600 mb-2">{formatCreationDate(hoveredEvent.createdAt)}</p>
+
+              {/* Media Info Row */}
+              <div className="flex gap-2 mb-2">
+                 <div className="flex-1 bg-white text-gray-800 text-xs p-1 rounded flex items-center justify-center text-center">
+                   {`${parseMediaAndCount(hoveredEvent.media).imageCount} image(s) and ${parseMediaAndCount(hoveredEvent.media).videoCount} video(s)`}
+                 </div>
+                 <div className="w-12 h-12 bg-gray-300 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {parseMediaAndCount(hoveredEvent.media).firstMediaType === 'image' ? (
+                       <img src={parseMediaAndCount(hoveredEvent.media).firstMediaUrl} alt="Media" className="w-full h-full object-cover"/>
+                    ) : parseMediaAndCount(hoveredEvent.media).firstMediaType === 'video' ? (
+                       <video src={parseMediaAndCount(hoveredEvent.media).firstMediaUrl} className="w-full h-full object-cover"/>
+                    ) : (
+                       <span className="text-gray-500 text-xs">No Media</span>
+                    )}
+                 </div>
+              </div>
+
+              {/* Description */}
+              <p className="text-xs mb-2">
+                 {hoveredEvent.description ? hoveredEvent.description.slice(0, 50) + (hoveredEvent.description.length > 50 ? '...' : '') : 'No description'}
+              </p>
+
+              {/* Claim Button */}
+              <button
+                 onClick={() => {
+                    console.log('Claim button clicked for event:', hoveredEvent.id);
+                    navigate(`/event/${hoveredEvent.id}`, { state: { event: hoveredEvent } }); // Pass event object in state
+                 }}
+                 className="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-700 mb-2"
+              >
+                 Claim
+              </button>
+
+              {/* Listing ID */}
+              <p className="text-xs">Listing ID: {hoveredEvent.id}</p>
             </div>
-          ))}
+          )}
+
         </div>
       </div>
     </div>

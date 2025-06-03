@@ -47,11 +47,17 @@ import { Outlet } from 'react-router-dom';
 import Footer from './footer/Footer';
 import Topbar from './topbar/Topbar';
 import Sidebar from './sidebar/sidebar';
+import { useMap } from '../contexts/MapContext';
 
 export default function Layout() {
   const topbarHeight = 52;
   const footerHeight = 40;
-  const sidebarWidth = 60;
+  const collapsedSidebarWidth = 56;
+  const expandedSidebarWidth = 112;
+
+  const { isSidebarExpanded } = useMap();
+
+  const currentSidebarWidth = isSidebarExpanded ? expandedSidebarWidth : collapsedSidebarWidth;
 
   return (
     <div className="relative min-h-screen w-full bg-gray-100 overflow-hidden">
@@ -68,7 +74,7 @@ export default function Layout() {
       {/* Fixed Sidebar */}
       <div
         className="fixed top-0 left-0 z-50"
-        style={{ top: `${topbarHeight}px`, bottom: `${footerHeight}px`, width: `${sidebarWidth}px` }}
+        style={{ top: `${topbarHeight}px`, bottom: `${footerHeight}px`, width: `${currentSidebarWidth}px` }}
       >
         <Sidebar />
       </div>
@@ -80,11 +86,11 @@ export default function Layout() {
           position: 'absolute',
           top: `${topbarHeight}px`,
           bottom: `${footerHeight}px`,
-          left: `${sidebarWidth}px`,
+          left: `${currentSidebarWidth}px`,
           right: 0,
         }}
       >
-        <div className="w-full max-w-full px-4">
+        <div className="w-full max-w-full px-4 h-full">
           <Outlet />
         </div>
       </main>

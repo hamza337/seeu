@@ -17,6 +17,7 @@ import Payment from './components/mediaContent/payment/Payment';
 import ShareEvent from './components/shareEvent/ShareEvent';
 import SearchResults from './components/searchResults/SearchResults';
 import { MapProvider } from './contexts/MapContext';
+import MyEvents from './pages/MyEvents/MyEvents';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
@@ -30,7 +31,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="/share" element={<ShareEvent />} />
             <Route path="/results" element={<SearchResults />} />
             <Route path="media" element={<Media />} />
-            <Route path="/media/:id" element={<MediaDetail />} />
+            <Route path="/event/:id" element={<MediaDetail />} />
             <Route path="/media/:id/buy-now" element={<Payment />} />
             <Route path="settings" element={<Users />} />
             <Route path="settings/language-setting" element={<LanguageSetting />} />
@@ -39,6 +40,7 @@ ReactDOM.createRoot(document.getElementById('root')).render(
             <Route path="settings/wallet" element={<Wallet />} />
             <Route path="settings/wallet/withdraw-request" element={<WithdrawRequest />} />
             <Route path="/contact-us" element={<ContactUs />} />
+            <Route path="/my-events" element={<MyEvents />} />
 
           </Route>
         </Routes>

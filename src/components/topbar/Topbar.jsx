@@ -5,6 +5,19 @@ import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
 
+// Array of available avatar options
+const AVATAR_OPTIONS = [
+  '/avatar1.png',
+  '/avatar2.png',
+  '/avatar3.png',
+  '/avatar4.png',
+  '/avatar5.png',
+  '/avatar6.png',
+  '/avatar7.png',
+  '/avatar8.png',
+  '/avatar9.png',
+];
+
 export default function Topbar() {
   const [modal, setModal] = useState(false);
   const [currentModalView, setCurrentModalView] = useState('login');
@@ -15,6 +28,8 @@ export default function Topbar() {
   const [user, setUser] = useState(null);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [showAvatarModal, setShowAvatarModal] = useState(false);
+  const [selectedAvatar, setSelectedAvatar] = useState('/icons8-male-user-48.png');
   const baseUrl = import.meta.env.VITE_API_URL;
   const [otp, setOtp] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
@@ -24,8 +39,12 @@ export default function Topbar() {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
+    const storedAvatar = localStorage.getItem('userAvatar');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
+      if (storedAvatar) {
+        setSelectedAvatar(storedAvatar);
+      }
     }
   }, []);
 
@@ -175,6 +194,13 @@ export default function Topbar() {
     setConfirmPassword('');
   };
 
+  const handleAvatarSelect = (avatarPath) => {
+    setSelectedAvatar(avatarPath);
+    localStorage.setItem('userAvatar', avatarPath);
+    setShowAvatarModal(false);
+    setDropdownOpen(false);
+  };
+
   return (
     <>
       {/* Topbar */}
@@ -221,19 +247,27 @@ export default function Topbar() {
           ) : (
             <div className="relative">
               <img
-                src="/icons8-male-user-48.png"
+                src={selectedAvatar}
                 alt="Profile"
                 className="h-11 w-11 rounded-full object-cover cursor-pointer"
                 onClick={() => setDropdownOpen(prev => !prev)}
               />
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50">
+                <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50 w-48">
+                  <button
+                    onClick={() => setShowAvatarModal(true)}
+                    className="block px-4 py-2 text-black hover:bg-gray-100 w-full text-left"
+                  >
+                    Change Avatar
+                  </button>
                   <button
                     onClick={() => {
                       localStorage.removeItem('user');
                       localStorage.removeItem('token');
+                      localStorage.removeItem('userAvatar');
                       setUser(null);
                       setDropdownOpen(false);
+                      setSelectedAvatar('/icons8-male-user-48.png');
                     }}
                     className="block px-4 py-2 text-black hover:bg-gray-100 w-full text-left"
                   >
@@ -245,6 +279,41 @@ export default function Topbar() {
           )}
         </div>
       </div>
+
+      {/* Avatar Selection Modal */}
+      {showAvatarModal && (
+        <div className="fixed inset-0 bg-transparent flex items-center justify-center z-[100]">
+          <div className="bg-white rounded-xl shadow-lg p-4 w-[90%] max-w-md mx-auto relative">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg text-black font-semibold">Change Avatar</h2>
+              <button 
+                onClick={() => setShowAvatarModal(false)} 
+                className="text-gray-600 hover:text-black"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="h-px bg-gray-200 mb-4"></div>
+            <div className="grid grid-cols-3 gap-3">
+              {AVATAR_OPTIONS.map((avatar, index) => (
+                <div
+                  key={index}
+                  className={`cursor-pointer p-1.5 rounded-lg transition-all duration-200 ${
+                    selectedAvatar === avatar ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleAvatarSelect(avatar)}
+                >
+                  <img
+                    src={avatar}
+                    alt={`Avatar ${index + 1}`}
+                    className="w-16 h-16 rounded-full object-cover mx-auto"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal */}
       {showLoginModal && (

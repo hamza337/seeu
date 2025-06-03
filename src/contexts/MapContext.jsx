@@ -11,6 +11,7 @@ export const MapProvider = ({ children }) => {
   const [notifyMeParams, setNotifyMeParams] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [refreshEvents, setRefreshEvents] = useState(0);
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
 
   const triggerRefreshEvents = () => {
     setRefreshEvents(prev => prev + 1);
@@ -66,6 +67,8 @@ export const MapProvider = ({ children }) => {
       setShowLoginModal: updateShowLoginModal,
       refreshEvents,
       triggerRefreshEvents,
+      isSidebarExpanded,
+      setIsSidebarExpanded,
     }}>
       {children}
     </MapContext.Provider>
