@@ -1,4 +1,4 @@
-import { X, SquareActivity, PawPrint, Bike, Camera, Users, MapPin, Glasses, Lock } from 'lucide-react';
+import { X, SquareActivity, PawPrint, Bike, Camera, Users, MapPin, Glasses, Lock, Check } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -57,8 +57,8 @@ const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotif
     <div className={`fixed top-0 h-[80vh] w-1/2 bg-white shadow-lg z-50 mt-[10vh] rounded-lg overflow-hidden transition-opacity duration-300`}
       style={{
         left: `${isSidebarExpanded 
-          ? expandedSidebarWidthPx + 256 + 20 // sidebar expanded width + search drawer width + gap
-          : collapsedSidebarWidthPx + 256 + 20  // sidebar collapsed width + search drawer width + gap
+          ? expandedSidebarWidthPx + 256 + 30 // sidebar expanded width + search drawer width + gap
+          : collapsedSidebarWidthPx + 256 + 40  // sidebar collapsed width + search drawer width + gap
         }px` // Adjust left based on sidebar width + search drawer width + desired gap
       }}
     >
@@ -265,6 +265,16 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
 
   const handleDropdownToggle = () => setIsDropdownOpen(!isDropdownOpen);
 
+  // Define the category options with icons for the dropdown grid
+  const categoryOptions = [
+    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-10 h-10" /> },
+    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-10 h-10" /> },
+    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-10 h-10" /> },
+    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-10 h-10" /> },
+    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-10 h-10" /> },
+    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-10 h-10" /> },
+  ];
+
   const debouncedPlaceChanged = debounce(() => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
@@ -431,7 +441,9 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   useEffect(() => {
     function handleClickOutside(event) {
       const dropdownNode = document.querySelector('.search-dropdown-container');
-      if (dropdownNode && !dropdownNode.contains(event.target)) {
+      const dropdownButton = document.querySelector('.search-dropdown-button');
+
+      if (isDropdownOpen && dropdownNode && !dropdownNode.contains(event.target) && dropdownButton && !dropdownButton.contains(event.target)) {
         setIsDropdownOpen(false);
       }
     }
@@ -508,7 +520,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           <div className="relative">
             <button
               onClick={handleDropdownToggle}
-              className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center"
+              className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center search-dropdown-button"
             >
               <span className='text-gray-800'>
                 {selectedCategories.length > 0 
@@ -522,54 +534,39 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                 isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
               } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
             >
-              {[{
-                label: 'Accident',
-                icon: <img src="/accident.svg" alt="Accident" className="w-4 h-4" />
-              },
-              {
-                label: 'Pet',
-                icon: <img src="/pet.svg" alt="Pet" className="w-4 h-4" />
-              },
-              {
-                label: 'Lost & Found',
-                icon: <img src="/lost.svg" alt="Lost and Found" className="w-4 h-4" />
-              },
-              {
-                label: 'Crime',
-                icon: <img src="/crime.svg" alt="Crime" className="w-4 h-4" />
-              },
-              {
-                label: 'People',
-                icon: <img src="/people.svg" alt="People" className="w-4 h-4" />
-              },
-              {
-                label: 'Other',
-                icon: <img src="/others.svg" alt="Other" className="w-4 h-4" color="black" />
-              }].map((item) => (
-                <div
-                  key={item.label}
-                  onClick={() => {
-                    setSelectedCategories(prev => {
-                      if (prev.includes(item.label)) {
-                        setCategoryError('');
-                        return prev.filter(cat => cat !== item.label);
-                      } else {
-                        if (prev.length < 2) {
+              {/* Grid of icons */}
+              <div className="grid grid-cols-3 gap-4 p-4">
+                {categoryOptions.map((item) => (
+                  <div
+                    key={item.label}
+                    onClick={() => {
+                      setSelectedCategories(prev => {
+                        const isSelected = prev.includes(item.label);
+                        if (isSelected) {
                           setCategoryError('');
-                          return [...prev, item.label];
+                          return prev.filter(cat => cat !== item.label);
                         } else {
-                          setCategoryError('You can select a maximum of 2 categories.');
-                          return prev;
+                          if (prev.length < 2) {
+                            setCategoryError('');
+                            return [...prev, item.label];
+                          } else {
+                            setCategoryError('You can select a maximum of 2 categories.');
+                            return prev;
+                          }
                         }
-                      }
-                    });
-                  }}
-                  className={`py-1 px-3 text-black hover:bg-gray-100 cursor-pointer flex justify-between items-center ${selectedCategories.includes(item.label) ? 'bg-gray-200' : ''}`}
-                >
-                  <span>{item.label}</span>
-                  <span>{item.icon}</span>
-                </div>
-              ))}
+                      });
+                    }}
+                    className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200 ${
+                      selectedCategories.includes(item.label) ? 'bg-blue-100 ring-2 ring-blue-500' : 'hover:bg-gray-100'
+                    }`}
+                  >
+                    {item.icon}
+                    {selectedCategories.includes(item.label) && (
+                       <Check size={16} className="absolute top-1 right-1 text-blue-600" />
+                    )}
+                  </div>
+                ))}
+              </div>
             </div>
             {categoryError && <p className="text-red-500 text-sm mt-1">{categoryError}</p>}
           </div>

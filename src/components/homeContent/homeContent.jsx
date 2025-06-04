@@ -397,7 +397,8 @@ const HomeContent = () => {
             position,
             icon: {
               url: iconUrl,
-              scaledSize: new window.google.maps.Size(60, 60)
+              scaledSize: new window.google.maps.Size(60, 60),
+              anchor: new window.google.maps.Point(30, 30) // Add anchor point to center the marker
             },
             title: '',
             draggable: false,

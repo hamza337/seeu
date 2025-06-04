@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from 'react';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const MapContext = createContext(null);
 
@@ -12,6 +12,7 @@ export const MapProvider = ({ children }) => {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [refreshEvents, setRefreshEvents] = useState(0);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
 
   const triggerRefreshEvents = () => {
     setRefreshEvents(prev => prev + 1);
@@ -49,6 +50,23 @@ export const MapProvider = ({ children }) => {
     setShowLoginModal(show);
   };
 
+  const updateIsAuthenticated = (status) => {
+    setIsAuthenticated(status);
+  };
+
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem('token');
+      setIsAuthenticated(!!token);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+    };
+  }, []);
+
   return (
     <MapContext.Provider value={{ 
       mapFocusLocation,
@@ -69,6 +87,8 @@ export const MapProvider = ({ children }) => {
       triggerRefreshEvents,
       isSidebarExpanded,
       setIsSidebarExpanded,
+      isAuthenticated,
+      setIsAuthenticated: updateIsAuthenticated,
     }}>
       {children}
     </MapContext.Provider>

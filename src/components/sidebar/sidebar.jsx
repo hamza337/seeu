@@ -8,7 +8,7 @@ import { useMap } from '../../contexts/MapContext';
 export default function Sidebar() {
   const [activeDrawer, setActiveDrawer] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState(null);
-  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded } = useMap();
+  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated } = useMap();
   const clearMapFocusTimeoutRef = useRef(null);
 
   const toggleDrawer = (drawer) => {
@@ -71,10 +71,12 @@ export default function Sidebar() {
           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">Poing It</span>} {/* Conditionally render text */}
         </button>
         {/* My Events Link */}
-        <Link to="/my-events" className={`flex items-center mt-4`}> {/* Add margin-top and adjust alignment */}
-          <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="Go to Home" /> {/* Placeholder icon - replace with appropriate icon */}
-           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">My Events</span>} {/* Conditionally render text */}
-        </Link>
+        {isAuthenticated && (
+          <Link to="/my-events" className={`flex items-center mt-4`}> {/* Add margin-top and adjust alignment */}
+            <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="Go to Home" /> {/* Placeholder icon - replace with appropriate icon */}
+             {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">My Events</span>} {/* Conditionally render text */}
+          </Link>
+        )}
 
       </div>
 

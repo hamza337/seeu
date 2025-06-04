@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign } from 'lucide-react';
+import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
@@ -9,7 +9,7 @@ import { useMap } from '../../../contexts/MapContext';
 export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [uploads, setUploads] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
-  const [selectedEventType, setSelectedEventType] = useState('Select cateogry');
+  const [selectedEventType, setSelectedEventType] = useState('Accident');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
   const [isFree, setIsFree] = useState(false);
@@ -32,7 +32,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
   // Define collapsed and expanded sidebar widths in pixels
   const collapsedSidebarWidthPx = 12; // Corresponding to w-14
-  const expandedSidebarWidthPx = 27; // Corresponding to w-64
+  const expandedSidebarWidthPx = 28; // Corresponding to w-64
 
   // Calculate dynamic translation for the drawer when open
   const openTranslateX = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
@@ -272,7 +272,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         onClose();
         setUploads([]);
         setSelectedDate(null);
-        setSelectedEventType('Select cateogry');
+        setSelectedEventType('Accident');
         setDescription('');
         setPrice('');
         setIsFree(false);
@@ -366,7 +366,16 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             onClick={handleDropdownToggle}
             className="w-3/4 p-3 pl-4 pr-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center location-dropdown-button"
           >
-            <span className="text-black">{selectedEventType || 'Select an Event Type'}</span>
+            <div className="flex items-center gap-2 text-black">
+              {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-5 h-5" /> },
+              { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-5 h-5" /> },
+              { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-5 h-5" /> },
+              { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-5 h-5" /> },
+              { label: 'People', icon: <img src="/people.svg" alt="People" className="w-5 h-5" /> },
+              { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-5 h-5" /> },
+            ].find(item => item.label.replace(' & ','') === selectedEventType)?.icon}
+              <span className="whitespace-nowrap">{selectedEventType === 'Select cateogry' ? 'Select an Event Type' : selectedEventType}</span>
+            </div>
             <span className="text-black">{isDropdownOpen ? '▲' : '▼'}</span>
           </button>
 
@@ -375,30 +384,36 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
               isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
             } absolute top-full left-0 w-3/4 bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
           >
-            {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-4 h-4" /> },
-              { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-4 h-4" /> },
-              { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost & Found" className="w-4 h-4" color="black" /> },
-              { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-4 h-4" /> },
-              { label: 'People', icon: <img src="/people.svg" alt="People" className="w-4 h-4" /> },
-              { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-4 h-4" color="black" /> },
-            ].map((item) => (
-              <div
-                key={item.label}
-                onClick={() => {
-                  setSelectedEventType(item.label.replace(' & ',''));
-                  setIsDropdownOpen(false);
-                }}
-                className="py-1 px-3 text-black hover:bg-gray-100 cursor-pointer flex justify-between items-center"
-              >
-                <span>{item.label}</span>
-                <span>{item.icon}</span>
-              </div>
-            ))}
+            <div className="grid grid-cols-3 gap-4 p-4">
+              {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-10 h-10" /> },
+                { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-10 h-10" /> },
+                { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-10 h-10" /> },
+                { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-10 h-10" /> },
+                { label: 'People', icon: <img src="/people.svg" alt="People" className="w-10 h-10" /> },
+                { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-10 h-10" /> },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  onClick={() => {
+                    setSelectedEventType(item.label.replace(' & ',''));
+                    setIsDropdownOpen(false);
+                  }}
+                  className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200 ${
+                    selectedEventType === item.label.replace(' & ','') ? 'bg-blue-100 ring-2 ring-blue-500' : 'hover:bg-gray-100'
+                  }`}
+                >
+                  {item.icon}
+                  {selectedEventType === item.label.replace(' & ','') && (
+                     <Check size={16} className="absolute top-1 right-1 text-blue-600" />
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
         </div>
 
         <textarea
-          placeholder={selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
+          placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
           className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar min-h-[120px]"

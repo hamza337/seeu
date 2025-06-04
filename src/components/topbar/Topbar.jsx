@@ -35,7 +35,7 @@ export default function Topbar() {
   const [resendTimer, setResendTimer] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
 
-  const { showLoginModal, setShowLoginModal } = useMap();
+  const { showLoginModal, setShowLoginModal, setIsAuthenticated } = useMap();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -98,6 +98,7 @@ export default function Topbar() {
       if (response.status === 201) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.access_token);
+        setIsAuthenticated(true);
         setUser(response.data.user);
         setModal(false);
         setShowLoginModal(false);
@@ -109,6 +110,16 @@ export default function Topbar() {
     } catch (err) {
       setError(err.response?.data?.message || 'Login failed.');
     }
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    localStorage.removeItem('userAvatar');
+    setIsAuthenticated(false);
+    setUser(null);
+    setSelectedAvatar('/icons8-male-user-48.png');
+    setDropdownOpen(false);
   };
 
   const handleSendOtp = async (e) => {
@@ -253,23 +264,23 @@ export default function Topbar() {
                 onClick={() => setDropdownOpen(prev => !prev)}
               />
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 bg-white border rounded shadow-lg z-50 w-48">
+                <div
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50"
+                  role="menu"
+                  aria-orientation="vertical"
+                  aria-labelledby="user-menu-button"
+                >
                   <button
                     onClick={() => setShowAvatarModal(true)}
-                    className="block px-4 py-2 text-black hover:bg-gray-100 w-full text-left"
+                    className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
+                    role="menuitem"
                   >
                     Change Avatar
                   </button>
                   <button
-                    onClick={() => {
-                      localStorage.removeItem('user');
-                      localStorage.removeItem('token');
-                      localStorage.removeItem('userAvatar');
-                      setUser(null);
-                      setDropdownOpen(false);
-                      setSelectedAvatar('/icons8-male-user-48.png');
-                    }}
-                    className="block px-4 py-2 text-black hover:bg-gray-100 w-full text-left"
+                    onClick={handleLogout}
+                    className="block px-4 py-2 text-sm text-red-700 w-full text-left hover:bg-gray-100"
+                    role="menuitem"
                   >
                     Logout
                   </button>
