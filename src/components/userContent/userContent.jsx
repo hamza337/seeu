@@ -1,7 +1,6 @@
 import { useState } from 'react';
-import { Globe, Shield, FileText, Wallet, Phone, LogOut } from 'lucide-react';
+import { Globe, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
-import SignOutModal from '../signoutModal/SignOutModal';
 
 const UsersContent = () => {
   const [showModal, setShowModal] = useState(false);
@@ -9,7 +8,6 @@ const UsersContent = () => {
   const menu = [
     { label: 'Language Setting', icon: <Globe size={20} />, path: '/settings/language-setting' },
     { label: 'Wallet', icon: <Wallet size={20} />, path: '/settings/wallet' },
-    { label: 'Sign Out', icon: <LogOut size={20} />, path: null }, // no path now
   ];
 
   return (
@@ -41,9 +39,6 @@ const UsersContent = () => {
           )
         ))}
       </div>
-
-      {/* Sign Out Modal */}
-      {showModal && <SignOutModal onClose={() => setShowModal(false)} />}
     </div>
   );
 };

@@ -38,8 +38,8 @@ const Wallet = () => {
 
       {/* Wallet Balance Box */}
       <div className="bg-black text-white rounded-xl p-6 flex flex-col gap-2 mt-6">
-        <h2 className="text-3xl font-bold">${walletData?.walletBalance}</h2>
-        <p className="text-lg font-medium mt-12">{localStorage.getItem('user').replace(/"/g, '')}</p>
+        <h2 className="text-3xl font-bold">${walletData?.totalEarned}</h2>
+        <p className="text-lg font-medium mt-12">{localStorage.getItem('user')?.replace(/"/g, '')}</p>
       </div>
 
       {/* Withdraw Request Button */}
