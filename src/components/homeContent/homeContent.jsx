@@ -388,7 +388,7 @@ const HomeContent = () => {
             'Accident': '/accident.svg',
             'Pet': '/pet.svg',
             'Crime': '/crime.svg',
-            'Other': '/other.svg',
+            'Other': '/others.svg',
             'People': '/people.svg'
           };
           iconUrl = staticIcons[item.category] || '/default.svg';
@@ -655,7 +655,9 @@ const HomeContent = () => {
                               }
 
                               const eventId = event.id; // Get the event ID
-                              const purchaseUrl = `${import.meta.env.VITE_API_URL}stripe/purchase/${eventId}`;
+                              const purchaseUrl = event.isFree 
+                                  ? `${import.meta.env.VITE_API_URL}stripe/purchase/free/${eventId}`
+                                  : `${import.meta.env.VITE_API_URL}stripe/purchase/${eventId}`;
 
                               axios.post(purchaseUrl,{}, {
                                 headers: {
@@ -664,11 +666,17 @@ const HomeContent = () => {
                               })
                               .then(response => {
                                   console.log('Stripe purchase API response:', response.data);
-                                  if (response.data && response.data.url) {
-                                      // Redirect to Stripe page in the same tab
-                                      window.location.href = response.data.url;
+                                  if (event.isFree) {
+                                      // For free events, show success message and redirect to my-events
+                                      alert(response.data.message || 'Event added to your purchases successfully!');
+                                      window.location.href = '/my-events';
                                   } else {
-                                      alert('Failed to get Stripe checkout URL from API.');
+                                      // For paid events, redirect to Stripe checkout
+                                      if (response.data && response.data.url) {
+                                          window.location.href = response.data.url;
+                                      } else {
+                                          alert('Failed to get Stripe checkout URL from API.');
+                                      }
                                   }
                               })
                               .catch(error => {

@@ -129,7 +129,10 @@ const EventDetail = () => {
           return;
       }
 
-      const purchaseUrl = `${baseUrl}stripe/purchase/${event.id}`;
+      // Use different URLs based on whether the event is free or not
+      const purchaseUrl = event.isFree 
+          ? `${baseUrl}stripe/purchase/free/${event.id}`
+          : `${baseUrl}stripe/purchase/${event.id}`;
 
       try {
           const response = await axios.post(purchaseUrl, {}, {
@@ -140,10 +143,17 @@ const EventDetail = () => {
 
           console.log('Stripe purchase API response:', response.data);
 
-          if (response.data && response.data.url) {
-              window.location.href = response.data.url;
+          if (event.isFree) {
+              // For free events, show success message and redirect to home
+              alert(response.data.message || 'Event added to your purchases successfully!');
+              navigate('/my-events');
           } else {
-              alert('Failed to get Stripe checkout URL from API.');
+              // For paid events, redirect to Stripe checkout
+              if (response.data && response.data.url) {
+                  window.location.href = response.data.url;
+              } else {
+                  alert('Failed to get Stripe checkout URL from API.');
+              }
           }
 
       } catch (error) {
@@ -276,17 +286,12 @@ const EventDetail = () => {
 
         {/* Description */}
         <p className="mt-6 text-black">{event.description || 'No description'}</p>
-
-        {/* Buy Now Button */}
-        {!event.isFree && !event.isSold && ( // Only show Buy Now if not free and not already sold
-            <button
-                onClick={handleBuyNow}
-                className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
-            >
-                Buy Now
-            </button>
-        )}
-
+          <button
+              onClick={handleBuyNow}
+              className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
+          >
+              Buy Now
+          </button>
       </div>
     </div>
   );
