@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Home, Image, Settings, X } from 'lucide-react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
@@ -36,6 +36,7 @@ export default function Topbar() {
   const [isResendDisabled, setIsResendDisabled] = useState(false);
 
   const { showLoginModal, setShowLoginModal, setIsAuthenticated } = useMap();
+  const location = useLocation();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -212,10 +213,35 @@ export default function Topbar() {
     setDropdownOpen(false);
   };
 
+  // Add click-outside handler for dropdown
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const dropdownNode = document.querySelector('.dropdown-menu');
+      const profileImage = document.querySelector('.profile-image');
+      
+      if (dropdownOpen && dropdownNode && !dropdownNode.contains(event.target) && profileImage && !profileImage.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    }
+
+    if (dropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [dropdownOpen]);
+
   return (
     <>
       {/* Topbar */}
       <div className="w-full flex justify-end items-center px-2 py-1 bg-transparent relative">
+        {/* Brand Logo Overlapping - only on home route */}
+        {location.pathname === '/' && (
+          <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[120] pointer-events-none">
+            <img src="/brandLogo.png" alt="Poing Logo" className="w-36 object-contain" />
+          </div>
+        )}
         {/* Help Icon */}
         <div
           className="relative group"
@@ -226,7 +252,7 @@ export default function Topbar() {
             <IoHelpOutline className="text-[#0b4bb2] w-5 h-5 cursor-pointer" />
           </div>
           {showHelp && (
-            <div className="absolute right-0 top-10 w-150 p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-50">
+            <div className="absolute right-0 top-10 w-130 p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-50">
               <p className="text-lg font-semibold mb-2">About Poing</p>
               <p className="mb-2">
                 Poing is a smarter, more effective tool for posting and locating lost items, witnesses to events (such as thefts, accidents, or unique moments), as well as lost pets and people — all based on location and time!
@@ -248,11 +274,6 @@ export default function Topbar() {
         </div>
 
         <div className="flex items-center gap-6 ml-4">
-          <NavLink to="/settings">
-            <div className="p-2 rounded-full bg-gray-300">
-              <IoSettings className="text-[#0b4bb2] w-5 h-5 cursor-pointer" />
-            </div>
-          </NavLink>
           {!user ? (
             <button onClick={() => { setShowLoginModal(true); setCurrentModalView('login'); }} className="text-black font-normal hover:underline">Login</button>
           ) : (
@@ -260,12 +281,12 @@ export default function Topbar() {
               <img
                 src={selectedAvatar}
                 alt="Profile"
-                className="h-11 w-11 rounded-full object-cover cursor-pointer"
+                className="h-11 w-11 rounded-full object-cover cursor-pointer profile-image"
                 onClick={() => setDropdownOpen(prev => !prev)}
               />
               {dropdownOpen && (
                 <div
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50"
+                  className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50 dropdown-menu"
                   role="menu"
                   aria-orientation="vertical"
                   aria-labelledby="user-menu-button"
@@ -277,6 +298,14 @@ export default function Topbar() {
                   >
                     Change Avatar
                   </button>
+                  <NavLink
+                    to="/settings"
+                    className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
+                    role="menuitem"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    Settings
+                  </NavLink>
                   <button
                     onClick={handleLogout}
                     className="block px-4 py-2 text-sm text-red-700 w-full text-left hover:bg-gray-100"

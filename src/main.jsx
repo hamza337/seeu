@@ -18,11 +18,13 @@ import ShareEvent from './components/shareEvent/ShareEvent';
 import SearchResults from './components/searchResults/SearchResults';
 import { MapProvider } from './contexts/MapContext';
 import MyEvents from './pages/MyEvents/MyEvents';
+import { Toaster } from 'react-hot-toast';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <MapProvider>
+        <Toaster />
         <Routes>
           {/* Layout Route */}
           <Route path="/" element={<Layout />}>

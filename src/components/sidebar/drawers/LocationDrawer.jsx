@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from 'react';
-import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check } from 'lucide-react';
+import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import { useMap } from '../../../contexts/MapContext';
+import toast from 'react-hot-toast';
 
 export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [uploads, setUploads] = useState([]);
@@ -15,11 +16,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [isFree, setIsFree] = useState(false);
   const [isExclusive, setIsExclusive] = useState(false);
   const [address, setAddress] = useState('');
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [fileError, setFileError] = useState('');
   const [formError, setFormError] = useState('');
   const drawerRef = useRef(null);
   const autocompleteRef = useRef(null);
+  const [mainMediaIndex, setMainMediaIndex] = useState(0);
+  const [loading, setLoading] = useState(false);
 
   const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -28,14 +30,15 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     libraries: ['places']
   });
 
-  const { triggerRefreshEvents, setSearchLocation, setSetSearchAddressFn, isSidebarExpanded } = useMap();
+  const { triggerRefreshEvents, setSearchLocation, setSetSearchAddressFn, isSidebarExpanded, setShowLoginModal } = useMap();
 
-  // Define collapsed and expanded sidebar widths in pixels
-  const collapsedSidebarWidthPx = 12; // Corresponding to w-14
-  const expandedSidebarWidthPx = 28; // Corresponding to w-64
+  // Sidebar widths in px (match layout/sidebar)
+  const collapsedSidebarWidthPx = 56;
+  const expandedSidebarWidthPx = 256;
+  const drawerWidthPx = 500; // w-96
 
-  // Calculate dynamic translation for the drawer when open
-  const openTranslateX = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
+  // Calculate left position based on sidebar state
+  const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
 
   const categoryPlaceholders = {
     'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
@@ -55,6 +58,16 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     'Other': 60,
   };
 
+  // Define the category options with icons for the grid
+  const categoryOptions = [
+    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-10 h-10" /> },
+    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-10 h-10" /> },
+    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-10 h-10" /> },
+    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-10 h-10" /> },
+    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-10 h-10" /> },
+    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-10 h-10" /> },
+  ];
+
   // Set up the search address function in context
   useEffect(() => {
     setSetSearchAddressFn(() => (newAddress, lat, lng) => {
@@ -68,60 +81,18 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   useEffect(() => {
     if (!isOpen) {
       setAddress('');
+      setUploads([]);
+      setSelectedDate(null);
+      setSelectedEventType('Accident');
+      setDescription('');
+      setPrice('');
+      setIsFree(false);
+      setIsExclusive(false);
+      setFileError('');
+      setFormError('');
+      setMainMediaIndex(0);
     }
   }, [isOpen]);
-
-  useEffect(() => {
-    function handleClickOutside(event) {
-      const drawerNode = drawerRef.current;
-      const autocompleteNode = autocompleteRef.current?.input;
-      const dropdownNode = document.querySelector('.location-dropdown-container');
-
-      // Check if the clicked element is inside the Google Autocomplete suggestions container
-      const isClickInsideAutocompleteSuggestions = event.target.closest('.pac-container');
-      
-      // Check if the clicked element is inside the Google Map container
-      const isClickInsideMap = event.target.closest('.gm-style');
-
-      const isClickInsideDrawer = drawerNode && drawerNode.contains(event.target);
-      const isClickInsideAutocomplete = autocompleteNode && autocompleteNode.contains(event.target);
-      const isClickInsideDropdown = dropdownNode && dropdownNode.contains(event.target);
-
-      // Close drawer only if the click is outside the drawer, autocomplete input, dropdown, autocomplete suggestions, AND the map
-      if (!isClickInsideDrawer && !isClickInsideAutocomplete && !isClickInsideDropdown && !isClickInsideAutocompleteSuggestions && !isClickInsideMap) {
-        onClose();
-      }
-    }
-
-    if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isOpen, onClose]);
-
-  // Separate effect for dropdown click-outside handling
-  useEffect(() => {
-    function handleDropdownClickOutside(event) {
-      const dropdownNode = document.querySelector('.location-dropdown-container');
-      const dropdownButton = document.querySelector('.location-dropdown-button');
-      
-      if (dropdownNode && !dropdownNode.contains(event.target) && 
-          dropdownButton && !dropdownButton.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleDropdownClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleDropdownClickOutside);
-    };
-  }, [isDropdownOpen]);
-
-  const handleDropdownToggle = () => setIsDropdownOpen(!isDropdownOpen);
 
   const handleFileChange = (e) => {
     setFileError('');
@@ -129,9 +100,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     if (files.length === 0) return;
 
     // Check total file count
-    if (files.length > 10) {
+    if (uploads.length + files.length > 10) { // Check total count including existing
       setFileError('You can upload a maximum of 10 files (images or videos).');
-      setUploads([]);
       e.target.value = null; // Clear the input
       return;
     }
@@ -143,13 +113,11 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
     if (supportedFiles.length !== files.length) {
       setFileError('Some selected files are not supported. Please upload only images or videos.');
-      setUploads([]);
       e.target.value = null; // Clear the input
       return;
     }
 
-    // Allow both images and videos, no separate checks for just one type
-    setUploads(supportedFiles);
+    setUploads(prevUploads => [...prevUploads, ...supportedFiles]); // Append new files
     e.target.value = null; // Clear the input after processing
   };
 
@@ -157,12 +125,13 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     const newUploads = [...uploads];
     newUploads.splice(index, 1);
     setUploads(newUploads);
-    // Re-evaluate file errors after removal if needed, though the main check is on adding.
-    if (newUploads.length > 10) {
-         setFileError('You can upload a maximum of 10 files (images or videos).');
-     } else {
-         setFileError('');
-     }
+
+    // Adjust mainMediaIndex if the removed item was before it or was the main item itself
+    if (mainMediaIndex === index) {
+      setMainMediaIndex(0); // Reset to first item
+    } else if (mainMediaIndex > index) {
+      setMainMediaIndex(prev => prev - 1); // Shift index if an item before it was removed
+    }
   };
 
   const handlePlaceChanged = () => {
@@ -193,32 +162,11 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
   const handleSubmit = async () => {
     setFormError('');
-    if (uploads.length === 0) {
-      setFormError('Please upload at least one image or video.');
-      return;
-    }
-    if (!address.trim()) {
-      setFormError('Please enter the location address.');
-      return;
-    }
-    if (!selectedDate) {
-      setFormError('Please select a date for the incident.');
-      return;
-    }
-    if (selectedEventType === 'Select cateogry' || !selectedEventType) {
-      setFormError('Please select an event category.');
-      return;
-    }
-    if (!description.trim()) {
-      setFormError('Please enter a description for the incident.');
-      return;
-    }
-    if (!isFree && (!price.trim() || isNaN(Number(price)) || Number(price) < 0)) {
-      setFormError('Please enter a valid price, or check "Make it Free".');
-      return;
-    }
-
+    let loadingToastId = null;
     try {
+      setLoading(true);
+      loadingToastId = toast.loading('Creating event...');
+
       const filesToUploadDetails = uploads.map(file => ({
         fileName: file.name.replace(/\.[^/.]+$/, ''),
         fileType: file.type,
@@ -228,23 +176,22 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         files: filesToUploadDetails,
       });
 
-      const uploadedMediaData = [];
+      let uploadedMediaData = [];
 
       if (presignedUrlsRes.data && Array.isArray(presignedUrlsRes.data)) {
-        await Promise.all(
-          presignedUrlsRes.data.map(async (presignedData, index) => {
-            const file = uploads[index];
-            await axios.put(presignedData.url, file, {
-              headers: {
-                'Content-Type': file.type,
-              },
-            });
-            uploadedMediaData.push({
-              url: presignedData.imageUrl,
-              type: presignedData.type === 'images' ? 'image' : 'video',
-            });
-          })
-        );
+        const uploadPromises = presignedUrlsRes.data.map(async (presignedData, index) => {
+          const file = uploads[index];
+          await axios.put(presignedData.url, file, {
+            headers: {
+              'Content-Type': file.type,
+            },
+          });
+          return {
+            url: presignedData.imageUrl,
+            type: presignedData.type === 'images' ? 'image' : 'video',
+          };
+        });
+        uploadedMediaData = await Promise.all(uploadPromises);
       } else {
         throw new Error('Invalid response format from presigned-urls endpoint.');
       }
@@ -255,6 +202,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         category: selectedEventType,
         address,
         media: uploadedMediaData,
+        mainMediaIndex: String(mainMediaIndex),
         isExclusive,
         isFree,
         price: isFree ? 0 : Number(price),
@@ -268,7 +216,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       });
 
       if (createEventRes.status === 201 || createEventRes.status === 200) {
-        alert('Event uploaded successfully!');
+        toast.success('Event uploaded successfully!', { id: loadingToastId });
         onClose();
         setUploads([]);
         setSelectedDate(null);
@@ -280,6 +228,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         setAddress('');
         setFileError('');
         setFormError('');
+        setMainMediaIndex(0);
         if (autocompleteRef.current && typeof autocompleteRef.current.setVal === 'function') {
             autocompleteRef.current.setVal('');
         } else {
@@ -290,55 +239,85 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       }
     } catch (err) {
       console.error('Upload process failed:', err);
-      setFormError(err.response?.data?.message || err.message || 'Failed to upload event. Please try again.');
+      const errorMessage = err.response?.data?.message || err.message || 'Failed to upload event. Please try again.';
+      setFormError(errorMessage);
+      toast.error(errorMessage, { id: loadingToastId });
+      if (err.response && err.response.status === 401) {
+        setShowLoginModal(true);
+      }
+    } finally {
+      setLoading(false);
     }
   };
+
+  // Reset mainMediaIndex when uploads change or drawer closes
+  useEffect(() => {
+    if (!isOpen || uploads.length === 0) {
+      setMainMediaIndex(0);
+    } else if (mainMediaIndex >= uploads.length) {
+      setMainMediaIndex(0);
+    }
+  }, [isOpen, uploads, mainMediaIndex]);
 
   return (
     <div
       ref={drawerRef}
-      className={`fixed top-0 left-0 h-full bg-white shadow-lg z-70 transition-transform duration-300 ease-in-out w-1/3 flex flex-col`}
+      className={`fixed top-0 left-0 h-screen z-[100] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       style={{
-        transform: `translateX(${isOpen ? openTranslateX : -100}%)` // Use dynamic translation
+        left: `${leftPx}px`,
+        width: `${drawerWidthPx}px`,
+        boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className="px-4 pt-11 pb-0 flex justify-between items-center border-b flex-shrink-0">
-        <h2 className="text-lg font-semibold"></h2>
+      <div className="pt-12 px-6 flex justify-between items-center border-b">
+        <h2 className="text-lg font-semibold">t</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
-
-      <div className="flex flex-col px-4 pb-4 pt-0 space-y-2 overflow-y-auto custom-scrollbar flex-grow min-h-0 h-0">
-        <img src="/brandLogo.png" alt="Poing Logo" className="w-25 object-contain self-center" />
+      <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 scrollbar-hide flex flex-col space-y-2">
+        <img src="/brandLogo.png" alt="Poing Logo" className="w-25 object-contain mx-auto mb-4" />
 
         <label className="block w-full p-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-center cursor-pointer">
           <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} />
           {uploads.length === 0 && 'Drag or upload item here'}
           {uploads.length > 0 && (
             <div className="flex flex-wrap justify-center items-center gap-2 mt-2">
-              {uploads.map((file, index) => (
-                <div key={index} className="relative flex items-center bg-gray-100 p-2 rounded">
-                  <span className="text-sm text-black truncate max-w-xs">{file.name}</span>
-                  <button 
-                    onClick={(e) => { 
-                        e.preventDefault(); // Prevent label click
-                        removeUpload(index); 
-                        const fileInput = e.target.closest('label').querySelector('input[type="file"]');
-                        if(fileInput) fileInput.value = null; // Reset file input
-                    }}
-                    className="ml-2 text-red-500 hover:text-red-700 font-bold"
-                  >
-                    &times;
-                  </button>
-                </div>
-              ))}
+              {uploads.map((file, index) => {
+                const isMainMedia = mainMediaIndex === index;
+
+                return (
+                  <div key={index} className={`relative flex flex-col items-center bg-gray-100 p-2 rounded border-2 transition-all duration-200 ${isMainMedia ? 'border-yellow-400' : 'border-transparent'}`}> 
+                    <span className="text-sm text-black truncate max-w-xs">{file.name}</span>
+                    {/* Main media star overlay */}
+                    <button
+                      type="button"
+                      onClick={e => { e.preventDefault(); setMainMediaIndex(index); }}
+                      className={`absolute -top-2 -right-2 bg-white rounded-full p-1 border ${isMainMedia ? 'border-yellow-400' : 'border-gray-300'} shadow transition-all duration-200`}
+                      title={isMainMedia ? 'Main Media' : 'Set as Main'}
+                    >
+                      <Star size={18} className={isMainMedia ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} fill={isMainMedia ? '#facc15' : 'none'} />
+                    </button>
+                    <button 
+                      onClick={(e) => { 
+                          e.preventDefault();
+                          removeUpload(index); 
+                          const fileInput = e.target.closest('label').querySelector('input[type="file"]');
+                          if(fileInput) fileInput.value = null; 
+                      }}
+                      className="ml-2 text-red-500 hover:text-red-700 font-bold"
+                    >
+                      &times;
+                    </button>
+                  </div>
+                );
+              })}
             </div>
           )}
         </label>
-        {fileError && <p className="text-red-500 text-sm">{fileError}</p>}
-        {formError && <p className="text-red-500 text-sm mt-2">{formError}</p>}
+        {fileError && <p className="text-red-500 text-sm mb-4">{fileError}</p>}
+        {formError && <p className="text-red-500 text-sm mt-2 mb-4">{formError}</p>}
 
         <div className="flex gap-2">
-        {isLoaded && (
+          {isLoaded && (
             <Autocomplete 
               onLoad={ref => (autocompleteRef.current = ref)} 
               onPlaceChanged={handlePlaceChanged}
@@ -361,54 +340,27 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           />
         </div>
 
-        <div className="relative">
-          <button
-            onClick={handleDropdownToggle}
-            className="w-3/4 p-3 pl-4 pr-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center location-dropdown-button"
-          >
-            <div className="flex items-center gap-2 text-black">
-              {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-5 h-5" /> },
-              { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-5 h-5" /> },
-              { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-5 h-5" /> },
-              { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-5 h-5" /> },
-              { label: 'People', icon: <img src="/people.svg" alt="People" className="w-5 h-5" /> },
-              { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-5 h-5" /> },
-            ].find(item => item.label.replace(' & ','') === selectedEventType)?.icon}
-              <span className="whitespace-nowrap">{selectedEventType === 'Select cateogry' ? 'Select an Event Type' : selectedEventType}</span>
-            </div>
-            <span className="text-black">{isDropdownOpen ? '▲' : '▼'}</span>
-          </button>
-
-          <div
-            className={`overflow-hidden transition-all duration-300 ease-in-out location-dropdown-container ${
-              isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
-            } absolute top-full left-0 w-3/4 bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
-          >
-            <div className="grid grid-cols-3 gap-4 p-4">
-              {[{ label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-10 h-10" /> },
-                { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-10 h-10" /> },
-                { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-10 h-10" /> },
-                { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-10 h-10" /> },
-                { label: 'People', icon: <img src="/people.svg" alt="People" className="w-10 h-10" /> },
-                { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-10 h-10" /> },
-              ].map((item) => (
+        {/* Category Selection - Now a Grid */}
+        <div>
+          <label className="block text-gray-800 font-semibold mb-2">Select Category</label>
+          <div className="grid grid-cols-3 gap-4">
+            {categoryOptions.map((item) => {
+              const isSelected = selectedEventType === item.label;
+              return (
                 <div
                   key={item.label}
                   onClick={() => {
                     setSelectedEventType(item.label.replace(' & ',''));
-                    setIsDropdownOpen(false);
                   }}
-                  className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200 ${
-                    selectedEventType === item.label.replace(' & ','') ? 'bg-blue-100 ring-2 ring-blue-500' : 'hover:bg-gray-100'
-                  }`}
+                  className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200
+                    ${isSelected ? 'opacity-100' : 'opacity-40 grayscale hover:bg-gray-100'}
+                  `}
                 >
                   {item.icon}
-                  {selectedEventType === item.label.replace(' & ','') && (
-                     <Check size={16} className="absolute top-1 right-1 text-blue-600" />
-                  )}
+                  <span className="text-xs mt-1 text-gray-700">{item.label}</span>
                 </div>
-              ))}
-            </div>
+              );
+            })}
           </div>
         </div>
 
@@ -473,8 +425,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           <span className={`text-black ${isFree ? 'opacity-50' : ''}`}>Make it Exclusive</span>
         </label>
 
-        <button onClick={handleSubmit} className="w-1/3 py-2 hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 self-center">
+        <button onClick={handleSubmit} className="w-1/3 py-2 hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto" disabled={loading}>
           <img src="/brandLogo.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />
+          {loading && (
+            <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            </svg>
+          )}
         </button>
       </div>
     </div>

@@ -203,6 +203,7 @@ const HomeContent = () => {
   const [tooltipPosition, setTooltipPosition] = useState({ x: -1000, y: -1000 }); // Initialize tooltip off-screen
   const tooltipRef = useRef(null); // Ref for the tooltip div
   const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
+  const [showTooltip, setShowTooltip] = useState(false);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -556,6 +557,17 @@ const HomeContent = () => {
        }
    }, [hoveredEvent]); // Re-attach listeners when hoveredEvent changes
 
+  // When hoveredEvent changes, control showTooltip for fade effect
+  useEffect(() => {
+    if (hoveredEvent) {
+      setShowTooltip(true);
+    } else if (showTooltip) {
+      // Delay hiding to allow fade-out
+      const timeout = setTimeout(() => setShowTooltip(false), 200); // 200ms matches the transition
+      return () => clearTimeout(timeout);
+    }
+  }, [hoveredEvent]);
+
   // Component to render the list view (keep existing logic)
   const renderListView = () => {
     if (!categorizedSearchResults) {
@@ -709,10 +721,11 @@ const HomeContent = () => {
   };
 
   return (
-    <div className="w-full h-full px-4 sm:px-8 lg:px-12 overflow-x-hidden">
-      <div className="w-full flex flex-col items-center">
-        <img src="/brandLogo.png" alt="Poing Logo" className="w-30 object-contain" />
-        <p className="text-gray-600 text-lg mb-4 text-center">The only search, find or post tool for lost items, pets, people, witnesses and event by location and time.</p>
+    <div className="w-full h-full pt-9 px-4 sm:px-8 lg:px-12 overflow-x-hidden">
+      <div className="w-full mb-8">
+        <p className="text-gray-600 text-lg -ml-18 mb-4 text-center">
+          The only search tool by <span className="font-semibold">TI<span style={{ color: 'red' }}>:</span>ME</span> and  <span className="font-semibold"><span style={{ color: '#0868a8' }}>P</span>LACE</span> to find or post lost items, pets, people, witnesses and events.
+        </p>
       </div>
 
       <div className="flex w-full h-[calc(100%-7.5rem)] bg-gray-100 relative"> {/* Add relative positioning here */}
@@ -783,59 +796,112 @@ const HomeContent = () => {
             </div>
           )}
 
-          {/* Custom Event Tooltip */}
-          {hoveredEvent && tooltipPosition.x > -1000 && (
-            <div
-              ref={tooltipRef} // Attach ref to tooltip div
-              className="event-tooltip absolute z-20 bg-gray-200 text-gray-800 p-3 rounded shadow-lg pointer-events-auto"
-              style={{
-                top: tooltipPosition.y + 15, // Adjust offset as needed
-                left: tooltipPosition.x + 15, // Adjust offset as needed
-                minWidth: '200px', // Ensure minimum width
-                maxWidth: '300px', // Ensure maximum width
-              }}
-            >
-              <h3 className="font-bold text-base mb-1">{hoveredEvent.category || 'Unknown Category'}</h3>
-              <p className="text-xs mb-1">{hoveredEvent.address || 'No address'}</p>
-              <p className="text-xs text-red-600 mb-2">{formatCreationDate(hoveredEvent.createdAt)}</p>
+          {/* Always render the tooltip for fade effect */}
+          <div
+            ref={tooltipRef}
+            className={`event-tooltip absolute z-20 bg-gray-200 text-gray-800 p-3 rounded shadow-lg transition-opacity duration-400
+              ${hoveredEvent ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+            style={{
+              top: tooltipPosition.y - 280,
+              left: tooltipPosition.x + 15,
+              minWidth: '100px',
+              maxWidth: '200px',
+            }}
+          >
+            <h3 className="font-semibold text-base mb-1">{hoveredEvent?.category || 'Unknown Category'}</h3>
+            <p className="text-xs mb-1">{hoveredEvent?.address || 'No address'}</p>
+            <p className="text-xs text-red-600 mb-2">{formatCreationDate(hoveredEvent?.createdAt)}</p>
 
-              {/* Media Info Row */}
-              <div className="flex gap-2 mb-2">
-                 <div className="flex-1 bg-white text-gray-800 text-xs p-1 rounded flex items-center justify-center text-center">
-                   {`${parseMediaAndCount(hoveredEvent.media).imageCount} image(s) and ${parseMediaAndCount(hoveredEvent.media).videoCount} video(s)`}
-                 </div>
-                 <div className="w-12 h-12 bg-gray-300 rounded overflow-hidden flex-shrink-0 flex items-center justify-center">
-                    {parseMediaAndCount(hoveredEvent.media).firstMediaType === 'image' ? (
-                       <img src={parseMediaAndCount(hoveredEvent.media).firstMediaUrl} alt="Media" className="w-full h-full object-cover"/>
-                    ) : parseMediaAndCount(hoveredEvent.media).firstMediaType === 'video' ? (
-                       <video src={parseMediaAndCount(hoveredEvent.media).firstMediaUrl} className="w-full h-full object-cover"/>
-                    ) : (
-                       <span className="text-gray-500 text-xs">No Media</span>
-                    )}
-                 </div>
-              </div>
-
-              {/* Description */}
-              <p className="text-xs mb-2">
-                 {hoveredEvent.description ? hoveredEvent.description.slice(0, 50) + (hoveredEvent.description.length > 50 ? '...' : '') : 'No description'}
-              </p>
-
-              {/* Claim Button */}
-              <button
-                 onClick={() => {
-                    console.log('Claim button clicked for event:', hoveredEvent.id);
-                    navigate(`/event/${hoveredEvent.id}`, { state: { event: hoveredEvent } }); // Pass event object in state
-                 }}
-                 className="bg-blue-600 text-white text-xs px-2 py-1 rounded hover:bg-blue-700 mb-2"
+            {/* Media Info Row */}
+            <div className="grid grid-cols-2 gap-2 mb-2" style={{ width: 180 }}>
+              <div
+                className="bg-white text-gray-800 text-xs rounded flex flex-col justify-center items-center"
+                style={{ width: 80, height: 80 }}
               >
-                 Claim
-              </button>
+                <div className="text-center">
+                  {parseMediaAndCount(hoveredEvent?.media).videoCount > 0 &&
+                    `${parseMediaAndCount(hoveredEvent?.media).videoCount} video(s)`}
+                </div>
+                <div className="text-center">
+                  {parseMediaAndCount(hoveredEvent?.media).imageCount > 0 &&
+                    `${parseMediaAndCount(hoveredEvent?.media).imageCount} photo(s)`}
+                </div>
+              </div>
+              <div
+                className="bg-white rounded overflow-hidden flex items-center justify-center"
+                style={{ width: 80, height: 80 }}
+              >
+                {(() => {
+                  const previewImageUrl = hoveredEvent?.previewImage;
+                  let actualPreviewMedia = null;
 
-              {/* Listing ID */}
-              <p className="text-xs">Listing ID: {hoveredEvent.id}</p>
+                  if (previewImageUrl && hoveredEvent?.media) {
+                    try {
+                      const mediaArray = JSON.parse(hoveredEvent.media);
+                      actualPreviewMedia = mediaArray.find(item => item.url === previewImageUrl);
+                    } catch (e) {
+                      console.error("Failed to parse media JSON:", e);
+                    }
+                  }
+
+                  if (actualPreviewMedia && actualPreviewMedia.url) {
+                    return actualPreviewMedia.type === 'video' ? (
+                      <div className="relative w-full h-full flex items-center justify-center bg-gray-100">
+                        <video 
+                          src={actualPreviewMedia.url}
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                        />
+                        <div className="absolute inset-0 flex items-center justify-center">
+                          <div className="w-8 h-8 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
+                            <svg 
+                              className="w-4 h-4 text-white" 
+                              fill="currentColor" 
+                              viewBox="0 0 24 24"
+                            >
+                              <path d="M8 5v14l11-7z"/>
+                            </svg>
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <img
+                        src={actualPreviewMedia.url}
+                        alt="Preview Media"
+                        className="object-cover w-full h-full"
+                        style={{ maxWidth: '100%', maxHeight: '100%' }}
+                      />
+                    );
+                  } else {
+                    return <span className="text-gray-500 text-xs">No Media</span>;
+                  }
+                })()}
+              </div>
             </div>
-          )}
 
+            {/* Description and Claim Button Grouped */}
+            <div className="bg-white rounded flex flex-col items-stretch my-2">
+              <div className="px-2 py-2 text-xs text-gray-800">
+                {hoveredEvent?.description
+                  ? hoveredEvent.description.slice(0, 50) + (hoveredEvent.description.length > 50 ? '...' : '')
+                  : 'No description'}
+              </div>
+              <div className="border-t border-gray-300" />
+              <button
+                onClick={() => {
+                  console.log('Claim button clicked for event:', hoveredEvent.id);
+                  navigate(`/event/${hoveredEvent.id}`, { state: { event: hoveredEvent } });
+                }}
+                className="w-full text-blue-600 font-semibold py-2 text-sm hover:underline focus:outline-none"
+                style={{ background: 'none' }}
+              >
+                Claim
+              </button>
+            </div>
+
+            {/* Listing ID */}
+            <p className="text-xs">Listing ID: {hoveredEvent?.eventCode || 'N/A'}</p>
+          </div>
         </div>
       </div>
     </div>

@@ -7,7 +7,7 @@ import axios from 'axios';
 import { debounce } from 'lodash';
 import { useMap } from '../../../contexts/MapContext';
 
-const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotifyMeClick, isSidebarExpanded, collapsedSidebarWidthPx, expandedSidebarWidthPx }) => {
+const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotifyMeClick, isSidebarExpanded, collapsedSidebarWidthPx, expandedSidebarWidthPx, leftPx, drawerWidthPx }) => {
 
   const categoryIcons = {
     'Accident': <img src="/accident.svg" alt="Accident" className="w-5 h-5" />,
@@ -53,13 +53,16 @@ const ResultsDrawer = ({ results, onClose, onEventClick, notifyMeParams, onNotif
 
   const { showLoginModal } = useMap();
 
+  const resultsGapPx = 4;
+  const resultsWidthPx = 480;
+
   return (
-    <div className={`fixed top-0 h-[80vh] w-1/2 bg-white shadow-lg z-50 mt-[10vh] rounded-lg overflow-hidden transition-opacity duration-300`}
+    <div className={`fixed top-0 h-[80vh] bg-white shadow-lg z-[110] mt-[10vh] rounded-xl overflow-hidden transition-opacity duration-300`}
       style={{
-        left: `${isSidebarExpanded 
-          ? expandedSidebarWidthPx + 256 + 30 // sidebar expanded width + search drawer width + gap
-          : collapsedSidebarWidthPx + 256 + 40  // sidebar collapsed width + search drawer width + gap
-        }px` // Adjust left based on sidebar width + search drawer width + desired gap
+        left: `${leftPx + drawerWidthPx + resultsGapPx}px`,
+        width: `${resultsWidthPx}px`,
+        borderRadius: '18px',
+        boxShadow: '0 4px 32px 0 rgba(0,0,0,0.12)',
       }}
     >
       <div className="p-4 flex justify-between items-center border-b">
@@ -181,6 +184,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   const [categoryError, setCategoryError] = useState('');
   const autocompleteRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_URL;
+  const drawerRef = useRef(null);
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -198,12 +202,13 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     isSidebarExpanded
   } = useMap();
 
-  // Define collapsed and expanded sidebar widths in pixels
-  const collapsedSidebarWidthPx = 25; // Corresponding to w-14
-  const expandedSidebarWidthPx = 56; // Corresponding to w-64
+  // Sidebar widths in px (match layout/sidebar)
+  const collapsedSidebarWidthPx = 56;
+  const expandedSidebarWidthPx = 256;
+  const drawerWidthPx = 384; // w-96
 
-  // Calculate dynamic translation for the drawer when open
-  const openTranslateX = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
+  // Calculate left position based on sidebar state
+  const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
 
   useEffect(() => {
     if (!isOpen) {
@@ -438,145 +443,118 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       }
   };
 
-  useEffect(() => {
-    function handleClickOutside(event) {
-      const dropdownNode = document.querySelector('.search-dropdown-container');
-      const dropdownButton = document.querySelector('.search-dropdown-button');
-
-      if (isDropdownOpen && dropdownNode && !dropdownNode.contains(event.target) && dropdownButton && !dropdownButton.contains(event.target)) {
-        setIsDropdownOpen(false);
-      }
-    }
-
-    if (isDropdownOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isDropdownOpen]);
-
   return (
-    <>
-      <div
-        className={`fixed pt-8 top-0 left-0 h-full bg-white shadow-lg z-60 transition-transform duration-300 ease-in-out w-64`}
-        style={{
-          transform: `translateX(${isOpen ? openTranslateX : -100}%)` // Use dynamic translation
-        }}
-      >
-        <div className="p-4 flex justify-between items-center border-b">
-          <h2 className="text-lg text-black font-semibold">Search</h2>
-          <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
+    <div
+      ref={drawerRef}
+      className={` pt-8 fixed top-0 left-0 h-screen z-[100] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      style={{
+        left: `${leftPx}px`,
+        width: `${drawerWidthPx}px`,
+        boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
+      }}
+    >
+      <div className="p-6 flex justify-between items-center border-b">
+        <h2 className="text-lg text-black font-semibold">Search</h2>
+        <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
+      </div>
+      <div className="overflow-y-auto h-[calc(100vh-4rem)] p-6 scrollbar-hide">
+        {/* Categories Field - now a grid, not a dropdown */}
+        <div className="mb-4">
+          <label className="block text-gray-800 font-semibold mb-2">Select Categories</label>
+          <div className="grid grid-cols-3 gap-4">
+            {categoryOptions.map((item) => {
+              const isSelected = selectedCategories.includes(item.label);
+              const maxSelected = selectedCategories.length >= 2;
+              const isDisabled = maxSelected && !isSelected;
+              return (
+                <div
+                  key={item.label}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    setSelectedCategories(prev => {
+                      if (isSelected) {
+                        setCategoryError('');
+                        return prev.filter(cat => cat !== item.label);
+                      } else {
+                        if (prev.length < 2) {
+                          setCategoryError('');
+                          return [...prev, item.label];
+                        } else {
+                          setCategoryError('You can select a maximum of 2 categories.');
+                          return prev;
+                        }
+                      }
+                    });
+                  }}
+                  className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200
+                    ${isSelected ? 'opacity-100' :
+                      isDisabled ? 'opacity-40 grayscale cursor-not-allowed' : 'opacity-80 hover:bg-gray-100'}
+                  `}
+                >
+                  {item.icon}
+                  <span className="text-xs mt-1 text-gray-700">{item.label}</span>
+                </div>
+              );
+            })}
+          </div>
+          {categoryError && <p className="text-red-500 text-sm mt-1">{categoryError}</p>}
         </div>
-        <div className="p-4 space-y-12">
-          {isLoaded && (
-            <Autocomplete
-              onLoad={ref => (autocompleteRef.current = ref)}
-              onPlaceChanged={handlePlaceChanged}
-            >
-              <input
-                type="text"
-                placeholder="Where"
-                value={location.address}
-                onChange={handleAddressInputChange}
-                className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
-              />
-            </Autocomplete>
-          )}
-          <div className="relative">
-            <DatePicker
-              selected={startDate}
-              onChange={(update) => {
-                const [start, end] = update;
-                if (start && end) {
-                  const diffTime = Math.abs(end - start);
-                  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-                  if (diffDays > 7) {
-                    setDateRangeError('Please select a date range of maximum 7 days.');
-                    setStartDate(start);
-                    setEndDate(null);
-                    return;
-                  } else {
-                    setDateRangeError('');
-                  }
-                } else if (startDate || endDate) {
+        {/* Where Field */}
+        {isLoaded && (
+          <Autocomplete
+            onLoad={ref => (autocompleteRef.current = ref)}
+            onPlaceChanged={handlePlaceChanged}
+          >
+            <input
+              type="text"
+              placeholder="Where"
+              value={location.address}
+              onChange={handleAddressInputChange}
+              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-4"
+            />
+          </Autocomplete>
+        )}
+        {/* When Field */}
+        <div className="relative mb-4">
+          <DatePicker
+            selected={startDate}
+            onChange={(update) => {
+              const [start, end] = update;
+              if (start && end) {
+                const diffTime = Math.abs(end - start);
+                const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+                if (diffDays > 7) {
+                  setDateRangeError('Please select a date range of maximum 7 days.');
+                  setStartDate(start);
+                  setEndDate(null);
+                  return;
+                } else {
                   setDateRangeError('');
                 }
-                setStartDate(start);
-                setEndDate(end);
-              }}
-              startDate={startDate}
-              endDate={endDate}
-              selectsRange
-              placeholderText="Select a date range (max 7 days)"
-              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
-              dateFormat="MMMM d, yyyy"
-              isClearable
-              showPopperArrow={false}
-              maxDate={new Date()}
-            />
-            {dateRangeError && <p className="text-red-500 text-sm mt-1">{dateRangeError}</p>}
-          </div>
-          <div className="relative">
-            <button
-              onClick={handleDropdownToggle}
-              className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex justify-between items-center search-dropdown-button"
-            >
-              <span className='text-gray-800'>
-                {selectedCategories.length > 0 
-                  ? selectedCategories.join(', ') 
-                  : 'Select event type(s)'}
-              </span>
-              <span>{isDropdownOpen ? '▲' : '▼'}</span>
-            </button>
-            <div
-              className={`overflow-hidden transition-all duration-300 ease-in-out search-dropdown-container ${
-                isDropdownOpen ? 'max-h-60 opacity-100' : 'max-h-0 opacity-0'
-              } absolute top-full left-0 w-full bg-white border border-black rounded-lg shadow-md mt-1 z-50`}
-            >
-              {/* Grid of icons */}
-              <div className="grid grid-cols-3 gap-4 p-4">
-                {categoryOptions.map((item) => (
-                  <div
-                    key={item.label}
-                    onClick={() => {
-                      setSelectedCategories(prev => {
-                        const isSelected = prev.includes(item.label);
-                        if (isSelected) {
-                          setCategoryError('');
-                          return prev.filter(cat => cat !== item.label);
-                        } else {
-                          if (prev.length < 2) {
-                            setCategoryError('');
-                            return [...prev, item.label];
-                          } else {
-                            setCategoryError('You can select a maximum of 2 categories.');
-                            return prev;
-                          }
-                        }
-                      });
-                    }}
-                    className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200 ${
-                      selectedCategories.includes(item.label) ? 'bg-blue-100 ring-2 ring-blue-500' : 'hover:bg-gray-100'
-                    }`}
-                  >
-                    {item.icon}
-                    {selectedCategories.includes(item.label) && (
-                       <Check size={16} className="absolute top-1 right-1 text-blue-600" />
-                    )}
-                  </div>
-                ))}
-              </div>
-            </div>
-            {categoryError && <p className="text-red-500 text-sm mt-1">{categoryError}</p>}
-          </div>
-             <button
-               onClick={handleSearch}
-               className="w-full bg-[#0868a8] text-white py-2 rounded hover:cursor-pointer"
-             >
-               Search
-             </button>
+              } else if (startDate || endDate) {
+                setDateRangeError('');
+              }
+              setStartDate(start);
+              setEndDate(end);
+            }}
+            startDate={startDate}
+            endDate={endDate}
+            selectsRange
+            placeholderText="Select a date range (max 7 days)"
+            className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
+            dateFormat="MMMM d, yyyy"
+            isClearable
+            showPopperArrow={false}
+            maxDate={new Date()}
+          />
+          {dateRangeError && <p className="text-red-500 text-sm mt-1">{dateRangeError}</p>}
         </div>
+        <button
+          onClick={handleSearch}
+          className="w-full bg-[#0868a8] text-white py-2 rounded hover:cursor-pointer"
+        >
+          Search
+        </button>
       </div>
       {searchResults && searchResults.status !== 404 && (
         <ResultsDrawer 
@@ -588,6 +566,8 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           isSidebarExpanded={isSidebarExpanded}
           collapsedSidebarWidthPx={collapsedSidebarWidthPx}
           expandedSidebarWidthPx={expandedSidebarWidthPx}
+          leftPx={leftPx}
+          drawerWidthPx={drawerWidthPx}
         />
       )}
       {searchResults && searchResults.status === 404 && (
@@ -600,8 +580,10 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           isSidebarExpanded={isSidebarExpanded}
           collapsedSidebarWidthPx={collapsedSidebarWidthPx}
           expandedSidebarWidthPx={expandedSidebarWidthPx}
+          leftPx={leftPx}
+          drawerWidthPx={drawerWidthPx}
         />
       )}
-    </>
+    </div>
   );
 }

@@ -53,11 +53,11 @@ export default function Layout() {
   const topbarHeight = 52;
   const footerHeight = 40;
   const collapsedSidebarWidth = 56;
-  const expandedSidebarWidth = 112;
+  const expandedSidebarWidth = 256;
+  const sidebarGap = 50; // 16px gap between sidebar and main content
 
-  const { isSidebarExpanded } = useMap();
-
-  const currentSidebarWidth = isSidebarExpanded ? expandedSidebarWidth : collapsedSidebarWidth;
+  // Main content always starts after collapsed sidebar width + gap
+  const mainContentLeft = collapsedSidebarWidth + sidebarGap;
 
   return (
     <div className="relative min-h-screen w-full bg-gray-100 overflow-hidden">
@@ -71,26 +71,33 @@ export default function Layout() {
         <Footer />
       </div>
 
-      {/* Fixed Sidebar */}
+      {/* Fixed Sidebar (overlays when expanded) */}
       <div
-        className="fixed top-0 left-0 z-50"
-        style={{ top: `${topbarHeight}px`, bottom: `${footerHeight}px`, width: `${currentSidebarWidth}px` }}
+        className="fixed top-0 left-0 z-50 transition-all duration-300 ease-in-out"
+        style={{ 
+          top: `${topbarHeight}px`, 
+          bottom: `${footerHeight}px`, 
+          width: `${expandedSidebarWidth}px`,
+          pointerEvents: 'auto',
+        }}
       >
         <Sidebar />
       </div>
 
-      {/* Scrollable Content */}
+      {/* Scrollable Content (map) - always starts after collapsed sidebar width + gap */}
       <main
-        className="overflow-y-auto scrollbar-hide"
+        className="overflow-visible scrollbar-hide transition-all duration-300 ease-in-out"
         style={{
           position: 'absolute',
           top: `${topbarHeight}px`,
           bottom: `${footerHeight}px`,
-          left: `${currentSidebarWidth}px`,
+          left: `${mainContentLeft}px`,
           right: 0,
+          width: `calc(100% - ${mainContentLeft}px)`,
+          transition: 'all 300ms ease-in-out'
         }}
       >
-        <div className="w-full max-w-full px-4 h-full">
+        <div className="w-full h-full">
           <Outlet />
         </div>
       </main>
