@@ -721,9 +721,9 @@ const HomeContent = () => {
   };
 
   return (
-    <div className="w-full h-full pt-9 px-4 sm:px-8 lg:px-12 overflow-x-hidden">
+    <div className="w-full h-full pt-11 px-4 sm:px-8 lg:px-12 overflow-x-hidden">
       <div className="w-full mb-8">
-        <p className="text-gray-600 text-lg -ml-18 mb-4 text-center">
+        <p className="text-gray-600 text-xl -ml-18 mb-4 text-center">
           The only search tool by <span className="font-semibold">TI<span style={{ color: 'red' }}>:</span>ME</span> and  <span className="font-semibold"><span style={{ color: '#0868a8' }}>P</span>LACE</span> to find or post lost items, pets, people, witnesses and events.
         </p>
       </div>

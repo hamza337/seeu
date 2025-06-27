@@ -68,7 +68,7 @@ export default function Sidebar() {
         <button 
           onClick={() => toggleDrawer('search')} 
           title="Search for Events" 
-          className={`flex items-center mb-44 cursor-pointer`}
+          className={`flex items-center mb-36 cursor-pointer`}
         >
           <span className={activeDrawer === 'search' ? iconHighlight : ''}>
             <Search className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'} rotate-90`} />
@@ -88,18 +88,16 @@ export default function Sidebar() {
           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">Poing It</span>}
         </button>
 
-        {/* My Events Link */}
-        {isAuthenticated && (
-          <Link 
-            to="/my-events" 
-            className={`flex items-center mt-4`}
-          >
-            <span className={activeDrawer === 'my-events' ? iconHighlight : ''}>
-              <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="My Events" />
-            </span>
-            {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">My Events</span>}
-          </Link>
-        )}
+        {/* List Button (no navigation) */}
+        <button
+          type="button"
+          className={`flex items-center mt-36 cursor-pointer`}
+        >
+          <span className={activeDrawer === 'my-events' ? iconHighlight : ''}>
+            <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="List" />
+          </span>
+          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">List</span>}
+        </button>
       </div>
 
       {/* Drawers */}

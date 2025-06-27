@@ -239,7 +239,7 @@ export default function Topbar() {
         {/* Brand Logo Overlapping - only on home route */}
         {location.pathname === '/' && (
           <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[120] pointer-events-none">
-            <img src="/brandLogo.png" alt="Poing Logo" className="w-36 object-contain" />
+            <img src="/brandLogo.png" alt="Poing Logo" className="w-40 object-contain" />
           </div>
         )}
         {/* Help Icon */}

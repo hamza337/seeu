@@ -205,7 +205,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   // Sidebar widths in px (match layout/sidebar)
   const collapsedSidebarWidthPx = 56;
   const expandedSidebarWidthPx = 256;
-  const drawerWidthPx = 384; // w-96
+  const drawerWidthPx = 415; // w-96
 
   // Calculate left position based on sidebar state
   const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
@@ -272,12 +272,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
 
   // Define the category options with icons for the dropdown grid
   const categoryOptions = [
-    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-10 h-10" /> },
-    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-10 h-10" /> },
-    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-10 h-10" /> },
-    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-10 h-10" /> },
-    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-10 h-10" /> },
-    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-10 h-10" /> },
+    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-14 h-14" />, textClass: '' },
+    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-14 h-14" />, textClass: '' },
+    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-14 h-14" />, textClass: '' },
+    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-14 h-14" />, textClass: '' },
   ];
 
   const debouncedPlaceChanged = debounce(() => {
@@ -446,24 +446,25 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   return (
     <div
       ref={drawerRef}
-      className={` pt-8 fixed top-0 left-0 h-screen z-[100] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      className={` pt-26 fixed top-0 left-0 h-screen z-[100] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       style={{
         left: `${leftPx}px`,
         width: `${drawerWidthPx}px`,
         boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className="p-6 flex justify-between items-center border-b">
+      <div className="px-6 pt-6 flex justify-between items-center border-b">
         <h2 className="text-lg text-black font-semibold">Search</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
-      <div className="overflow-y-auto h-[calc(100vh-4rem)] p-6 scrollbar-hide">
+      <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 pt-3 scrollbar-hide">
         {/* Categories Field - now a grid, not a dropdown */}
         <div className="mb-4">
           <label className="block text-gray-800 font-semibold mb-2">Select Categories</label>
           <div className="grid grid-cols-3 gap-4">
             {categoryOptions.map((item) => {
-              const isSelected = selectedCategories.includes(item.label);
+              const cleanedLabel = item.label.replace(' & ', '');
+              const isSelected = selectedCategories.includes(cleanedLabel);
               const maxSelected = selectedCategories.length >= 2;
               const isDisabled = maxSelected && !isSelected;
               return (
@@ -474,11 +475,11 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                     setSelectedCategories(prev => {
                       if (isSelected) {
                         setCategoryError('');
-                        return prev.filter(cat => cat !== item.label);
+                        return prev.filter(cat => cat !== cleanedLabel);
                       } else {
                         if (prev.length < 2) {
                           setCategoryError('');
-                          return [...prev, item.label];
+                          return [...prev, cleanedLabel];
                         } else {
                           setCategoryError('You can select a maximum of 2 categories.');
                           return prev;
@@ -492,7 +493,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                   `}
                 >
                   {item.icon}
-                  <span className="text-xs mt-1 text-gray-700">{item.label}</span>
+                  <span className={`text-s mt-1 text-gray-700 ${item.textClass}`}>{item.label}</span>
                 </div>
               );
             })}

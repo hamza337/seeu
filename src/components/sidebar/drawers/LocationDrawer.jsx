@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star } from 'lucide-react';
+import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star, Video, Trash2 } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
@@ -22,6 +22,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const autocompleteRef = useRef(null);
   const [mainMediaIndex, setMainMediaIndex] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [previews, setPreviews] = useState([]);
 
   const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -60,12 +61,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
   // Define the category options with icons for the grid
   const categoryOptions = [
-    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-10 h-10" /> },
-    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-10 h-10" /> },
-    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-10 h-10" /> },
-    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-10 h-10" /> },
-    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-10 h-10" /> },
-    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-10 h-10" /> },
+    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-14 h-14" />, textClass: '' },
+    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-14 h-14" />, textClass: '' },
+    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-14 h-14" />, textClass: '' },
+    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-14 h-14" />, textClass: '' },
   ];
 
   // Set up the search address function in context
@@ -93,6 +94,23 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       setMainMediaIndex(0);
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!uploads || uploads.length === 0) {
+      setPreviews([]);
+      return;
+    }
+
+    const objectUrls = uploads.map(file => ({
+        url: URL.createObjectURL(file),
+        type: file.type.split('/')[0],
+    }));
+    setPreviews(objectUrls);
+
+    return () => {
+        objectUrls.forEach(p => URL.revokeObjectURL(p.url));
+    };
+  }, [uploads]);
 
   const handleFileChange = (e) => {
     setFileError('');
@@ -276,43 +294,58 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 scrollbar-hide flex flex-col space-y-2">
         <img src="/brandLogo.png" alt="Poing Logo" className="w-25 object-contain mx-auto mb-4" />
 
-        <label className="block w-full p-4 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-center cursor-pointer">
-          <input type="file" accept="image/*,video/*" multiple className="hidden" onChange={handleFileChange} />
-          {uploads.length === 0 && 'Drag or upload item here'}
-          {uploads.length > 0 && (
-            <div className="flex flex-wrap justify-center items-center gap-2 mt-2">
-              {uploads.map((file, index) => {
+        <div className="space-y-4">
+          {/* Preview Grid */}
+          {previews.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+              {previews.map((preview, index) => {
                 const isMainMedia = mainMediaIndex === index;
-
                 return (
-                  <div key={index} className={`relative flex flex-col items-center bg-gray-100 p-2 rounded border-2 transition-all duration-200 ${isMainMedia ? 'border-yellow-400' : 'border-transparent'}`}> 
-                    <span className="text-sm text-black truncate max-w-xs">{file.name}</span>
-                    {/* Main media star overlay */}
+                  <div key={index} className="relative">
+                    <div className={`relative group aspect-square bg-gray-100 rounded-md flex items-center justify-center overflow-hidden border-2 ${isMainMedia ? 'border-yellow-400' : 'border-transparent'}`}>
+                      {preview.type === 'image' ? (
+                        <img src={preview.url} alt="upload preview" className="object-cover w-full h-full" />
+                      ) : (
+                        <video src={preview.url} className="object-cover w-full h-full" muted playsInline />
+                      )}
+                      <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); removeUpload(index); }}
+                        className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
+                        title="Remove"
+                      >
+                        <Trash2 size={24} className="text-white" />
+                      </button>
+                    </div>
                     <button
                       type="button"
                       onClick={e => { e.preventDefault(); setMainMediaIndex(index); }}
-                      className={`absolute -top-2 -right-2 bg-white rounded-full p-1 border ${isMainMedia ? 'border-yellow-400' : 'border-gray-300'} shadow transition-all duration-200`}
+                      className={`absolute -top-2 -right-2 bg-white rounded-full p-1 border ${isMainMedia ? 'border-yellow-400' : 'border-gray-300'} shadow transition-all duration-200 z-20`}
                       title={isMainMedia ? 'Main Media' : 'Set as Main'}
                     >
                       <Star size={18} className={isMainMedia ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} fill={isMainMedia ? '#facc15' : 'none'} />
-                    </button>
-                    <button 
-                      onClick={(e) => { 
-                          e.preventDefault();
-                          removeUpload(index); 
-                          const fileInput = e.target.closest('label').querySelector('input[type="file"]');
-                          if(fileInput) fileInput.value = null; 
-                      }}
-                      className="ml-2 text-red-500 hover:text-red-700 font-bold"
-                    >
-                      &times;
                     </button>
                   </div>
                 );
               })}
             </div>
           )}
-        </label>
+
+          {/* Dropzones */}
+          <div className="grid grid-cols-2 gap-4">
+            <label className="flex flex-col items-center justify-center w-full h-24 p-2 transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400">
+              <Camera className="w-8 h-8 text-gray-500" />
+              <span className="mt-2 text-sm font-medium text-gray-600">Add Photos</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
+            </label>
+            <label className="flex flex-col items-center justify-center w-full h-24 p-2 transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400">
+              <Video className="w-8 h-8 text-gray-500" />
+              <span className="mt-2 text-sm font-medium text-gray-600">Add Videos</span>
+              <input type="file" accept="video/*" multiple className="hidden" onChange={handleFileChange} />
+            </label>
+          </div>
+        </div>
+
         {fileError && <p className="text-red-500 text-sm mb-4">{fileError}</p>}
         {formError && <p className="text-red-500 text-sm mt-2 mb-4">{formError}</p>}
 
@@ -357,7 +390,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                   `}
                 >
                   {item.icon}
-                  <span className="text-xs mt-1 text-gray-700">{item.label}</span>
+                  <span className={`text-s mt-1 text-gray-700 ${item.textClass}`}>{item.label}</span>
                 </div>
               );
             })}
