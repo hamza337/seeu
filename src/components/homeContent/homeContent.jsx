@@ -13,7 +13,8 @@ import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { useMap } from '../../contexts/MapContext';
 import moment from 'moment'; // Import moment for date formatting
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-
+import MediaDetail from '../mediaContent/mediaDetail/MediaDetail'; // Import MediaDetail component
+import { useModal } from '../../contexts/ModalContext';
 const containerStyle = {
   width: '100%',
   height: '100%'
@@ -204,13 +205,15 @@ const HomeContent = () => {
   const tooltipRef = useRef(null); // Ref for the tooltip div
   const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
   const [showTooltip, setShowTooltip] = useState(false);
+  const { animatedMarkerId, setAnimatedMarkerId } = useMap();
+  const { modalEventId, setModalEventId } = useModal();
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
     libraries
   });
 
-  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents } = useMap();
+  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents, hoveredEventId, setHoveredEventId } = useMap();
   const navigate = useNavigate(); // Initialize navigate hook
 
   console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation, 'searchLocation:', searchLocation, 'refreshEvents:', refreshEvents);
@@ -386,11 +389,11 @@ const HomeContent = () => {
 
         if (item.type === 'event') {
           const staticIcons = {
-            'Accident': '/accident.svg',
-            'Pet': '/pet.svg',
-            'Crime': '/crime.svg',
-            'Other': '/others.svg',
-            'People': '/people.svg'
+            'Accident': '/accidentM.svg',
+            'Pet': '/petM.svg',
+            'Crime': '/crimeM.svg',
+            'Other': '/othersM.svg',
+            'People': '/peopleM.svg'
           };
           iconUrl = staticIcons[item.category] || '/default.svg';
 
@@ -416,6 +419,7 @@ const HomeContent = () => {
                  mouseOutTimerRef.current = null;
              }
              setHoveredEvent(item);
+             setHoveredEventId(item.id); // Only set hoveredEventId
 
              // Position tooltip relative to the map container
              if (mapRef.current && event.domEvent) {
@@ -434,6 +438,7 @@ const HomeContent = () => {
              // The tooltip's mouseover will clear this timer if the mouse enters the tooltip
              mouseOutTimerRef.current = setTimeout(() => {
                  setHoveredEvent(null);
+                 setHoveredEventId(null); // Only clear hoveredEventId
                  setTooltipPosition({ x: -1000, y: -1000 }); // Hide tooltip by moving it off-screen
              }, 100); // Use a slightly longer delay here
           });
@@ -543,6 +548,7 @@ const HomeContent = () => {
                // Set a timer to hide the tooltip after a short delay when mouse leaves tooltip
                 mouseOutTimerRef.current = setTimeout(() => {
                     setHoveredEvent(null);
+                    setHoveredEventId(null); // Also clear in context
                     setTooltipPosition({ x: -1000, y: -1000 });
                }, 50); // Short delay
            };
@@ -568,157 +574,71 @@ const HomeContent = () => {
     }
   }, [hoveredEvent]);
 
-  // Component to render the list view (keep existing logic)
-  const renderListView = () => {
-    if (!categorizedSearchResults) {
-      return (
-        <div className="text-center text-gray-600 mt-8">
-          <p className="text-lg font-semibold mb-2">No search results to display.</p>
-          <p>Perform a search using the Search drawer.</p>
-        </div>
+  // Add this effect after the other useEffects, before the animation effect:
+  useEffect(() => {
+    if (animatedMarkerId && mapRef.current) {
+      // Find the marker with the matching event ID
+      const targetMarker = markersRef.current.find(marker => 
+        marker.eventData && marker.eventData.id === animatedMarkerId
       );
+      if (targetMarker) {
+        const position = targetMarker.getPosition();
+        mapRef.current.panTo(position);
+      }
     }
+  }, [animatedMarkerId, mapRef.current]);
 
-    const frontendCategories = ['within 1 mile', 'within 3 miles', 'within 5 miles', 'within 6-200 miles'];
-    const categoryIcons = { // Define category icons here or import from a shared file
-      'Accident': <img src="/accident.svg" alt="Accident" className="w-5 h-5" />,
-      'Pet': <img src="/pet.svg" alt="Pet" className="w-5 h-5" />,
-      'Lost & Found': <img src="/lostnfound.svg" alt="Lost and Found" className="w-5 h-5" />,
-      'Crime': <img src="/crime.svg" alt="Crime" className="w-5 h-5" />,
-      'People': <img src="/people.svg" alt="People" className="w-5 h-5" />,
-      'Other': <img src="/others.svg" alt="Other" className="w-5 h-5" />
+  // Effect to apply animation to markers
+  useEffect(() => {
+    let animationInterval = null;
+    
+    if (animatedMarkerId) {
+      // Find the marker to animate
+      const targetMarker = markersRef.current.find(marker => 
+        marker.eventData && marker.eventData.id === animatedMarkerId
+      );
+      
+      if (targetMarker) {
+        const originalPosition = targetMarker.getPosition();
+        const originalLat = originalPosition.lat();
+        const originalLng = originalPosition.lng();
+        let isUp = false;
+        
+        // Create bouncing animation
+        animationInterval = setInterval(() => {
+          if (isUp) {
+            // Normal position
+            targetMarker.setPosition(new window.google.maps.LatLng(originalLat, originalLng));
+          } else {
+            // Bounced up position (move up by a small amount)
+            const bounceOffset = 0.0002; // Small offset for bouncing effect
+            targetMarker.setPosition(new window.google.maps.LatLng(originalLat + bounceOffset, originalLng));
+          }
+          isUp = !isUp;
+        }, 250); // Change position every 300ms for bouncing effect
+      }
+    }
+    
+    // Cleanup function
+    return () => {
+      if (animationInterval) {
+        clearInterval(animationInterval);
+      }
+      
+      // Reset all markers to their original positions when animation stops
+      markersRef.current.forEach(marker => {
+        if (marker.eventData) {
+          // Reset to original position if this was the animated marker
+          if (marker.eventData.id === animatedMarkerId) {
+            const originalPosition = marker.getPosition();
+            const originalLat = originalPosition.lat();
+            const originalLng = originalPosition.lng();
+            marker.setPosition(new window.google.maps.LatLng(originalLat, originalLng));
+          }
+        }
+      });
     };
-
-    return (
-      <div className="overflow-y-auto h-full p-4 scrollbar-hide">
-        {frontendCategories.map(category => (
-          <div key={category} className="mb-6">
-            <h3 className="text-lg font-semibold text-gray-800 mb-3">{category}</h3>
-            {categorizedSearchResults[category] && categorizedSearchResults[category].length > 0 ? (
-              <div className="space-y-4">
-                {categorizedSearchResults[category].map((event) => (
-                  <div 
-                    key={event.id} 
-                    className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100"
-                    onClick={() => {
-                      console.log('Event card clicked in ListView:', event.id, event.latitude, event.longitude);
-                      if (focusMapFn) { // Use focusMapFn from context to pan/zoom
-                         focusMapFn(event.latitude, event.longitude);
-                      }
-                      // Optionally switch back to map view on click
-                       setActiveView('mapView');
-                    }}
-                  >
-                    <div className="w-24 h-24 bg-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                      {event.media && event.media[0] ? (
-                        event.media[0].type === 'video' ? (
-                          <video 
-                            src={event.media[0].url} 
-                            className="w-full h-full object-cover"
-                            controls
-                          />
-                        ) : (
-                          <img 
-                            src={event.media[0].url} 
-                            alt={event.title}
-                            className="w-full h-full object-cover"
-                          />
-                        )
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gray-300">
-                          {/* Placeholder icon if no media */}
-                           {categoryIcons[event.category] || <MapPin size={24} className="text-gray-500" />} 
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        {categoryIcons[event.category]} 
-                        <h4 className="font-medium text-gray-900">{event.title}</h4>
-                      </div>
-                      <p className="text-sm text-gray-600 mb-2">{event.address}</p>
-                      <div className="flex items-center gap-2">
-                        {!event.isFree && (
-                          <span className="text-sm font-medium text-green-600">${event.price}</span>
-                        )}
-                        {event.isExclusive && (
-                          <span className="flex items-center gap-1 text-sm text-purple-600">
-                            <Lock size={14} />
-                            Exclusive
-                          </span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* Download Button */}
-                    <div className="flex-shrink-0">
-                       <button 
-                          onClick={(e) => { // Add event handler
-                              e.stopPropagation(); // Prevent card click event from firing
-                              console.log('Download button clicked for event:', event.id);
-                              
-                              const token = localStorage.getItem('token');
-
-                              if (!token) {
-                                  console.log('User not authenticated. Showing login modal.');
-                                  setShowLoginModal(true); // Show login modal
-                                  return; // Stop execution if not authenticated
-                              }
-
-                              const eventId = event.id; // Get the event ID
-                              const purchaseUrl = event.isFree 
-                                  ? `${import.meta.env.VITE_API_URL}stripe/purchase/free/${eventId}`
-                                  : `${import.meta.env.VITE_API_URL}stripe/purchase/${eventId}`;
-
-                              axios.post(purchaseUrl,{}, {
-                                headers: {
-                                  'Authorization': `Bearer ${localStorage.getItem('token')}`
-                                }
-                              })
-                              .then(response => {
-                                  console.log('Stripe purchase API response:', response.data);
-                                  if (event.isFree) {
-                                      // For free events, show success message and redirect to my-events
-                                      alert(response.data.message || 'Event added to your purchases successfully!');
-                                      window.location.href = '/my-events';
-                                  } else {
-                                      // For paid events, redirect to Stripe checkout
-                                      if (response.data && response.data.url) {
-                                          window.location.href = response.data.url;
-                                      } else {
-                                          alert('Failed to get Stripe checkout URL from API.');
-                                      }
-                                  }
-                              })
-                              .catch(error => {
-                                  console.error('Error calling Stripe purchase API:', error);
-                                  alert(error.response?.data?.message || 'Failed to initiate purchase. Please try again.');
-                                  // Optionally check for 401 and show login modal again
-                                  if (error.response && error.response.status === 401) {
-                                       setShowLoginModal(true);
-                                  }
-                              });
-                          }}
-                          className="bg-green-500 text-white py-1 px-2 rounded hover:bg-green-600"
-                       >
-                          Download
-                       </button>
-                    </div>
-
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-center text-gray-600 mt-8">
-                <p className="text-lg font-semibold mb-2">No events found in this category.</p>
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  }, [animatedMarkerId]);
 
   return (
     <div className="w-full h-full pt-11 px-4 sm:px-8 lg:px-12 overflow-x-hidden">
@@ -731,65 +651,57 @@ const HomeContent = () => {
       <div className="flex w-full h-[calc(100%-7.5rem)] bg-gray-100 relative"> {/* Add relative positioning here */}
         {/* Map and List View Container - Now takes full width */}
         <div className="flex-1 rounded-lg overflow-hidden relative">
-           {/* Toggle Buttons */}
-           <div className="absolute top-4 right-4 z-10 flex space-x-2">
-              <button
-                 onClick={() => setActiveView('mapView')}
-                 className={`px-4 py-2 text-sm font-medium rounded-md ${activeView === 'mapView' ? 'bg-[#0868a8] text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
-              >
-                 Map View
-              </button>
-              <button
-                 onClick={() => setActiveView('listView')}
-                 className={`px-4 py-2 text-sm font-medium rounded-md ${activeView === 'listView' ? 'bg-[#0868a8] text-white' : 'bg-gray-200 text-gray-800 hover:bg-gray-300'}`}
-              >
-                 List View
-              </button>
-           </div>
-
           {isLoaded ? (
-            activeView === 'mapView' ? (
-              <GoogleMap
-                mapContainerStyle={containerStyle}
-                center={center}
-                zoom={13}
-                onLoad={handleMapLoad}
-                onBoundsChanged={handleBoundsChanged}
-                options={{
-                  streetViewControl: false,
-                  fullscreenControl: false,
-                  mapTypeControl: false,
-                  gestureHandling: 'greedy'
-                }}
-              >
-                {/* Movable Search Marker */}
-                {console.log('Rendering search marker?', searchLocation, isLoaded)}
-                {searchLocation && isLoaded && (
-                  console.log('Rendering search marker at:', searchLocation),
-                  <Marker
-                    position={searchLocation}
-                    draggable={true}
-                    onDragEnd={(event) => {
-                      const newLat = event.latLng.lat();
-                      const newLng = event.latLng.lng();
-                      console.log('Search marker drag ended. New coordinates:', { lat: newLat, lng: newLng });
-                      geocodeLatLng(newLat, newLng);
-                    }}
-                    icon={{
-                      url: '/Ppoing.png',
-                      scaledSize: new window.google.maps.Size(50, 50),
-                      anchor: new window.google.maps.Point(24, 43)
-                    }}
-                    title="Drag to select location"
-                  />
-                )}
+            <GoogleMap
+              mapContainerStyle={containerStyle}
+              center={center}
+              zoom={13}
+              onLoad={handleMapLoad}
+              onBoundsChanged={handleBoundsChanged}
+              options={{
+                streetViewControl: false,
+                fullscreenControl: false,
+                mapTypeControl: false,
+                gestureHandling: 'greedy'
+              }}
+            >
+              {/* Movable Search Marker */}
+              {searchLocation && isLoaded && (
+                <Marker
+                  position={searchLocation}
+                  draggable={true}
+                  onDragEnd={(event) => {
+                    const newLat = event.latLng.lat();
+                    const newLng = event.latLng.lng();
+                    console.log('Search marker drag ended. New coordinates:', { lat: newLat, lng: newLng });
+                    geocodeLatLng(newLat, newLng);
+                  }}
+                  icon={{
+                    url: '/Ppoing.png',
+                    scaledSize: new window.google.maps.Size(50, 50),
+                    anchor: new window.google.maps.Point(24, 43)
+                  }}
+                  title="Drag to select location"
+                />
+              )}
 
-                {/* Existing markers (clustered events and static search markers from API) are handled in useEffects */}
+              {/* Render searchMarkers as markers with correct icon and no tooltip */}
+              {searchMarkers && searchMarkers.map((marker, idx) => (
+                <Marker
+                  key={`search-marker-${idx}`}
+                  position={{ lat: marker.lat, lng: marker.lng }}
+                  icon={{
+                    url: marker.label === 'Pet' ? '/pet3.svg' : '/default.svg',
+                    scaledSize: new window.google.maps.Size(90, 90),
+                    anchor: new window.google.maps.Point(24, 43)
+                  }}
+                  // No tooltip or popup for searchMarkers
+                />
+              ))}
 
-              </GoogleMap>
-            ) : ( // Render List View
-               renderListView()
-            )
+              {/* Existing markers (clustered events and static search markers from API) are handled in useEffects */}
+
+            </GoogleMap>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl text-blue-700 font-bold">
               Loading Map...

@@ -13,6 +13,12 @@ export const MapProvider = ({ children }) => {
   const [refreshEvents, setRefreshEvents] = useState(0);
   const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
+  const [searchResults, setSearchResults] = useState(null);
+  const [activeDrawer, setActiveDrawer] = useState(null);
+  const [hoveredEventId, setHoveredEventId] = useState(null);
+  const [animatedMarkerId, setAnimatedMarkerId] = useState(null);
+  const [activeSearchQuery, setActiveSearchQuery] = useState(null);
+  const [notifyMePayload, setNotifyMePayload] = useState(null);
 
   const triggerRefreshEvents = () => {
     setRefreshEvents(prev => prev + 1);
@@ -89,6 +95,18 @@ export const MapProvider = ({ children }) => {
       setIsSidebarExpanded,
       isAuthenticated,
       setIsAuthenticated: updateIsAuthenticated,
+      searchResults,
+      setSearchResults,
+      activeDrawer,
+      setActiveDrawer,
+      hoveredEventId,
+      setHoveredEventId,
+      animatedMarkerId,
+      setAnimatedMarkerId,
+      activeSearchQuery,
+      setActiveSearchQuery,
+      notifyMePayload,
+      setNotifyMePayload,
     }}>
       {children}
     </MapContext.Provider>

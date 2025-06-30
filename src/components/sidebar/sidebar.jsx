@@ -3,14 +3,17 @@ import { Link, useLocation } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import SearchDrawer from './drawers/SearchDrawer';
 import LocationDrawer from './drawers/LocationDrawer';
+import ResultsDrawer from './drawers/ResultsDrawer';
 import { useMap } from '../../contexts/MapContext';
+import { useModal } from '../../contexts/ModalContext';
 
 export default function Sidebar() {
-  const [activeDrawer, setActiveDrawer] = useState(null);
+  // const [activeDrawer, setActiveDrawer] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState(null);
-  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated } = useMap();
+  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated, searchResults, notifyMeParams, activeDrawer, setActiveDrawer } = useMap();
   const clearMapFocusTimeoutRef = useRef(null);
   const location = useLocation();
+  const { setModalEventId } = useModal();
 
   // Set sidebar expanded by default on home page
   useEffect(() => {
@@ -92,8 +95,17 @@ export default function Sidebar() {
         <button
           type="button"
           className={`flex items-center mt-36 cursor-pointer`}
+          onClick={() => {
+            if (activeDrawer === 'results') {
+              setActiveDrawer(null);
+              setIsSidebarExpanded(true);
+            } else {
+              setActiveDrawer('results');
+              setIsSidebarExpanded(false);
+            }
+          }}
         >
-          <span className={activeDrawer === 'my-events' ? iconHighlight : ''}>
+          <span className={activeDrawer === 'results' ? iconHighlight : ''}>
             <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="List" />
           </span>
           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">List</span>}
@@ -119,6 +131,19 @@ export default function Sidebar() {
           setIsSidebarExpanded(true);
         }}
       />
+
+      {activeDrawer === 'results' && (
+        <ResultsDrawer
+          results={searchResults}
+          onClose={() => {
+            setActiveDrawer(null);
+            setIsSidebarExpanded(true);
+          }}
+          notifyMeParams={notifyMeParams}
+          isSidebarExpanded={isSidebarExpanded}
+          onEventClick={event => setModalEventId(event.id)}
+        />
+      )}
     </>
   );
 }

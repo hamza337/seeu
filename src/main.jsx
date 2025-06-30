@@ -19,33 +19,36 @@ import SearchResults from './components/searchResults/SearchResults';
 import { MapProvider } from './contexts/MapContext';
 import MyEvents from './pages/MyEvents/MyEvents';
 import { Toaster } from 'react-hot-toast';
+import { ModalProvider } from './contexts/ModalContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <MapProvider>
-        <Toaster />
-        <Routes>
-          {/* Layout Route */}
-          <Route path="/" element={<Layout />}>
-            {/* Child routes */}
-            <Route index element={<Home />} />
-            <Route path="/share" element={<ShareEvent />} />
-            <Route path="/results" element={<SearchResults />} />
-            <Route path="media" element={<Media />} />
-            <Route path="/event/:id" element={<MediaDetail />} />
-            <Route path="/media/:id/buy-now" element={<Payment />} />
-            <Route path="settings" element={<Users />} />
-            <Route path="settings/language-setting" element={<LanguageSetting />} />
-            <Route path="privacy-policy" element={<PrivacyPolicy />} />
-            <Route path="user-agreement" element={<UserAgreement />} />
-            <Route path="settings/wallet" element={<Wallet />} />
-            <Route path="settings/wallet/withdraw-request" element={<WithdrawRequest />} />
-            <Route path="/contact-us" element={<ContactUs />} />
-            <Route path="/my-events" element={<MyEvents />} />
+        <ModalProvider>
+          <Toaster />
+          <Routes>
+            {/* Layout Route */}
+            <Route path="/" element={<Layout />}>
+              {/* Child routes */}
+              <Route index element={<Home />} />
+              <Route path="/share" element={<ShareEvent />} />
+              <Route path="/results" element={<SearchResults />} />
+              <Route path="media" element={<Media />} />
+              <Route path="/event/:id" element={<MediaDetail />} />
+              <Route path="/media/:id/buy-now" element={<Payment />} />
+              <Route path="settings" element={<Users />} />
+              <Route path="settings/language-setting" element={<LanguageSetting />} />
+              <Route path="privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="user-agreement" element={<UserAgreement />} />
+              <Route path="settings/wallet" element={<Wallet />} />
+              <Route path="settings/wallet/withdraw-request" element={<WithdrawRequest />} />
+              <Route path="/contact-us" element={<ContactUs />} />
+              <Route path="/my-events" element={<MyEvents />} />
 
-          </Route>
-        </Routes>
+            </Route>
+          </Routes>
+        </ModalProvider>
       </MapProvider>
     </BrowserRouter>
   </React.StrictMode>

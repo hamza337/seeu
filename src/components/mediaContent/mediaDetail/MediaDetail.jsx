@@ -6,13 +6,23 @@ import BackButton from '../../../components/backBtn/backButton';
 import moment from 'moment'; // Import moment for date formatting
 
 // Helper function to parse media JSON
-const parseMedia = (mediaJson) => {
-  try {
-    const mediaArray = JSON.parse(mediaJson);
-    return Array.isArray(mediaArray) ? mediaArray : [];
-  } catch (e) {
-    console.error('Failed to parse media JSON:', mediaJson, e);
+const parseMedia = (mediaData) => {
+  // If it's already a valid array, just return it.
+  if (Array.isArray(mediaData)) {
+    return mediaData;
   }
+
+  // If it's a string, try to parse it.
+  if (typeof mediaData === 'string') {
+    try {
+      const mediaArray = JSON.parse(mediaData);
+      return Array.isArray(mediaArray) ? mediaArray : [];
+    } catch (e) {
+      console.error('Failed to parse media JSON string:', mediaData, e);
+    }
+  }
+
+  // If it's neither, or parsing fails, return an empty array.
   return [];
 };
 
@@ -30,14 +40,15 @@ const formatDate = (dateString) => {
     return date.isValid() ? date.format('YYYY-MM-DD') : 'Invalid Date';
 };
 
-const EventDetail = () => {
-  const { id } = useParams();
+const EventDetail = ({ eventId, isModal, onClose }) => {
+  const { id: routeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
-  const [event, setEvent] = useState(location.state?.event || null); // Get event from state
-  const [loading, setLoading] = useState(!location.state?.event); // Set loading based on whether event is in state
+  const id = eventId || routeId;
+  const [event, setEvent] = useState(location.state?.event || null);
+  const [loading, setLoading] = useState(!location.state?.event);
   const [error, setError] = useState(null);
-  const [currentMediaIndex, setCurrentMediaIndex] = useState(0); // State for current media item in slider
+  const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
   const baseUrl = import.meta.env.VITE_API_URL;
 
   // If event is not available in state, fetch it (fallback)
@@ -66,8 +77,7 @@ const EventDetail = () => {
       } else if (event) {
           setLoading(false);
       }
-  }, [id, baseUrl, event]); // Add event to dependency array
-
+  }, [id, baseUrl, event]);
 
   // Apply media protection
   useEffect(() => {
@@ -165,23 +175,23 @@ const EventDetail = () => {
       }
   };
 
-    // Function to navigate back to the home page
-    const goHome = () => {
-        navigate('/');
-    };
+  // Function to close modal or navigate back
+  const handleClose = () => {
+    if (onClose) onClose();
+    else navigate('/');
+  };
 
-    const handleNextMedia = () => {
-        if (media && media.length > 1) {
-            setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % media.length);
-        }
-    };
+  const handleNextMedia = () => {
+    if (event && event.media && event.media.length > 1) {
+      setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % event.media.length);
+    }
+  };
 
-    const handlePrevMedia = () => {
-        if (media && media.length > 1) {
-            setCurrentMediaIndex((prevIndex) => (prevIndex - 1 + media.length) % media.length);
-        }
-    };
-
+  const handlePrevMedia = () => {
+    if (event && event.media && event.media.length > 1) {
+      setCurrentMediaIndex((prevIndex) => (prevIndex - 1 + event.media.length) % event.media.length);
+    }
+  };
 
   if (loading) {
     return <div className="text-center text-gray-600 mt-8">Loading event details...</div>;
@@ -198,23 +208,108 @@ const EventDetail = () => {
   const media = parseMedia(event.media);
   const currentMedia = media[currentMediaIndex];
 
+  if (isModal) {
+    return (
+        <div className="bg-white rounded-lg shadow-xl w-full p-6 relative">
+          <button
+            className="absolute top-2 right-2 text-gray-500 hover:text-black text-2xl"
+            onClick={handleClose}
+            aria-label="Close"
+          >
+            &times;
+          </button>
+          {/* Event Details Content (copied from below) */}
+          {event.media.length > 0 ? 'true' : 'false'}
+          {media.length > 0 ? (
+             <div className="media-container relative w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+                <div key={currentMediaIndex} className="media-item relative w-full h-full flex items-center justify-center">
+                   {currentMedia.type === 'image' ? (
+                      <img src={currentMedia.url} alt={`Event Media ${currentMediaIndex + 1}`} className="w-full h-full object-contain" onContextMenu={(e) => e.preventDefault()} draggable="false"/>
+                   ) : (
+                      <video src={currentMedia.url} className="w-full h-full object-contain" controls controlsList="nodownload" disablePictureInPicture onContextMenu={(e) => e.preventDefault()}/>
+                   )}
+                </div>
+                {media.length > 1 && (
+                   <>
+                      <button
+                         onClick={handlePrevMedia}
+                         className="absolute left-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full z-20 hover:bg-opacity-75 focus:outline-none"
+                         aria-label="Previous media"
+                      >
+                         <ChevronLeft size={24} />
+                      </button>
+                      <button
+                         onClick={handleNextMedia}
+                         className="absolute right-4 top-1/2 transform -translate-y-1/2 bg-black bg-opacity-50 text-white p-2 rounded-full z-20 hover:bg-opacity-75 focus:outline-none"
+                         aria-label="Next media"
+                      >
+                         <ChevronRight size={24} />
+                      </button>
+                   </>
+                )}
+             </div>
+          ) : (
+             <div className="w-full h-72 bg-gray-200 rounded-lg flex items-center justify-center">
+                <span className="text-gray-500">No media available</span>
+             </div>
+          )}
+          <h2 className="text-3xl font-bold mt-6 text-black">{event.title || 'No Title'}</h2>
+          <div className="mt-4 flex flex-col gap-3 text-black">
+             <div className="text-gray-600 text-sm">
+                Listing ID: {event.id}
+             </div>
+             <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                   <span>Category:</span>
+                   <span className="font-semibold">{event.category || 'Unknown'}</span>
+                </div>
+                 <div className="flex items-center gap-2">
+                   <MapPin size={16} />
+                   <span>{event.address || 'No address'}</span>
+                 </div>
+             </div>
+             <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
+                   <Calendar size={16} />
+                   <span>{formatDate(event.date)}</span>
+                </div>
+                 <div className="flex items-center gap-2">
+                   {event.isFree ? (
+                      <span className="text-green-600 font-semibold">Free</span>
+                   ) : event.isExclusive ? (
+                      <span className="flex items-center gap-1 text-purple-600 font-semibold"><Lock size={16} /> Exclusive</span>
+                   ) : ( event.price !== undefined && event.price !== null && (
+                      <span className="text-green-600 font-semibold"><DollarSign size={16} className="inline-block mr-1" />{event.price}</span>
+                   ))}
+                 </div>
+             </div>
+          </div>
+          <p className="mt-6 text-black">{event.description || 'No description'}</p>
+          <button
+              onClick={handleBuyNow}
+              className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
+          >
+              Buy Now
+          </button>
+        </div>
+    );
+  }
+  // Fallback: render as a normal page if not modal
   return (
     <div className="px-6 sm:px-10 lg:px-20 py-6 flex flex-col gap-6">
-      {/* Custom Back Button to Home */}
-      <button onClick={goHome} className="flex items-center text-blue-600 hover:underline mb-4">
+      <button onClick={handleClose} className="flex items-center text-blue-600 hover:underline mb-4">
          &larr; Back to Home
       </button>
-
       {/* Event Details Content */}
       <div className="w-full">
         {/* Media Slider */}
         {media.length > 0 ? (
-           <div className="media-container relative w-full h-96 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center"> {/* Use flex for slider */}
+           <div className="media-container relative w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center"> {/* Use flex for slider */}
               <div key={currentMediaIndex} className="media-item relative w-full h-full flex items-center justify-center"> {/* Added media-item class */}
                  {currentMedia.type === 'image' ? (
-                    <img src={currentMedia.url} alt={`Event Media ${currentMediaIndex + 1}`} className="w-full h-full object-contain" onContextMenu={(e) => e.preventDefault()} draggable="false"/> // object-contain for images in slider
+                    <img src={currentMedia.url} alt={`Event Media ${currentMediaIndex + 1}`} className="w-full h-full object-contain" onContextMenu={(e) => e.preventDefault()} draggable="false"/>
                  ) : (
-                    <video src={currentMedia.url} className="w-full h-full object-contain" controls controlsList="nodownload" disablePictureInPicture onContextMenu={(e) => e.preventDefault()}/> // object-contain for videos in slider
+                    <video src={currentMedia.url} className="w-full h-full object-contain" controls controlsList="nodownload" disablePictureInPicture onContextMenu={(e) => e.preventDefault()}/>
                  )}
               </div>
 
@@ -239,7 +334,7 @@ const EventDetail = () => {
               )}
            </div>
         ) : (
-           <div className="w-full h-96 bg-gray-200 rounded-lg flex items-center justify-center">
+           <div className="w-full h-72 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-500">No media available</span>
            </div>
         )}
