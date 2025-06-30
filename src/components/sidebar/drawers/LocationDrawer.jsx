@@ -257,11 +257,11 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       }
     } catch (err) {
       console.error('Upload process failed:', err);
-      const errorMessage = err.response?.data?.message || err.message || 'Failed to upload event. Please try again.';
-      setFormError(errorMessage);
-      toast.error(errorMessage, { id: loadingToastId });
       if (err.response && err.response.status === 401) {
+        toast.error('Please login.', { id: loadingToastId });
         setShowLoginModal(true);
+      } else {
+        toast.error('Something went wrong, try again.', { id: loadingToastId });
       }
     } finally {
       setLoading(false);

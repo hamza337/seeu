@@ -10,7 +10,7 @@ export default function Layout() {
   const topbarHeight = 52;
   const footerHeight = 40;
   const collapsedSidebarWidth = 56;
-  const expandedSidebarWidth = 256;
+  const expandedSidebarWidth = 150;
   const sidebarGap = 50; // 16px gap between sidebar and main content
 
   const { modalEventId, setModalEventId } = useModal();

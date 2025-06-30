@@ -291,6 +291,14 @@ export default function Topbar() {
                   aria-orientation="vertical"
                   aria-labelledby="user-menu-button"
                 >
+                  <NavLink
+                    to="/my-events"
+                    className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
+                    role="menuitem"
+                    onClick={() => setDropdownOpen(false)}
+                  >
+                    My Events
+                  </NavLink>
                   <button
                     onClick={() => setShowAvatarModal(true)}
                     className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"

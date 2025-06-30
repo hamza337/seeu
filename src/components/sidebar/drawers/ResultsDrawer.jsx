@@ -2,6 +2,7 @@ import { X, Camera, Lock } from 'lucide-react';
 import axios from 'axios';
 import { useMap } from '../../../contexts/MapContext';
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 
 export default function ResultsDrawer({
   results,
@@ -49,7 +50,7 @@ export default function ResultsDrawer({
           'Authorization': `Bearer ${token}`
         }
       });
-      alert('Notification request successful! We will notify you if events match your criteria.');
+      toast.success('Notification request generated successfully!');
       triggerRefreshEvents();
     } catch (error) {
       console.error('Error calling notify-me API:', error);
@@ -83,46 +84,44 @@ export default function ResultsDrawer({
         boxShadow: '0 0 24px 0 rgba(0,0,0,0.12)',
       }}
     >
-      <div className="px-6 pt-6 flex justify-between items-center border-b pb-4">
+      <div className="px-6 pt-6 flex justify-between items-center border-b pb-4 bg-white sticky top-0 z-10">
         <h2 className="text-xl text-black font-bold">Search Results</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
-
-      {activeSearchQuery && (
-        <div className="px-6 pt-4 pb-4 border-b">
-          <div className="flex items-center gap-2 mb-2 text-sm text-gray-700">
-            <span className="font-semibold">Categories:</span>
-            <span>{activeSearchQuery.categories.join(', ') || 'Any'}</span>
-          </div>
-          <div className="flex items-center gap-2 mb-2 text-sm text-gray-700">
-            <span className="font-semibold">Where:</span>
-            <span className="truncate">{activeSearchQuery.address || 'Anywhere'}</span>
-          </div>
-          {activeSearchQuery.dateFrom && (
-            <div className="flex items-center gap-2 text-sm text-gray-700">
-              <span className="font-semibold">When:</span>
-              <span>
-                {activeSearchQuery.dateFrom.toLocaleDateString()} - {activeSearchQuery.dateTo ? activeSearchQuery.dateTo.toLocaleDateString() : 'Present'}
-              </span>
+      <div className="flex flex-col h-[calc(100vh-4.5rem)] overflow-y-auto px-6 pb-6 pt-3 scrollbar-hide">
+        {activeSearchQuery && (
+          <div className="pt-4 pb-4 border-b mb-4">
+            <div className="flex items-center gap-2 mb-2 text-sm text-gray-700">
+              <span className="font-semibold">Categories:</span>
+              <span>{activeSearchQuery.categories.join(', ') || 'Any'}</span>
             </div>
-          )}
-        </div>
-      )}
-
-      {/* Always show Notify Me box after a search */}
-      {activeSearchQuery && (
-        <div className="text-center text-gray-600 mt-2 mb-6 p-4 bg-gray-100 rounded-lg">
-          <p className="text-lg font-semibold mb-2">Can't find what you are looking for?</p>
-          <button
-            onClick={handleNotifyMe}
-            className="mt-2 w-auto bg-[#0868a8] text-white py-2 px-4 rounded hover:cursor-pointer"
-          >
-            Notify Me
-          </button>
-        </div>
-      )}
-
-      <div className="overflow-y-auto h-[calc(100vh-4.5rem)] px-6 pb-6 pt-3 scrollbar-hide">
+            <div className="flex items-center gap-2 mb-2 text-sm text-gray-700">
+              <span className="font-semibold">Where:</span>
+              <span className="truncate">{activeSearchQuery.address || 'Anywhere'}</span>
+            </div>
+            {activeSearchQuery.dateFrom && (
+              <div className="flex items-center gap-2 text-sm text-gray-700">
+                <span className="font-semibold">When:</span>
+                <span>
+                  {activeSearchQuery.dateFrom.toLocaleDateString()} - {activeSearchQuery.dateTo ? activeSearchQuery.dateTo.toLocaleDateString() : 'Present'}
+                </span>
+              </div>
+            )}
+          </div>
+        )}
+        {/* Always show Notify Me box after a search */}
+        {activeSearchQuery && (
+          <div className="text-center text-gray-600 mb-6 p-4 bg-gray-100 rounded-lg">
+            <p className="text-lg font-semibold mb-2">Can't find what you are looking for?</p>
+            <button
+              onClick={handleNotifyMe}
+              className="mt-2 w-auto bg-[#0868a8] text-white py-2 px-4 rounded hover:cursor-pointer"
+            >
+              Notify Me
+            </button>
+          </div>
+        )}
+        {/* Events List */}
         {results && results.status === 404 ? (
           <div className="text-center text-gray-600 mt-8">
             <p className="text-lg font-semibold mb-2">No Record found.</p>
