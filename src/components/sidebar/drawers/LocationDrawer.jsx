@@ -288,7 +288,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       }}
     >
       <div className="pt-12 px-6 flex justify-between items-center border-b">
-        <h2 className="text-lg font-semibold">t</h2>
+        <h2 className="text-lg font-semibold"></h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
       <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 scrollbar-hide flex flex-col space-y-2">
