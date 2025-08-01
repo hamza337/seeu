@@ -111,3 +111,97 @@ h1 {
   scrollbar-width: thin; /* "auto" or "thin" */
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent; /* thumb color track color */
 }
+
+/* Custom DatePicker styles - Override default react-datepicker styles */
+.react-datepicker-wrapper {
+  width: 63% !important;
+  position: relative !important;
+}
+
+.react-datepicker-wrapper .react-datepicker__input-container {
+  position: relative !important;
+  width: 100% !important;
+  display: block !important;
+}
+
+.react-datepicker-wrapper .react-datepicker__input-container input {
+  padding-right: 40px !important;
+  position: relative !important;
+  z-index: 1 !important;
+  box-sizing: border-box !important;
+}
+
+/* Autocomplete clear button styling */
+.autocomplete-clear-button {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: transparent;
+  border: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  color: #9ca3af;
+  font-size: 14px;
+  font-weight: 400;
+}
+
+.autocomplete-clear-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: #6b7280;
+}
+
+.autocomplete-clear-button:focus {
+  outline: none;
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.react-datepicker-wrapper .react-datepicker__close-icon {
+  position: absolute !important;
+  right: 12px !important;
+  top: 50% !important;
+  transform: translateY(-50%) !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  padding: 0 !important;
+  border-radius: 50% !important;
+  z-index: 10 !important;
+  width: 20px !important;
+  height: 20px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition: all 0.15s ease !important;
+  margin: 0 !important;
+  box-shadow: none !important;
+}
+
+.react-datepicker-wrapper .react-datepicker__close-icon:hover {
+  background: rgba(0, 0, 0, 0.05) !important;
+  transform: translateY(-50%) !important;
+}
+
+.react-datepicker-wrapper .react-datepicker__close-icon::after {
+  content: '×' !important;
+  font-size: 16px !important;
+  color: #9ca3af !important;
+  font-weight: 400 !important;
+  line-height: 1 !important;
+  font-family: system-ui, -apple-system, sans-serif !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.react-datepicker-wrapper .react-datepicker__close-icon:hover::after {
+  color: #6b7280 !important;
+}

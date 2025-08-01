@@ -201,7 +201,7 @@ const HomeContent = () => {
   const [activeView, setActiveView] = useState('mapView'); // Add state for active view
   const [showLoginModal, setShowLoginModal] = useState(false); // Add state for login modal
   const [hoveredEvent, setHoveredEvent] = useState(null); // State for the hovered event
-  const [tooltipPosition, setTooltipPosition] = useState({ x: -1000, y: -1000 }); // Initialize tooltip off-screen
+  const [tooltipPosition, setTooltipPosition] = useState({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 }); // Initialize tooltip off-screen
   const tooltipRef = useRef(null); // Ref for the tooltip div
   const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
   const [showTooltip, setShowTooltip] = useState(false);
@@ -306,7 +306,7 @@ const HomeContent = () => {
     // Add a click listener to the map to hide tooltip when clicking elsewhere
     map.addListener('click', () => {
        setHoveredEvent(null);
-       setTooltipPosition({ x: -1000, y: -1000 }); // Hide tooltip immediately on map click
+       setTooltipPosition({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 }); // Hide tooltip immediately on map click
     });
 
   }, []);
@@ -421,14 +421,129 @@ const HomeContent = () => {
              setHoveredEvent(item);
              setHoveredEventId(item.id); // Only set hoveredEventId
 
-             // Position tooltip relative to the map container
-             if (mapRef.current && event.domEvent) {
+             // Position tooltip relative to the marker position (not mouse position)
+             if (mapRef.current) {
                  const mapDiv = mapRef.current.getDiv();
                  const mapRect = mapDiv.getBoundingClientRect();
-                 const tooltipX = event.domEvent.clientX - mapRect.left;
-                 const tooltipY = event.domEvent.clientY - mapRect.top;
-                 setTooltipPosition({ x: tooltipX, y: tooltipY });
-                 console.log('Calculated tooltip position:', { x: tooltipX, y: tooltipY });
+                 const projection = mapRef.current.getProjection();
+                 
+                 if (projection) {
+                     // Get marker position in world coordinates
+                     const markerPosition = marker.getPosition();
+                     const pixelPosition = projection.fromLatLngToPoint(markerPosition);
+                     const scale = Math.pow(2, mapRef.current.getZoom());
+                     
+                     // Convert to screen coordinates
+                     const markerX = pixelPosition.x * scale;
+                     const markerY = pixelPosition.y * scale;
+                     
+                     // Get map center in screen coordinates
+                     const mapCenter = mapRef.current.getCenter();
+                     const mapCenterPixel = projection.fromLatLngToPoint(mapCenter);
+                     const mapCenterX = mapCenterPixel.x * scale;
+                     const mapCenterY = mapCenterPixel.y * scale;
+                     
+                     // Calculate relative position from map center
+                     const relativeX = markerX - mapCenterX;
+                     const relativeY = markerY - mapCenterY;
+                     
+                     // Convert to screen coordinates relative to map container
+                     const mapWidth = mapDiv.clientWidth;
+                     const mapHeight = mapDiv.clientHeight;
+                     const screenX = (mapWidth / 2) + relativeX;
+                     const screenY = (mapHeight / 2) + relativeY;
+                     
+                     // Tooltip dimensions (approximate)
+                     const tooltipWidth = 200;
+                     const tooltipHeight = 280;
+                     
+                     // Smart tooltip positioning - calculate available space in all directions
+                     const offset = 15;
+                     const padding = 10;
+                     
+                     // Calculate available space in each direction
+                     const spaceRight = mapWidth - screenX - padding;
+                     const spaceLeft = screenX - padding;
+                     const spaceTop = screenY - padding;
+                     const spaceBottom = mapHeight - screenY - padding;
+                     
+                     // Determine the best position based on available space
+                     let tooltipX, tooltipY, anchorPosition;
+                     
+                     // Priority order: right, left, bottom, top (most professional looking)
+                     if (spaceRight >= tooltipWidth + offset) {
+                         // Position to the right
+                         tooltipX = screenX + offset;
+                         tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
+                         
+                         // Determine arrow vertical position
+                         if (tooltipY <= padding) {
+                             anchorPosition = 'left-top';
+                         } else if (tooltipY + tooltipHeight >= mapHeight - padding) {
+                             anchorPosition = 'left-bottom';
+                         } else {
+                             anchorPosition = 'left-center';
+                         }
+                     } else if (spaceLeft >= tooltipWidth + offset) {
+                         // Position to the left
+                         tooltipX = screenX - tooltipWidth - offset;
+                         tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
+                         
+                         // Determine arrow vertical position
+                         if (tooltipY <= padding) {
+                             anchorPosition = 'right-top';
+                         } else if (tooltipY + tooltipHeight >= mapHeight - padding) {
+                             anchorPosition = 'right-bottom';
+                         } else {
+                             anchorPosition = 'right-center';
+                         }
+                     } else if (spaceBottom >= tooltipHeight + offset) {
+                         // Position below
+                         tooltipY = screenY + offset;
+                         tooltipX = Math.max(padding, Math.min(screenX - tooltipWidth / 2, mapWidth - tooltipWidth - padding));
+                         
+                         // Determine arrow horizontal position
+                         if (tooltipX <= padding) {
+                             anchorPosition = 'top-left';
+                         } else if (tooltipX + tooltipWidth >= mapWidth - padding) {
+                             anchorPosition = 'top-right';
+                         } else {
+                             anchorPosition = 'top-center';
+                         }
+                     } else if (spaceTop >= tooltipHeight + offset) {
+                         // Position above
+                         tooltipY = screenY - tooltipHeight - offset;
+                         tooltipX = Math.max(padding, Math.min(screenX - tooltipWidth / 2, mapWidth - tooltipWidth - padding));
+                         
+                         // Determine arrow horizontal position
+                         if (tooltipX <= padding) {
+                             anchorPosition = 'bottom-left';
+                         } else if (tooltipX + tooltipWidth >= mapWidth - padding) {
+                             anchorPosition = 'bottom-right';
+                         } else {
+                             anchorPosition = 'bottom-center';
+                         }
+                     } else {
+                         // Fallback: position where there's most space (right side preferred)
+                         if (spaceRight >= spaceLeft) {
+                             tooltipX = screenX + offset;
+                             anchorPosition = 'left-center';
+                         } else {
+                             tooltipX = screenX - tooltipWidth - offset;
+                             anchorPosition = 'right-center';
+                         }
+                         tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
+                     }
+                     
+                     setTooltipPosition({ 
+                         x: tooltipX, 
+                         y: tooltipY, 
+                         anchor: anchorPosition,
+                         markerX: screenX,
+                         markerY: screenY
+                     });
+                     console.log('Calculated tooltip position:', { x: tooltipX, y: tooltipY, anchor: anchorPosition });
+                 }
              }
           });
 
@@ -439,7 +554,7 @@ const HomeContent = () => {
              mouseOutTimerRef.current = setTimeout(() => {
                  setHoveredEvent(null);
                  setHoveredEventId(null); // Only clear hoveredEventId
-                 setTooltipPosition({ x: -1000, y: -1000 }); // Hide tooltip by moving it off-screen
+                 setTooltipPosition({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 }); // Hide tooltip by moving it off-screen
              }, 100); // Use a slightly longer delay here
           });
 
@@ -549,7 +664,7 @@ const HomeContent = () => {
                 mouseOutTimerRef.current = setTimeout(() => {
                     setHoveredEvent(null);
                     setHoveredEventId(null); // Also clear in context
-                    setTooltipPosition({ x: -1000, y: -1000 });
+                    setTooltipPosition({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 });
                }, 50); // Short delay
            };
 
@@ -714,16 +829,117 @@ const HomeContent = () => {
             className={`event-tooltip absolute z-20 bg-gray-200 text-gray-800 p-3 rounded shadow-lg transition-opacity duration-400
               ${hoveredEvent ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             style={{
-              top: tooltipPosition.y - 280,
-              left: tooltipPosition.x + 15,
+              top: tooltipPosition.y,
+              left: tooltipPosition.x,
               minWidth: '100px',
               maxWidth: '200px',
             }}
           >
+            {/* Tooltip Arrow */}
+            <div
+              className="absolute w-0 h-0"
+              style={{
+                filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1))',
+                
+                // Left side arrows (tooltip is to the right of marker)
+                ...(tooltipPosition.anchor === 'left-center' && {
+                  left: '-8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderRight: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'left-top' && {
+                  left: '-8px',
+                  top: '20px',
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderRight: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'left-bottom' && {
+                  left: '-8px',
+                  bottom: '20px',
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderRight: '8px solid #e5e7eb',
+                }),
+                
+                // Right side arrows (tooltip is to the left of marker)
+                ...(tooltipPosition.anchor === 'right-center' && {
+                  right: '-8px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderLeft: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'right-top' && {
+                  right: '-8px',
+                  top: '20px',
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderLeft: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'right-bottom' && {
+                  right: '-8px',
+                  bottom: '20px',
+                  borderTop: '8px solid transparent',
+                  borderBottom: '8px solid transparent',
+                  borderLeft: '8px solid #e5e7eb',
+                }),
+                
+                // Top arrows (tooltip is below marker)
+                ...(tooltipPosition.anchor === 'top-center' && {
+                  top: '-8px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  borderLeft: '8px solid transparent',
+                  borderRight: '8px solid transparent',
+                  borderBottom: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'top-left' && {
+                  top: '-8px',
+                  left: '20px',
+                  borderLeft: '8px solid transparent',
+                  borderRight: '8px solid transparent',
+                  borderBottom: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'top-right' && {
+                  top: '-8px',
+                  right: '20px',
+                  borderLeft: '8px solid transparent',
+                  borderRight: '8px solid transparent',
+                  borderBottom: '8px solid #e5e7eb',
+                }),
+                
+                // Bottom arrows (tooltip is above marker)
+                ...(tooltipPosition.anchor === 'bottom-center' && {
+                  bottom: '-8px',
+                  left: '50%',
+                  transform: 'translateX(-50%)',
+                  borderLeft: '8px solid transparent',
+                  borderRight: '8px solid transparent',
+                  borderTop: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'bottom-left' && {
+                  bottom: '-8px',
+                  left: '20px',
+                  borderLeft: '8px solid transparent',
+                  borderRight: '8px solid transparent',
+                  borderTop: '8px solid #e5e7eb',
+                }),
+                ...(tooltipPosition.anchor === 'bottom-right' && {
+                  bottom: '-8px',
+                  right: '20px',
+                  borderLeft: '8px solid transparent',
+                  borderRight: '8px solid transparent',
+                  borderTop: '8px solid #e5e7eb',
+                }),
+              }}
+            />
             <h3 className="font-semibold text-base mb-1">{hoveredEvent?.category || 'Unknown Category'}</h3>
             <p className="text-xs mb-1">{hoveredEvent?.address || 'No address'}</p>
-            <p className="text-xs text-red-600 mb-2">{formatCreationDate(hoveredEvent?.createdAt)}</p>
-
             {/* Media Info Row */}
             <div className="grid grid-cols-2 gap-2 mb-2" style={{ width: 180 }}>
               <div
@@ -813,6 +1029,17 @@ const HomeContent = () => {
 
             {/* Listing ID */}
             <p className="text-xs">Listing ID: {hoveredEvent?.eventCode || 'N/A'}</p>
+            
+            {/* Posted Date */}
+            <p className="text-xs">
+              Posted {hoveredEvent?.createdAt ? 
+                new Date(hoveredEvent.createdAt).toLocaleDateString('en-US', {
+                  month: '2-digit',
+                  day: '2-digit', 
+                  year: 'numeric'
+                }) : 'N/A'
+              }
+            </p>
           </div>
         </div>
       </div>

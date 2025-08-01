@@ -19,6 +19,7 @@ export const MapProvider = ({ children }) => {
   const [animatedMarkerId, setAnimatedMarkerId] = useState(null);
   const [activeSearchQuery, setActiveSearchQuery] = useState(null);
   const [notifyMePayload, setNotifyMePayload] = useState(null);
+  const [clearAllEntriesFn, setClearAllEntriesFn] = useState(null);
 
   const triggerRefreshEvents = () => {
     setRefreshEvents(prev => prev + 1);
@@ -107,6 +108,8 @@ export const MapProvider = ({ children }) => {
       setActiveSearchQuery,
       notifyMePayload,
       setNotifyMePayload,
+      clearAllEntriesFn,
+      setClearAllEntriesFn,
     }}>
       {children}
     </MapContext.Provider>
@@ -119,4 +122,4 @@ export const useMap = () => {
     throw new Error('useMap must be used within a MapProvider');
   }
   return context;
-}; 
+};

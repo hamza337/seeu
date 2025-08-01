@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Home, Image, Settings, X } from 'lucide-react';
+import { Home, Image, Settings, X, Eye, EyeOff, Download } from 'lucide-react';
 import { NavLink, useLocation } from 'react-router-dom';
 import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
@@ -34,6 +34,10 @@ export default function Topbar() {
   const [otp, setOtp] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
   const [isResendDisabled, setIsResendDisabled] = useState(false);
+  
+  // Password visibility states
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   const { showLoginModal, setShowLoginModal, setIsAuthenticated } = useMap();
   const location = useLocation();
@@ -196,6 +200,8 @@ export default function Topbar() {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const switchModalView = (view) => {
@@ -204,6 +210,8 @@ export default function Topbar() {
     setEmail('');
     setPassword('');
     setConfirmPassword('');
+    setShowPassword(false);
+    setShowConfirmPassword(false);
   };
 
   const handleAvatarSelect = (avatarPath) => {
@@ -211,6 +219,23 @@ export default function Topbar() {
     localStorage.setItem('userAvatar', avatarPath);
     setShowAvatarModal(false);
     setDropdownOpen(false);
+  };
+
+  const handleDownloadAvatar = async (avatarPath, index) => {
+    try {
+      const response = await fetch(avatarPath);
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `avatar-${index + 1}.png`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error) {
+      console.error('Error downloading avatar:', error);
+    }
   };
 
   // Add click-outside handler for dropdown
@@ -239,7 +264,7 @@ export default function Topbar() {
         {/* Brand Logo Overlapping - only on home route */}
         {location.pathname === '/' && (
           <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[120] pointer-events-none">
-            <img src="/brandLogo.png" alt="Poing Logo" className="w-40 object-contain" />
+            <img src="/brandLogoFinal.png" alt="Poing Logo" className="w-40 object-contain" />
           </div>
         )}
         {/* Help Icon */}
@@ -331,33 +356,71 @@ export default function Topbar() {
       {/* Avatar Selection Modal */}
       {showAvatarModal && (
         <div className="fixed inset-0 bg-transparent flex items-center justify-center z-[100]">
-          <div className="bg-white rounded-xl shadow-lg p-4 w-[90%] max-w-md mx-auto relative">
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg text-black font-semibold">Change Avatar</h2>
+          <div className="bg-white rounded-lg shadow-2xl p-3 w-[90%] max-w-sm mx-auto relative">
+            <div className="flex items-center justify-between mb-2">
+              <h2 className="text-base text-black font-semibold">Choose Avatar</h2>
               <button 
                 onClick={() => setShowAvatarModal(false)} 
-                className="text-gray-600 hover:text-black"
+                className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
               >
-                <X size={18} />
+                <X size={16} />
               </button>
             </div>
-            <div className="h-px bg-gray-200 mb-4"></div>
-            <div className="grid grid-cols-3 gap-3">
+            <div className="h-px bg-gray-300 mb-2"></div>
+            
+            <div className="grid grid-cols-3 gap-2">
               {AVATAR_OPTIONS.map((avatar, index) => (
                 <div
                   key={index}
-                  className={`cursor-pointer p-1.5 rounded-lg transition-all duration-200 ${
-                    selectedAvatar === avatar ? 'ring-2 ring-blue-500 bg-blue-50' : 'hover:bg-gray-100'
+                  className={`relative group rounded-lg p-1 transition-all duration-300 ${
+                    selectedAvatar === avatar 
+                      ? 'ring-2 ring-blue-500 bg-blue-50 shadow-md' 
+                      : 'hover:bg-gray-50 hover:shadow-md'
                   }`}
-                  onClick={() => handleAvatarSelect(avatar)}
                 >
-                  <img
-                    src={avatar}
-                    alt={`Avatar ${index + 1}`}
-                    className="w-16 h-16 rounded-full object-cover mx-auto"
-                  />
+                  <div 
+                    className="cursor-pointer"
+                    onClick={() => handleAvatarSelect(avatar)}
+                  >
+                    <img
+                      src={avatar}
+                      alt={`Avatar ${index + 1}`}
+                      className="w-16 h-16 rounded-full object-cover mx-auto transition-transform duration-200 group-hover:scale-105"
+                    />
+                  </div>
+                  
+                  {/* Download button overlay */}
+                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownloadAvatar(avatar, index);
+                      }}
+                      className="bg-white hover:bg-gray-100 text-gray-600 hover:text-blue-600 p-1.5 rounded-full shadow-lg border border-gray-200 transition-all duration-200 hover:scale-110"
+                      title={`Download Avatar ${index + 1}`}
+                    >
+                      <Download size={14} />
+                    </button>
+                  </div>
+                  
+                  {/* Selected indicator */}
+                  {selectedAvatar === avatar && (
+                    <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-1">
+                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                  
+
                 </div>
               ))}
+            </div>
+            
+            <div className="mt-2 pt-2 border-t border-gray-200">
+              <div className="text-center text-xs text-gray-500">
+                💡 Hover to download • {selectedAvatar ? 'Selected!' : 'Choose one'}
+              </div>
             </div>
           </div>
         </div>
@@ -388,14 +451,23 @@ export default function Topbar() {
                     </div>
                     <div>
                       <label className="block text-black text-sm font-medium mb-1">Password</label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                        placeholder="••••••••"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          placeholder="••••••••"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="submit"
@@ -429,25 +501,43 @@ export default function Topbar() {
                     </div>
                     <div>
                       <label className="block text-black text-sm font-medium mb-1">Password</label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                        placeholder="••••••••"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          placeholder="••••••••"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-black text-sm font-medium mb-1">Confirm Password</label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                        placeholder="••••••••"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          placeholder="••••••••"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="submit"
@@ -533,25 +623,43 @@ export default function Topbar() {
                  <form onSubmit={handleResetPassword} className="space-y-4">
                     <div>
                       <label className="block text-black text-sm font-medium mb-1">New Password</label>
-                      <input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                        placeholder="••••••••"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showPassword ? "text" : "password"}
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          placeholder="••••••••"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowPassword(!showPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                        >
+                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <div>
                       <label className="block text-black text-sm font-medium mb-1">Confirm New Password</label>
-                      <input
-                        type="password"
-                        value={confirmPassword}
-                        onChange={(e) => setConfirmPassword(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
-                        placeholder="••••••••"
-                        required
-                      />
+                      <div className="relative">
+                        <input
+                          type={showConfirmPassword ? "text" : "password"}
+                          value={confirmPassword}
+                          onChange={(e) => setConfirmPassword(e.target.value)}
+                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          placeholder="••••••••"
+                          required
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                        >
+                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        </button>
+                      </div>
                     </div>
                     <button
                       type="submit"

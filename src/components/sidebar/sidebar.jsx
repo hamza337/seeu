@@ -1,5 +1,5 @@
 import { Home, Search, List, Info } from 'lucide-react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useState, useRef, useEffect } from 'react';
 import SearchDrawer from './drawers/SearchDrawer';
 import LocationDrawer from './drawers/LocationDrawer';
@@ -10,9 +10,10 @@ import { useModal } from '../../contexts/ModalContext';
 export default function Sidebar() {
   // const [activeDrawer, setActiveDrawer] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState(null);
-  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated, searchResults, notifyMeParams, activeDrawer, setActiveDrawer } = useMap();
+  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated, searchResults, notifyMeParams, activeDrawer, setActiveDrawer, clearAllEntriesFn } = useMap();
   const clearMapFocusTimeoutRef = useRef(null);
   const location = useLocation();
+  const navigate = useNavigate();
   const { setModalEventId } = useModal();
 
   // Set sidebar expanded by default on home page
@@ -21,6 +22,25 @@ export default function Sidebar() {
       setIsSidebarExpanded(true);
     }
   }, [location.pathname, setIsSidebarExpanded]);
+
+  const handleHomeClick = () => {
+    // Navigate to home page if not already there
+    if (location.pathname !== '/') {
+      navigate('/');
+    }
+    
+    // Clear all search entries if clearAllEntriesFn is available
+    if (clearAllEntriesFn) {
+      clearAllEntriesFn();
+    }
+    
+    // Close any open drawer
+    setActiveDrawer(null);
+    setIsSidebarExpanded(true);
+    
+    // Clear map focus
+    setMapFocusLocation(null);
+  };
 
   const toggleDrawer = (drawer) => {
     if (activeDrawer === drawer) {
@@ -56,16 +76,16 @@ export default function Sidebar() {
           ${isSidebarExpanded ? `${expandedWidth} items-start px-4` : `${collapsedWidth} items-center px-0`}
         `}
       >
-        {/* Home Link (no highlight by default) */}
-        <Link 
-          to="/" 
+        {/* Home Button */}
+        <button 
+          onClick={handleHomeClick}
           className={`flex items-center mb-12`}
         >
           <span className={``}>
             <Home className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="Go to Home" />
           </span>
           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">HOME</span>}
-        </Link>
+        </button>
 
         {/* Search Button */}
         <button 

@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from 'react';
-import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star, Video, Trash2 } from 'lucide-react';
+import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star, Video, Trash2, Info } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
@@ -23,6 +23,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [mainMediaIndex, setMainMediaIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [previews, setPreviews] = useState([]);
+  const [showExclusiveTooltip, setShowExclusiveTooltip] = useState(false);
 
   const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -292,7 +293,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
       <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 scrollbar-hide flex flex-col space-y-2">
-        <img src="/brandLogo.png" alt="Poing Logo" className="w-25 object-contain mx-auto mb-4" />
+        <img src="/brandLogoFinal.png" alt="Poing Logo" className="w-25 object-contain mx-auto mb-4" />
 
         <div className="space-y-4">
           {/* Preview Grid */}
@@ -442,7 +443,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           <span className={`text-black ${isExclusive ? 'opacity-50' : ''}`}>Make it Free</span>
         </label>
 
-        <label className="flex items-center gap-2">
+        <label className="flex items-center gap-2 relative">
           <input 
             type="checkbox" 
             checked={isExclusive} 
@@ -456,10 +457,26 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             className={`${isFree ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
           <span className={`text-black ${isFree ? 'opacity-50' : ''}`}>Make it Exclusive</span>
+          <div className="relative">
+            <Info 
+              size={16} 
+              className={`text-gray-400 hover:text-gray-600 cursor-help ${isFree ? 'opacity-50' : ''}`}
+              onMouseEnter={() => setShowExclusiveTooltip(true)}
+              onMouseLeave={() => setShowExclusiveTooltip(false)}
+            />
+            {showExclusiveTooltip && (
+              <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 p-3 bg-gray-800 text-white text-sm rounded-lg shadow-lg z-50">
+                <div className="relative">
+                  By selecting this option you agree to the terms and conditions and surrender the rights of ownership, publishing or selling this media to the new owner. After purchase the media will be erased from your Que. This contract is between you and the buyer.
+                  <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
+                </div>
+              </div>
+            )}
+          </div>
         </label>
 
         <button onClick={handleSubmit} className="w-1/3 py-2 hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto" disabled={loading}>
-          <img src="/brandLogo.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />
+          <img src="/brandLogoFinal.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />
           {loading && (
             <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

@@ -112,7 +112,7 @@ export default function ResultsDrawer({
         {/* Always show Notify Me box after a search */}
         {activeSearchQuery && (
           <div className="text-center text-gray-600 mb-6 p-4 bg-gray-100 rounded-lg">
-            <p className="text-lg font-semibold mb-2">Can't find what you are looking for?</p>
+            <p className="text-lg font-semibold mb-2">We aren’t giving up! We will let you know of any future Poings that matches your search.</p>
             <button
               onClick={handleNotifyMe}
               className="mt-2 w-auto bg-[#0868a8] text-white py-2 px-4 rounded hover:cursor-pointer"
