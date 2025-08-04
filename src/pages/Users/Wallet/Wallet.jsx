@@ -44,7 +44,7 @@ const Wallet = () => {
 
       {/* Withdraw Request Button */}
       <Link
-        to='/settings/wallet/withdraw-request' 
+        to='/wallet/withdraw-request' 
         className="bg-transparent text-black border-2 hover:border-none hover:bg-black hover:text-white rounded-lg w-full py-3 text-center text-base font-semibold mt-6"
       >
         Withdraw Request

@@ -41,8 +41,8 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="settings/language-setting" element={<LanguageSetting />} />
               <Route path="privacy-policy" element={<PrivacyPolicy />} />
               <Route path="user-agreement" element={<UserAgreement />} />
-              <Route path="settings/wallet" element={<Wallet />} />
-              <Route path="settings/wallet/withdraw-request" element={<WithdrawRequest />} />
+              <Route path="/wallet" element={<Wallet />} />
+              <Route path="/wallet/withdraw-request" element={<WithdrawRequest />} />
               <Route path="/contact-us" element={<ContactUs />} />
               <Route path="/my-events" element={<MyEvents />} />
 

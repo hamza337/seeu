@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Home, Image, Settings, X, Eye, EyeOff, Download } from 'lucide-react';
-import { NavLink, useLocation } from 'react-router-dom';
+import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
@@ -18,6 +18,17 @@ const AVATAR_OPTIONS = [
   '/avatar9.png',
 ];
 
+// Language options
+const LANGUAGE_OPTIONS = [
+  { code: 'en', name: 'English', nativeName: 'English' },
+  { code: 'fr', name: 'French', nativeName: 'Français' },
+  { code: 'zh', name: 'Chinese', nativeName: '中文' },
+  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
+  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
+  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
+  { code: 'es', name: 'Spanish', nativeName: 'Español' },
+];
+
 export default function Topbar() {
   const [modal, setModal] = useState(false);
   const [currentModalView, setCurrentModalView] = useState('login');
@@ -30,6 +41,8 @@ export default function Topbar() {
   const [showHelp, setShowHelp] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [selectedAvatar, setSelectedAvatar] = useState('/icons8-male-user-48.png');
+  const [dropdownView, setDropdownView] = useState('main'); // 'main', 'avatar', 'settings', 'language'
+  const [searchLanguage, setSearchLanguage] = useState('');
   const baseUrl = import.meta.env.VITE_API_URL;
   const [otp, setOtp] = useState('');
   const [resendTimer, setResendTimer] = useState(0);
@@ -41,6 +54,7 @@ export default function Topbar() {
 
   const { showLoginModal, setShowLoginModal, setIsAuthenticated } = useMap();
   const location = useLocation();
+  const navigate = useNavigate();
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
@@ -217,9 +231,20 @@ export default function Topbar() {
   const handleAvatarSelect = (avatarPath) => {
     setSelectedAvatar(avatarPath);
     localStorage.setItem('userAvatar', avatarPath);
+    setDropdownView('main');
     setShowAvatarModal(false);
     setDropdownOpen(false);
   };
+
+  const resetDropdown = () => {
+    setDropdownView('main');
+    setSearchLanguage('');
+  };
+
+  const filteredLanguages = LANGUAGE_OPTIONS.filter(lang =>
+    lang.name.toLowerCase().includes(searchLanguage.toLowerCase()) ||
+    lang.nativeName.toLowerCase().includes(searchLanguage.toLowerCase())
+  );
 
   const handleDownloadAvatar = async (avatarPath, index) => {
     try {
@@ -307,45 +332,269 @@ export default function Topbar() {
                 src={selectedAvatar}
                 alt="Profile"
                 className="h-11 w-11 rounded-full object-cover cursor-pointer profile-image"
-                onClick={() => setDropdownOpen(prev => !prev)}
+                onClick={() => {
+                  if (!dropdownOpen) {
+                    resetDropdown();
+                  }
+                  setDropdownOpen(prev => !prev);
+                }}
               />
               {dropdownOpen && (
-                <div
-                  className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 ring-1 ring-black ring-opacity-5 z-50 dropdown-menu"
-                  role="menu"
-                  aria-orientation="vertical"
-                  aria-labelledby="user-menu-button"
-                >
-                  <NavLink
-                    to="/my-events"
-                    className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
-                    role="menuitem"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    My Events
-                  </NavLink>
-                  <button
-                    onClick={() => setShowAvatarModal(true)}
-                    className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
-                    role="menuitem"
-                  >
-                    Change Avatar
-                  </button>
-                  <NavLink
-                    to="/settings"
-                    className="block px-4 py-2 text-sm text-gray-700 w-full text-left hover:bg-gray-100"
-                    role="menuitem"
-                    onClick={() => setDropdownOpen(false)}
-                  >
-                    Settings
-                  </NavLink>
-                  <button
-                    onClick={handleLogout}
-                    className="block px-4 py-2 text-sm text-red-700 w-full text-left hover:bg-gray-100"
-                    role="menuitem"
-                  >
-                    Logout
-                  </button>
+                <div className="absolute right-0 mt-2 w-80 bg-white text-gray-900 rounded-lg shadow-2xl z-50 border border-gray-200 dropdown-menu">
+                  {/* Main Menu */}
+                  {dropdownView === 'main' && (
+                    <div className="py-2">
+                      <div className="px-4 py-3 border-b border-gray-200">
+                        <div className="flex items-center space-x-3">
+                          <img
+                            src={selectedAvatar}
+                            alt="Profile"
+                            className="h-10 w-10 rounded-full object-cover"
+                          />
+                          <div>
+                            <div className="font-medium text-gray-900">User Name</div>
+                            <div className="text-sm text-gray-500">See your profile</div>
+                          </div>
+                        </div>
+                      </div>
+                      
+                      <div className="py-2">
+                        <NavLink
+                          to="/my-events"
+                          className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                          onClick={() => setDropdownOpen(false)}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span>My Events</span>
+                          </div>
+                        </NavLink>
+                        
+                        <button
+                          className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                          onClick={() => setDropdownView('avatar')}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span>Change Avatar</span>
+                          </div>
+                          <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        
+                        <button
+                          className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                          onClick={() => setDropdownView('settings')}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span>Settings</span>
+                          </div>
+                          <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        
+                        <div className="border-t border-gray-200 mt-2 pt-2">
+                          <button
+                            onClick={handleLogout}
+                            className="flex items-center w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                          >
+                            <div className="flex items-center space-x-3">
+                              <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <span>Logout</span>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Avatar Selection View */}
+                  {dropdownView === 'avatar' && (
+                    <div className="py-2">
+                      <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                        <button
+                          onClick={() => setDropdownView('main')}
+                          className="mr-3 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        <h3 className="text-lg font-medium">Change Avatar</h3>
+                      </div>
+                      
+                      <div className="p-4">
+                         <div className="grid grid-cols-3 gap-4">
+                           {AVATAR_OPTIONS.map((avatar, index) => (
+                             <div key={index} className="relative group">
+                               <div className="relative">
+                                 <button
+                                   onClick={() => handleAvatarSelect(avatar)}
+                                   className="relative w-full block"
+                                 >
+                                   <img
+                                     src={avatar}
+                                     alt={`Avatar ${index + 1}`}
+                                     className={`w-16 h-16 rounded-full object-cover transition-all duration-200 ${
+                                       selectedAvatar === avatar 
+                                         ? 'ring-4 ring-blue-500 ring-offset-2 ring-offset-white' 
+                                         : 'group-hover:ring-2 group-hover:ring-blue-400 group-hover:ring-offset-2 group-hover:ring-offset-white'
+                                     }`}
+                                   />
+                                   {selectedAvatar === avatar && (
+                                     <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1.5 shadow-lg border-2 border-white">
+                                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                       </svg>
+                                     </div>
+                                   )}
+                                 </button>
+                                 
+                                 {/* Download button */}
+                                 <button
+                                   onClick={(e) => {
+                                     e.stopPropagation();
+                                     handleDownloadAvatar(avatar, index);
+                                   }}
+                                   className="absolute -bottom-2 -right-2 bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg border-2 border-white transition-all duration-200 opacity-0 group-hover:opacity-100 transform scale-90 group-hover:scale-100"
+                                   title="Download Avatar"
+                                 >
+                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+                                     <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                                   </svg>
+                                 </button>
+                               </div>
+                             </div>
+                           ))}
+                         </div>
+                       </div>
+                    </div>
+                  )}
+
+                  {/* Settings View */}
+                  {dropdownView === 'settings' && (
+                    <div className="py-2">
+                      <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                        <button
+                          onClick={() => setDropdownView('main')}
+                          className="mr-3 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        <h3 className="text-lg font-medium">Settings</h3>
+                      </div>
+                      
+                      <div className="py-2">
+                        <button
+                          className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                          onClick={() => setDropdownView('language')}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span>Language</span>
+                          </div>
+                          <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        
+                        <button
+                          className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
+                          onClick={() => {
+                            navigate('/wallet');
+                            setDropdownOpen(false);
+                          }}
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                                <path d="M4 4a2 2 0 00-2 2v1h16V6a2 2 0 00-2-2H4z" />
+                                <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <span>Wallet</span>
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Language Selection View */}
+                  {dropdownView === 'language' && (
+                    <div className="py-2">
+                      <div className="flex items-center px-4 py-3 border-b border-gray-200">
+                        <button
+                          onClick={() => setDropdownView('settings')}
+                          className="mr-3 p-1 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+                          </svg>
+                        </button>
+                        <h3 className="text-lg font-medium">Language</h3>
+                      </div>
+                      
+                      <div className="p-4">
+                        <div className="relative mb-4">
+                          <input
+                            type="text"
+                            placeholder="Search languages"
+                            value={searchLanguage}
+                            onChange={(e) => setSearchLanguage(e.target.value)}
+                            className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500"
+                          />
+                          <svg className="absolute right-3 top-2.5 w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                          </svg>
+                        </div>
+                        
+                        <div className="max-h-64 overflow-y-auto">
+                          {filteredLanguages.map((language) => (
+                            <button
+                              key={language.code}
+                              className="flex items-center justify-between w-full px-3 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors mb-1"
+                              onClick={() => {/* Handle language selection */}}
+                            >
+                              <div>
+                                <div className="font-medium">{language.name}</div>
+                                <div className="text-sm text-gray-500">{language.nativeName}</div>
+                              </div>
+                              {language.code === 'en' && (
+                                <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -353,78 +602,7 @@ export default function Topbar() {
         </div>
       </div>
 
-      {/* Avatar Selection Modal */}
-      {showAvatarModal && (
-        <div className="fixed inset-0 bg-transparent flex items-center justify-center z-[100]">
-          <div className="bg-white rounded-lg shadow-2xl p-3 w-[90%] max-w-sm mx-auto relative">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-base text-black font-semibold">Choose Avatar</h2>
-              <button 
-                onClick={() => setShowAvatarModal(false)} 
-                className="text-gray-500 hover:text-gray-700 transition-colors duration-200"
-              >
-                <X size={16} />
-              </button>
-            </div>
-            <div className="h-px bg-gray-300 mb-2"></div>
-            
-            <div className="grid grid-cols-3 gap-2">
-              {AVATAR_OPTIONS.map((avatar, index) => (
-                <div
-                  key={index}
-                  className={`relative group rounded-lg p-1 transition-all duration-300 ${
-                    selectedAvatar === avatar 
-                      ? 'ring-2 ring-blue-500 bg-blue-50 shadow-md' 
-                      : 'hover:bg-gray-50 hover:shadow-md'
-                  }`}
-                >
-                  <div 
-                    className="cursor-pointer"
-                    onClick={() => handleAvatarSelect(avatar)}
-                  >
-                    <img
-                      src={avatar}
-                      alt={`Avatar ${index + 1}`}
-                      className="w-16 h-16 rounded-full object-cover mx-auto transition-transform duration-200 group-hover:scale-105"
-                    />
-                  </div>
-                  
-                  {/* Download button overlay */}
-                  <div className="absolute top-1 right-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDownloadAvatar(avatar, index);
-                      }}
-                      className="bg-white hover:bg-gray-100 text-gray-600 hover:text-blue-600 p-1.5 rounded-full shadow-lg border border-gray-200 transition-all duration-200 hover:scale-110"
-                      title={`Download Avatar ${index + 1}`}
-                    >
-                      <Download size={14} />
-                    </button>
-                  </div>
-                  
-                  {/* Selected indicator */}
-                  {selectedAvatar === avatar && (
-                    <div className="absolute -top-1 -right-1 bg-blue-500 text-white rounded-full p-1">
-                      <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                      </svg>
-                    </div>
-                  )}
-                  
 
-                </div>
-              ))}
-            </div>
-            
-            <div className="mt-2 pt-2 border-t border-gray-200">
-              <div className="text-center text-xs text-gray-500">
-                💡 Hover to download • {selectedAvatar ? 'Selected!' : 'Choose one'}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Modal */}
       {showLoginModal && (

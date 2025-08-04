@@ -79,7 +79,7 @@ export default function Sidebar() {
         {/* Home Button */}
         <button 
           onClick={handleHomeClick}
-          className={`flex items-center mb-12`}
+          className={`flex items-center mb-36`}
         >
           <span className={``}>
             <Home className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="Go to Home" />
@@ -103,7 +103,7 @@ export default function Sidebar() {
         <button 
           onClick={() => toggleDrawer('location')} 
           title="Post an Event" 
-          className={`flex items-center cursor-pointer`}
+          className={`flex items-center mb-36 cursor-pointer`}
         >
           <span className={activeDrawer === 'location' ? iconHighlight : ''}>
             <img src="/Ppoing.png" alt="Poing App Icon" className={`w-10`} />
@@ -114,7 +114,7 @@ export default function Sidebar() {
         {/* List Button (no navigation) */}
         <button
           type="button"
-          className={`flex items-center mt-36 cursor-pointer`}
+          className={`flex items-center cursor-pointer`}
           onClick={() => {
             if (activeDrawer === 'results') {
               setActiveDrawer(null);
