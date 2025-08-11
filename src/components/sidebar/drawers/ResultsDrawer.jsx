@@ -64,7 +64,7 @@ export default function ResultsDrawer({
   if (!results) {
     return (
       <div className="fixed top-0 pt-8 left-16 h-screen z-[100] bg-white shadow-lg rounded-xl flex items-center justify-center" style={{ width: `${drawerWidthPx || 415}px` }}>
-        <div className="absolute top-0 right-0 p-4">
+        <div className="absolute top-8 right-0 p-4">
           <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
         </div>
         <div className="text-center w-full">

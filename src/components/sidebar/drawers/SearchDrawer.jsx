@@ -16,7 +16,6 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   const [location, setLocation] = useState({ lat: null, lng: null, address: '' });
   const [dateRangeError, setDateRangeError] = useState('');
   const [categoryError, setCategoryError] = useState('');
-  const [locationError, setLocationError] = useState('');
   const autocompleteRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_URL;
   const drawerRef = useRef(null);
@@ -39,14 +38,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     setActiveDrawer,
     setActiveSearchQuery,
     setNotifyMePayload,
-    focusMapFn,
-    setClearAllEntriesFn,
   } = useMap();
 
   // Sidebar widths in px (match layout/sidebar)
   const collapsedSidebarWidthPx = 56;
   const expandedSidebarWidthPx = 256;
-  const drawerWidthPx = 480; // Increased from 415 to accommodate "Lost & Found" on single line
+  const drawerWidthPx = 415; // w-96
 
   // Calculate left position based on sidebar state
   const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
@@ -56,76 +53,8 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       console.log('SearchDrawer: Clearing state due to isOpen becoming false.');
       setSelectedCategories([]);
       setNotifyMeParams(null);
-      // Clear all error states when drawer closes
-      setDateRangeError('');
-      setCategoryError('');
-      setLocationError('');
     }
   }, [isOpen, setSelectedCategories, setNotifyMeParams]);
-
-  // Function to get user's current location and reset map
-  const resetToUserLocation = () => {
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const userLocation = {
-          lat: position.coords.latitude,
-          lng: position.coords.longitude
-        };
-        
-        // Clear the location field
-        setLocation({ lat: null, lng: null, address: '' });
-        
-        // Clear the autocomplete input
-        if (autocompleteRef.current) {
-          const input = autocompleteRef.current.input;
-          if (input) {
-            input.value = '';
-          }
-        }
-        
-        // Clear search location marker
-        setSearchLocation(null);
-        
-        // Focus map on user location
-        if (focusMapFn) {
-          focusMapFn(userLocation.lat, userLocation.lng);
-        }
-      },
-      (error) => {
-        console.error('Error getting user location:', error);
-        // Fallback to clearing without location reset
-        setLocation({ lat: null, lng: null, address: '' });
-        if (autocompleteRef.current) {
-          const input = autocompleteRef.current.input;
-          if (input) {
-            input.value = '';
-          }
-        }
-        setSearchLocation(null);
-      }
-    );
-  };
-
-  // Function to clear all search entries and reset to user location
-  const clearAllEntries = () => {
-    // Clear categories
-    setSelectedCategories([]);
-    
-    // Clear dates
-    setStartDate(null);
-    setEndDate(null);
-    
-    // Clear errors
-    setDateRangeError('');
-    setCategoryError('');
-    setLocationError('');
-    
-    // Clear notify me params
-    setNotifyMeParams(null);
-    
-    // Reset to user location
-    resetToUserLocation();
-  };
 
   useEffect(() => {
     if (isOpen) {
@@ -145,13 +74,9 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
           console.warn('SearchDrawer: Autocomplete reference not found.');
         }
       });
-      
-      // Register clearAllEntries function
-      setClearAllEntriesFn(() => clearAllEntries);
     } else {
       console.log('SearchDrawer: Clearing setSearchAddressFn in context.');
       setSetSearchAddressFn(null);
-      setClearAllEntriesFn(null);
     }
     // Cleanup function
     return () => {
@@ -177,9 +102,8 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
               return prevFn; // Keep the function if it's not ours
           }
       });
-      setClearAllEntriesFn(null);
     };
-  }, [isOpen, setSetSearchAddressFn, setLocation, setClearAllEntriesFn, clearAllEntries]);
+  }, [isOpen, setSetSearchAddressFn, setLocation]);
 
   const handleDropdownToggle = () => setIsDropdownOpen(!isDropdownOpen);
 
@@ -193,46 +117,32 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-14 h-14" />, textClass: '' },
   ];
 
-  // Handle place selection from autocomplete dropdown (immediate, no debounce)
-  const handlePlaceChanged = () => {
+  const debouncedPlaceChanged = debounce(() => {
     if (autocompleteRef.current) {
       const place = autocompleteRef.current.getPlace();
-      console.log('Place changed:', place);
-      
       if (place.geometry) {
         const lat = place.geometry.location.lat();
         const lng = place.geometry.location.lng();
-        const address = place.formatted_address || place.name || '';
-        console.log('Autocomplete selected location:', { lat, lng, address });
+        console.log('Autocomplete selected location:', { lat, lng });
         setSearchLocation({ lat, lng });
-        setLocation({ lat, lng, address });
-      } else if (place.name) {
-        // Partial match or text input without geometry
-        setLocation(prev => ({ ...prev, address: place.name }));
+        setLocation(prev => ({ ...prev, lat, lng, address: place.formatted_address }));
+      } else if (place.hasOwnProperty('name')) {
+        setLocation(prev => ({ ...prev, lat: null, lng: null, address: place.name }));
+        setSearchLocation(null);
+      } else {
+        setLocation({ lat: null, lng: null, address: autocompleteRef.current.getPlace().name || '' });
         setSearchLocation(null);
       }
+    } else {
+      setLocation({ lat: null, lng: null, address: '' });
+      setSearchLocation(null);
     }
-  };
-
-  // Debounced function for manual typing (not for place selection)
-  const debouncedAddressUpdate = debounce((address) => {
-    // Only update if the user is manually typing and hasn't selected a place
-    if (autocompleteRef.current) {
-      const place = autocompleteRef.current.getPlace();
-      // If no place is selected or place doesn't have geometry, clear coordinates
-      if (!place || !place.geometry) {
-        setLocation(prev => ({ ...prev, lat: null, lng: null }));
-        setSearchLocation(null);
-      }
-    }
-  }, 500);
+  }, 1500);
 
   const handleAddressInputChange = (e) => {
     const address = e.target.value;
     setLocation(prev => ({ ...prev, address }));
-    
-    // Only debounce if user is manually typing (not selecting from dropdown)
-    debouncedAddressUpdate(address);
+    debouncedPlaceChanged();
   };
 
   // Add this new function to handle marker drag updates
@@ -242,29 +152,21 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   };
 
   useEffect(() => {
-    return () => { 
-      debouncedAddressUpdate.cancel(); 
-    };
-  }, [debouncedAddressUpdate]);
+    return () => { debouncedPlaceChanged.cancel(); };
+  }, [debouncedPlaceChanged]);
+
+  const handlePlaceChanged = () => {
+    debouncedPlaceChanged();
+  };
 
   const handleSearch = async () => {
-    // Clear previous errors
-    setCategoryError('');
-    setLocationError('');
-    
-    // Validate categories
-    if (selectedCategories.length === 0) {
-      setCategoryError('Select at least one category');
-      return;
-    }
-    
-    // Validate location
-    if (!location.lat || !location.lng) {
-      setLocationError('Location must be selected');
+    if (selectedCategories.length === 0 || !location.lat || !location.lng) {
+      console.log('Please select at least one category and a location');
       return;
     }
 
     setDateRangeError('');
+    setCategoryError('');
     // Keep notifyMeParams and searchResults for now, clear them after fetching
 
     try {
@@ -317,6 +219,20 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       if (error.response && error.response.status === 404) {
         console.log('Search received 404. Displaying No Record found and Notify Me option.');
         setSearchResults({ status: 404 });
+        // Set the active search query for the results drawer even when 404 occurs
+        setActiveSearchQuery({
+          categories: selectedCategories,
+          address: location.address,
+          lat: location.lat,
+          lng: location.lng,
+          dateFrom: startDate,
+          dateTo: endDate,
+        });
+        setNotifyMePayload({
+          categories: selectedCategories,
+          lat: location.lat,
+          lng: location.lng,
+        });
         setActiveDrawer('results');
       } else {
         console.error('An unexpected error occurred during search:', error);
@@ -413,31 +329,19 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         </div>
         {/* Where Field */}
         {isLoaded && (
-          <div className="relative mb-4">
-            <Autocomplete
-              onLoad={ref => (autocompleteRef.current = ref)}
-              onPlaceChanged={handlePlaceChanged}
-            >
-              <input
-                type="text"
-                placeholder="Where"
-                value={location.address}
-                onChange={handleAddressInputChange}
-                className="w-full p-2 pr-10 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
-              />
-            </Autocomplete>
-            {location.address && (
-               <button
-                 onClick={resetToUserLocation}
-                 className="autocomplete-clear-button"
-                 title="Clear location and return to your location"
-               >
-                 <X size={14} />
-               </button>
-             )}
-          </div>
+          <Autocomplete
+            onLoad={ref => (autocompleteRef.current = ref)}
+            onPlaceChanged={handlePlaceChanged}
+          >
+            <input
+              type="text"
+              placeholder="Where"
+              value={location.address}
+              onChange={handleAddressInputChange}
+              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-4"
+            />
+          </Autocomplete>
         )}
-        {locationError && <p className="text-red-500 text-sm mt-1 mb-4">{locationError}</p>}
         {/* When Field */}
         <div className="relative mb-4">
           <DatePicker
@@ -465,7 +369,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
             endDate={endDate}
             selectsRange
             placeholderText="Select a date range (max 7 days)"
-            className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-sm"
+            className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-sm"
             dateFormat="MMM d, yyyy"
             isClearable
             showPopperArrow={false}
