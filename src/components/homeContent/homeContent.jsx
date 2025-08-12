@@ -393,7 +393,8 @@ const HomeContent = () => {
             'Pet': '/petM.svg',
             'Crime': '/crimeM.svg',
             'Other': '/othersM.svg',
-            'People': '/peopleM.svg'
+            'People': '/peopleM.svg',
+            'LostFound': '/lostM.svg'
           };
           iconUrl = staticIcons[item.category] || '/default.svg';
 

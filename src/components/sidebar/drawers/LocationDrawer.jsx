@@ -45,7 +45,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const categoryPlaceholders = {
     'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
     'Pet': "Hi. I just found this sweet dog on Tuesday morning at the grand park. the tag is very blurry . come and get it.",
-    'Lost & Found': "Hi. I found these glasses on a seat in the stadium last night after the concert. attached are some photos, if it's your reach out with description and you can receive them from me. Sorry for the small charge to cover the time involved",
+    'LostFound': "Hi. I found these glasses on a seat in the stadium last night after the concert. attached are some photos, if it's your reach out with description and you can receive them from me. Sorry for the small charge to cover the time involved",
     'Crime': "Hi, My security camera captured this bike theft in front of the movie theater, I don't know who's bike it is but here is a video of the guy who cut the lock.",
     'People': "Hi, we started chatting last week at the event and made plans to meet but I never took your number, hopefully you recognize us in the photo and reach out.",
     'Other': "Hi, I walked down the street last night and witnessed this fireball falling out of the sky."
@@ -54,7 +54,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const recommendedPrices = {
     'Accident': 10,
     'Pet': 20,
-    'Lost & Found': 30,
+    'LostFound': 30,
     'Crime': 40,
     'People': 50,
     'Other': 60,
@@ -379,7 +379,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           <label className="block text-gray-800 font-semibold mb-2">Select Category</label>
           <div className="grid grid-cols-3 gap-4">
             {categoryOptions.map((item) => {
-              const isSelected = selectedEventType === item.label;
+              const isSelected = selectedEventType === item.label.replace(' & ','');
               return (
                 <div
                   key={item.label}
@@ -402,7 +402,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar min-h-[120px]"
+          className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar min-h-[140px]"
           rows={4}
         />
 

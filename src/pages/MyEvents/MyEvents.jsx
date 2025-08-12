@@ -205,15 +205,15 @@ const MyEvents = () => {
   };
 
   if (loading) {
-    return <div className="text-black p-4">Loading purchased events...</div>;
+    return <div className="text-black p-16">Loading purchased events...</div>;
   }
 
   if (error) {
-    return <div className="text-red-500 p-4">Error: {error}</div>;
+    return <div className="text-red-500 p-16">Error: {error}</div>;
   }
 
   if (events.length === 0) {
-    return <div className="text-gray-600 p-4">You have not purchased any events yet.</div>;
+    return <div className="text-gray-600 p-16">You have not purchased any events yet.</div>;
   }
 
   return (
