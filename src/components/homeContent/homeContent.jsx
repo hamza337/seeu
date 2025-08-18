@@ -213,7 +213,7 @@ const HomeContent = () => {
     libraries
   });
 
-  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents, hoveredEventId, setHoveredEventId } = useMap();
+  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents, hoveredEventId, setHoveredEventId, setGetUserLocationFn } = useMap();
   const navigate = useNavigate(); // Initialize navigate hook
 
   console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation, 'searchLocation:', searchLocation, 'refreshEvents:', refreshEvents);
@@ -270,12 +270,44 @@ const HomeContent = () => {
     }
   }, [isLoaded]); // Depend on isLoaded
 
+  // Define the function to get user's current location and focus map on it
+  const getUserLocationAndFocus = useCallback(() => {
+    if (mapRef.current && isLoaded) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const userLocation = {
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          };
+          console.log('Got user location, focusing map on:', userLocation);
+          mapRef.current.panTo(userLocation);
+          mapRef.current.setZoom(15); // Set appropriate zoom level
+          setCenter(userLocation); // Update the center state as well
+        },
+        (error) => {
+          console.error('Error getting user location:', error);
+          // Fallback to default center if geolocation fails
+          mapRef.current.panTo(defaultCenter);
+          mapRef.current.setZoom(13);
+          setCenter(defaultCenter);
+        }
+      );
+    }
+  }, [isLoaded]); // Depend on isLoaded
+
   // Set the focusMapOnLocation function in context when it's available
   useEffect(() => {
     if (focusMapOnLocation) {
       setFocusMapFn(() => focusMapOnLocation); // Set the function in context
     }
   }, [focusMapOnLocation, setFocusMapFn]); // Depend on the function and its setter
+
+  // Set the getUserLocationAndFocus function in context when it's available
+  useEffect(() => {
+    if (getUserLocationAndFocus) {
+      setGetUserLocationFn(() => getUserLocationAndFocus); // Set the function in context
+    }
+  }, [getUserLocationAndFocus, setGetUserLocationFn]); // Depend on the function and its setter
 
   const fetchEvents = async (bounds) => {
     try {
@@ -568,6 +600,8 @@ const HomeContent = () => {
           const category = item.label;
           if (category === 'Accident') {
             iconUrl = '/accident3.svg';
+          } else if (category === 'LostFound') {
+            iconUrl = `/lostandfound3.svg`
           } else {
             const lowerCaseCategory = category.toLowerCase().replace(/[^a-z0-9]/g, '');
             iconUrl = `/${lowerCaseCategory}3.svg`;
@@ -577,7 +611,7 @@ const HomeContent = () => {
               position,
               icon: {
                   url: iconUrl,
-                  scaledSize: new window.google.maps.Size(50, 50),
+                  scaledSize: new window.google.maps.Size(80, 80),
                   anchor: new window.google.maps.Point(25, 50)
               },
               title: `Someone is searching for ${item.label} events`,
@@ -610,6 +644,12 @@ const HomeContent = () => {
     markersRef.current = newMarkers;
 
     const eventMarkersToCluster = newMarkers.filter(marker => marker.eventData);
+    const searchMarkersToAdd = newMarkers.filter(marker => !marker.eventData);
+
+    // Add searchMarkers directly to the map (they don't get clustered)
+    searchMarkersToAdd.forEach((marker, index) => {
+      marker.setMap(mapRef.current);
+    });
 
     if (clustererRef.current) {
         clustererRef.current.clearMarkers();
@@ -801,19 +841,7 @@ const HomeContent = () => {
                 />
               )}
 
-              {/* Render searchMarkers as markers with correct icon and no tooltip */}
-              {searchMarkers && searchMarkers.map((marker, idx) => (
-                <Marker
-                  key={`search-marker-${idx}`}
-                  position={{ lat: marker.lat, lng: marker.lng }}
-                  icon={{
-                    url: marker.label === 'Pet' ? '/pet3.svg' : '/default.svg',
-                    scaledSize: new window.google.maps.Size(90, 90),
-                    anchor: new window.google.maps.Point(24, 43)
-                  }}
-                  // No tooltip or popup for searchMarkers
-                />
-              ))}
+              {/* searchMarkers are now handled in the useEffect hook above for proper icon assignment and to avoid duplicates */}
 
               {/* Existing markers (clustered events and static search markers from API) are handled in useEffects */}
 

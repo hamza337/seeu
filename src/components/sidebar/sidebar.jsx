@@ -10,7 +10,7 @@ import { useModal } from '../../contexts/ModalContext';
 export default function Sidebar() {
   // const [activeDrawer, setActiveDrawer] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState(null);
-  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated, searchResults, notifyMeParams, activeDrawer, setActiveDrawer, clearAllEntriesFn } = useMap();
+  const { setMapFocusLocation, mapFocusLocation, focusMapFn, showLoginModal, setActiveView, isSidebarExpanded, setIsSidebarExpanded, isAuthenticated, searchResults, notifyMeParams, activeDrawer, setActiveDrawer, clearAllEntriesFn, getUserLocationFn } = useMap();
   const clearMapFocusTimeoutRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -40,6 +40,11 @@ export default function Sidebar() {
     
     // Clear map focus
     setMapFocusLocation(null);
+    
+    // Reset map to user's current location
+    if (getUserLocationFn) {
+      getUserLocationFn();
+    }
   };
 
   const toggleDrawer = (drawer) => {

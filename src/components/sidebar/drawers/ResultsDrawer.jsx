@@ -31,6 +31,45 @@ export default function ResultsDrawer({
 
   const frontendCategories = ['within 1 mile', 'within 3 miles', 'within 5 miles', 'within 6-200 miles'];
 
+  // Function to transform API response to frontend categories
+  const transformResultsToFrontendCategories = (apiResults) => {
+    if (!apiResults || apiResults.status === 404) return apiResults;
+    
+    const transformedResults = {
+      'within 1 mile': [],
+      'within 3 miles': [],
+      'within 5 miles': [],
+      'within 6-200 miles': []
+    };
+    
+    // Map API categories to frontend categories
+    Object.keys(apiResults).forEach(apiCategory => {
+      if (Array.isArray(apiResults[apiCategory])) {
+        const events = apiResults[apiCategory];
+        
+        // Determine which frontend category this API category maps to
+        let targetCategory;
+        if (apiCategory === 'within 1 mile') {
+          targetCategory = 'within 1 mile';
+        } else if (apiCategory === 'within 3 miles') {
+          targetCategory = 'within 3 miles';
+        } else if (apiCategory === 'within 5 miles') {
+          targetCategory = 'within 5 miles';
+        } else {
+          // Any other distance category (like "within 10 miles", "within 20 miles", etc.) goes to 6-200 miles
+          targetCategory = 'within 6-200 miles';
+        }
+        
+        transformedResults[targetCategory] = [...transformedResults[targetCategory], ...events];
+      }
+    });
+    
+    return transformedResults;
+  };
+
+  // Transform results for display
+  const displayResults = transformResultsToFrontendCategories(results);
+
   // Notify Me handler
   const handleNotifyMe = async () => {
     if (!notifyMePayload) return;
@@ -42,7 +81,7 @@ export default function ResultsDrawer({
     try {
       const payload = notifyMePayload;
       if (payload.lat == null || payload.lng == null) {
-        alert('Location data missing for Notify Me.');
+        toast.error('Location data missing for Notify Me.');
         return;
       }
       await axios.post(`${baseUrl}events/notify-me`, payload, {
@@ -54,7 +93,7 @@ export default function ResultsDrawer({
       triggerRefreshEvents();
     } catch (error) {
       console.error('Error calling notify-me API:', error);
-      alert(error.response?.data?.message || 'Failed to subscribe for notifications.');
+      toast.error(error.response?.data?.message || 'Failed to subscribe for notifications.');
       if (error.response && error.response.status === 401) {
         setShowLoginModal(true);
       }
@@ -130,9 +169,9 @@ export default function ResultsDrawer({
           frontendCategories.map(category => (
             <div key={category} className="mb-6">
               <h3 className="text-lg font-semibold text-gray-800 mb-3">{category}</h3>
-              {results && results[category] && results[category].length > 0 ? (
+              {displayResults && displayResults[category] && displayResults[category].length > 0 ? (
                 <div className="space-y-4">
-                  {results[category].map((event) => (
+                  {displayResults[category].map((event) => (
                     <div 
                       key={event.id} 
                       className="flex items-center gap-4 p-3 bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-all"
@@ -194,4 +233,4 @@ export default function ResultsDrawer({
       </div>
     </div>
   );
-} 
+}

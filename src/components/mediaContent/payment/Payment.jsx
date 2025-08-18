@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import BackButton from '../../../components/backBtn/backButton'; // Assuming you have a back button component
+import toast from 'react-hot-toast';
 
 const Payment = () => {
   const [cardNumber, setCardNumber] = useState('');
@@ -7,7 +8,7 @@ const Payment = () => {
   // Handle form submission (e.g., call Stripe API here)
   const handlePayment = () => {
     // You can integrate Stripe logic here
-    alert('Payment Confirmed!');
+    toast.success('Payment Confirmed!');
     // Redirect to a confirmation or success page (adjust based on routing approach)
     window.location.href = '/payment-success';  // Adjust as necessary based on routing strategy
   };

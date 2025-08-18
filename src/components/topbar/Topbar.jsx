@@ -4,6 +4,7 @@ import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { IoHelpOutline, IoSettings } from "react-icons/io5";
 import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
+import toast from 'react-hot-toast';
 
 // Array of available avatar options
 const AVATAR_OPTIONS = [
@@ -198,7 +199,7 @@ export default function Topbar() {
         newPassword: password
       });
       if (response.status === 201) {
-        alert('Password reset successfully! Please login with your new password.');
+        toast.success('Password reset successfully! Please login with your new password.');
         closeModal();
       }
     } catch (err) {
@@ -384,7 +385,7 @@ export default function Topbar() {
                                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                               </svg>
                             </div>
-                            <span>Change Avatar</span>
+                            <span>User Profile</span>
                           </div>
                           <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -439,7 +440,7 @@ export default function Topbar() {
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
-                        <h3 className="text-lg font-medium">Change Avatar</h3>
+                        <h3 className="text-lg font-medium">User Profile </h3>
                       </div>
                       
                       <div className="p-4">

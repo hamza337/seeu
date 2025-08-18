@@ -4,6 +4,7 @@ import axios from 'axios';
 import { Calendar, Clock, MapPin, DollarSign, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
 import BackButton from '../../../components/backBtn/backButton';
 import moment from 'moment'; // Import moment for date formatting
+import toast from 'react-hot-toast';
 
 // Helper function to parse media JSON
 const parseMedia = (mediaData) => {
@@ -135,7 +136,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
 
       if (!token) {
           console.log('User not authenticated. Cannot proceed with purchase.');
-           alert('Please login to purchase this event.');
+           toast.error('Please login to purchase this event.');
           return;
       }
 
@@ -155,22 +156,22 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
 
           if (event.isFree) {
               // For free events, show success message and redirect to home
-              alert(response.data.message || 'Event added to your purchases successfully!');
+              toast.success(response.data.message || 'Event added to your purchases successfully!');
               navigate('/my-events');
           } else {
               // For paid events, redirect to Stripe checkout
               if (response.data && response.data.url) {
                   window.location.href = response.data.url;
               } else {
-                  alert('Failed to get Stripe checkout URL from API.');
+                  toast.error('Failed to get Stripe checkout URL from API.');
               }
           }
 
       } catch (error) {
           console.error('Error calling Stripe purchase API:', error);
-          alert(error.response?.data?.message || 'Failed to initiate purchase. Please try again.');
+          toast.error(error.response?.data?.message || 'Failed to initiate purchase. Please try again.');
            if (error.response && error.response.status === 401) {
-               alert('Your session has expired. Please login again.');
+               toast.error('Your session has expired. Please login again.');
            }
       }
   };
@@ -256,7 +257,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
           <h2 className="text-3xl font-bold mt-6 text-black">{event.title || 'No Title'}</h2>
           <div className="mt-4 flex flex-col gap-3 text-black">
              <div className="text-gray-600 text-sm">
-                Listing ID: {event.id}
+                Listing ID: {event.eventCode}
              </div>
              <div className="flex flex-wrap items-center gap-6">
                 <div className="flex items-center gap-2">
@@ -346,7 +347,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
         <div className="mt-4 flex flex-col gap-3 text-black"> {/* Use flex-col and gap for rows */}
            {/* Row 1: Listing ID */}
            <div className="text-gray-600 text-sm">
-              Listing ID: {event.id}
+              Listing ID: {event.eventCode}
            </div>
 
            {/* Row 2: Category and Address */}

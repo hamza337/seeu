@@ -20,6 +20,7 @@ export const MapProvider = ({ children }) => {
   const [activeSearchQuery, setActiveSearchQuery] = useState(null);
   const [notifyMePayload, setNotifyMePayload] = useState(null);
   const [clearAllEntriesFn, setClearAllEntriesFn] = useState(null);
+  const [getUserLocationFn, setGetUserLocationFn] = useState(null);
 
   const triggerRefreshEvents = () => {
     setRefreshEvents(prev => prev + 1);
@@ -110,6 +111,8 @@ export const MapProvider = ({ children }) => {
       setNotifyMePayload,
       clearAllEntriesFn,
       setClearAllEntriesFn,
+      getUserLocationFn,
+      setGetUserLocationFn,
     }}>
       {children}
     </MapContext.Provider>

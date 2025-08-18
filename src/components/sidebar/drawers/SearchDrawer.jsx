@@ -6,6 +6,7 @@ import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import { useMap } from '../../../contexts/MapContext';
+import toast from 'react-hot-toast';
 import ResultsDrawer from './ResultsDrawer';
 
 export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
@@ -16,6 +17,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   const [location, setLocation] = useState({ lat: null, lng: null, address: '' });
   const [dateRangeError, setDateRangeError] = useState('');
   const [categoryError, setCategoryError] = useState('');
+  const [locationError, setLocationError] = useState('');
   const autocompleteRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_URL;
   const drawerRef = useRef(null);
@@ -38,6 +40,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     setActiveDrawer,
     setActiveSearchQuery,
     setNotifyMePayload,
+    setClearAllEntriesFn,
   } = useMap();
 
   // Sidebar widths in px (match layout/sidebar)
@@ -47,6 +50,32 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
 
   // Calculate left position based on sidebar state
   const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
+
+  // Function to reset all search fields
+  const resetSearchFields = () => {
+    setSelectedCategories([]);
+    setLocation({ lat: null, lng: null, address: '' });
+    setStartDate(null);
+    setEndDate(null);
+    setDateRangeError('');
+    setCategoryError('');
+    setLocationError('');
+    setSearchResults(null);
+    setActiveSearchQuery(null);
+    setNotifyMePayload(null);
+    setSearchLocation(null);
+    
+    // Clear the autocomplete input field
+    if (autocompleteRef.current && autocompleteRef.current.input) {
+      autocompleteRef.current.input.value = '';
+    }
+  };
+
+  // Register the reset function with MapContext
+  useEffect(() => {
+    setClearAllEntriesFn(() => resetSearchFields);
+    return () => setClearAllEntriesFn(null);
+  }, [setClearAllEntriesFn]);
 
   useEffect(() => {
     if (!isOpen) {
@@ -126,6 +155,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         console.log('Autocomplete selected location:', { lat, lng });
         setSearchLocation({ lat, lng });
         setLocation(prev => ({ ...prev, lat, lng, address: place.formatted_address }));
+        setLocationError(''); // Clear location error when valid location is selected
       } else if (place.hasOwnProperty('name')) {
         setLocation(prev => ({ ...prev, lat: null, lng: null, address: place.name }));
         setSearchLocation(null);
@@ -149,6 +179,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   const handleMarkerDrag = (newAddress, lat, lng) => {
     console.log('SearchDrawer: Updating address from marker drag:', { newAddress, lat, lng });
     setLocation({ address: newAddress, lat, lng });
+    setLocationError(''); // Clear location error when location is selected via marker
   };
 
   useEffect(() => {
@@ -160,13 +191,27 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   };
 
   const handleSearch = async () => {
-    if (selectedCategories.length === 0 || !location.lat || !location.lng) {
-      console.log('Please select at least one category and a location');
-      return;
-    }
-
+    // Reset all error states
     setDateRangeError('');
     setCategoryError('');
+    setLocationError('');
+    
+    // Validate form inputs
+    let hasErrors = false;
+    
+    if (selectedCategories.length === 0) {
+      setCategoryError('Please select at least one category.');
+      hasErrors = true;
+    }
+    
+    if (!location.lat || !location.lng) {
+      setLocationError('Please select a location.');
+      hasErrors = true;
+    }
+    
+    if (hasErrors) {
+      return;
+    }
     // Keep notifyMeParams and searchResults for now, clear them after fetching
 
     try {
@@ -254,15 +299,15 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                   }
               });
               if (response.status === 201) {
-                  alert('Notification request successful! We will notify you if events match your criteria.');
+                  toast.success('Notification request successful! We will notify you if events match your criteria.');
                   setNotifyMeParams(null);
                   setSearchResults(null);
               } else {
-                   alert('Failed to subscribe for notifications.');
+                   toast.error('Failed to subscribe for notifications.');
               }
           } catch (error) {
                console.error('Error calling notify-me API:', error);
-               alert(error.response?.data?.message || 'Failed to subscribe for notifications.');
+               toast.error(error.response?.data?.message || 'Failed to subscribe for notifications.');
           }
       } else {
           console.log('User not authenticated. Opening login modal.');
@@ -292,31 +337,27 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
             {categoryOptions.map((item) => {
               const cleanedLabel = item.label.replace(' & ', '');
               const isSelected = selectedCategories.includes(cleanedLabel);
-              const maxSelected = selectedCategories.length >= 2;
-              const isDisabled = maxSelected && !isSelected;
               return (
                 <div
                   key={item.label}
                   onClick={() => {
-                    if (isDisabled) return;
                     setSelectedCategories(prev => {
                       if (isSelected) {
                         setCategoryError('');
                         return prev.filter(cat => cat !== cleanedLabel);
                       } else {
+                        setCategoryError('');
                         if (prev.length < 2) {
-                          setCategoryError('');
                           return [...prev, cleanedLabel];
                         } else {
-                          setCategoryError('You can select a maximum of 2 categories.');
-                          return prev;
+                          // Remove the first (oldest) selection and add the new one
+                          return [prev[1], cleanedLabel];
                         }
                       }
                     });
                   }}
                   className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200
-                    ${isSelected ? 'opacity-100' :
-                      isDisabled ? 'opacity-40 grayscale cursor-not-allowed' : 'opacity-80 hover:bg-gray-100'}
+                    ${isSelected ? 'opacity-100' : 'opacity-80 hover:bg-gray-100'}
                   `}
                 >
                   {item.icon}
@@ -338,10 +379,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
               placeholder="Where"
               value={location.address}
               onChange={handleAddressInputChange}
-              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-4"
+              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-1"
             />
           </Autocomplete>
         )}
+        {locationError && <p className="text-red-500 text-sm mb-4">{locationError}</p>}
+        {!locationError && <div className="mb-4"></div>}
         {/* When Field */}
         <div className="relative mb-4">
           <DatePicker
