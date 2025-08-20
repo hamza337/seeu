@@ -357,11 +357,11 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                     });
                   }}
                   className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200
-                    ${isSelected ? 'opacity-100' : 'opacity-80 hover:bg-gray-100'}
+                    ${isSelected ? 'opacity-100' : selectedCategories.length >= 2 ? 'opacity-40 grayscale hover:bg-gray-100' : 'opacity-80 hover:bg-gray-100'}
                   `}
                 >
                   {item.icon}
-                  <span className={`text-s mt-1 text-gray-700 ${item.textClass}`}>{item.label}</span>
+                  <span className={`text-s mt-1 ${isSelected ? `text-gray-700 ${item.textClass}` : selectedCategories.length >= 2 ? 'text-gray-400' : `text-gray-700 ${item.textClass}`}`}>{item.label}</span>
                 </div>
               );
             })}
