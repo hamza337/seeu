@@ -114,7 +114,7 @@ h1 {
 
 /* Custom DatePicker styles - Override default react-datepicker styles */
 .react-datepicker-wrapper {
-  width: 63% !important;
+  width: 70% !important;
   position: relative !important;
 }
 
@@ -125,7 +125,7 @@ h1 {
 }
 
 .react-datepicker-wrapper .react-datepicker__input-container input {
-  padding-right: 40px !important;
+  padding-right: 35px !important;
   position: relative !important;
   z-index: 1 !important;
   box-sizing: border-box !important;

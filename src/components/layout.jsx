@@ -7,7 +7,7 @@ import { useMap } from '../contexts/MapContext';
 import { useModal } from '../contexts/ModalContext';
 import MediaDetail from './mediaContent/mediaDetail/MediaDetail';
 
-export default function Layout() {
+function LayoutContent() {
   const topbarHeight = 52;
   const footerHeight = 40;
   const collapsedSidebarWidth = 56; // w-14 in Tailwind
@@ -92,6 +92,13 @@ export default function Layout() {
           </div>
         </div>
       )}
+
     </div>
+  );
+}
+
+export default function Layout() {
+  return (
+    <LayoutContent />
   );
 }

@@ -17,6 +17,7 @@ import Payment from './components/mediaContent/payment/Payment';
 import ShareEvent from './components/shareEvent/ShareEvent';
 import SearchResults from './components/searchResults/SearchResults';
 import { MapProvider } from './contexts/MapContext';
+import { LoginModalProvider } from './contexts/LoginModalContext';
 import MyEvents from './pages/MyEvents/MyEvents';
 import { Toaster } from 'react-hot-toast';
 import { ModalProvider } from './contexts/ModalContext';
@@ -25,9 +26,10 @@ ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
       <MapProvider>
-        <ModalProvider>
-          <Toaster />
-          <Routes>
+        <Toaster />
+        <LoginModalProvider>
+          <ModalProvider>
+            <Routes>
             {/* Layout Route */}
             <Route path="/" element={<Layout />}>
               {/* Child routes */}
@@ -47,8 +49,9 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/my-events" element={<MyEvents />} />
 
             </Route>
-          </Routes>
-        </ModalProvider>
+            </Routes>
+          </ModalProvider>
+        </LoginModalProvider>
       </MapProvider>
     </BrowserRouter>
   </React.StrictMode>
