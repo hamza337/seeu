@@ -11,7 +11,23 @@ export const MapProvider = ({ children }) => {
   const [notifyMeParams, setNotifyMeParams] = useState(null);
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [refreshEvents, setRefreshEvents] = useState(0);
-  const [isSidebarExpanded, setIsSidebarExpanded] = useState(false);
+  // Initialize sidebar state from localStorage, but always collapse on mobile
+  const [isSidebarExpanded, setIsSidebarExpanded] = useState(() => {
+    if (typeof window !== 'undefined') {
+      // Always collapse on mobile screens
+      if (window.innerWidth < 600) {
+        return false;
+      }
+      // For desktop, check localStorage or default to true for home page
+      const saved = localStorage.getItem('sidebarExpanded');
+      if (saved !== null) {
+        return JSON.parse(saved);
+      }
+      // Default to true for desktop
+      return true;
+    }
+    return false;
+  });
   const [isAuthenticated, setIsAuthenticated] = useState(!!localStorage.getItem('token'));
   const [searchResults, setSearchResults] = useState(null);
   const [activeDrawer, setActiveDrawer] = useState(null);
@@ -62,6 +78,23 @@ export const MapProvider = ({ children }) => {
     setIsAuthenticated(status);
   };
 
+  // Persist sidebar state to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('sidebarExpanded', JSON.stringify(isSidebarExpanded));
+    }
+  }, [isSidebarExpanded]);
+
+  // Custom setter for sidebar that respects mobile constraints
+  const setSidebarExpanded = (value) => {
+    if (typeof window !== 'undefined' && window.innerWidth < 600) {
+      // Always keep collapsed on mobile
+      setIsSidebarExpanded(false);
+    } else {
+      setIsSidebarExpanded(value);
+    }
+  };
+
   useEffect(() => {
     const handleStorageChange = () => {
       const token = localStorage.getItem('token');
@@ -94,7 +127,7 @@ export const MapProvider = ({ children }) => {
       refreshEvents,
       triggerRefreshEvents,
       isSidebarExpanded,
-      setIsSidebarExpanded,
+      setIsSidebarExpanded: setSidebarExpanded,
       isAuthenticated,
       setIsAuthenticated: updateIsAuthenticated,
       searchResults,

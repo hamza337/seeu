@@ -797,9 +797,9 @@ const HomeContent = () => {
   }, [animatedMarkerId]);
 
   return (
-    <div className="w-full h-full pt-11 px-4 sm:px-8 lg:px-12 overflow-x-hidden">
-      <div className="w-full mb-8">
-        <p className="text-gray-600 text-xl -ml-18 mb-4 text-center">
+    <div className="w-full h-full pt-6 sm:pt-11 pl-0 pr-4 sm:px-4 md:px-8 lg:px-12 overflow-x-hidden">
+      <div className="w-full mb-8 px-2">
+        <p className="text-gray-600 text-sm sm:text-base md:text-lg lg:text-xl mb-4 text-center leading-relaxed">
           The only search tool by <span className="font-semibold">TI<span style={{ color: 'red' }}>:</span>ME</span> and  <span className="font-semibold"><span style={{ color: '#0868a8' }}>P</span>LACE</span> to find or post lost items, pets, people, witnesses and events.
         </p>
       </div>

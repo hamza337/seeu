@@ -16,12 +16,43 @@ export default function Sidebar() {
   const navigate = useNavigate();
   const { setModalEventId } = useModal();
 
-  // Set sidebar expanded by default on home page
+  // Handle sidebar state based on page navigation and screen size
   useEffect(() => {
-    if (location.pathname === '/') {
+    // Always collapse on mobile
+    if (window.innerWidth < 600) {
+      setIsSidebarExpanded(false);
+      return;
+    }
+    
+    // On desktop, expand sidebar when navigating to home page (unless a drawer is open)
+    if (location.pathname === '/' && !activeDrawer) {
       setIsSidebarExpanded(true);
     }
-  }, [location.pathname, setIsSidebarExpanded]);
+  }, [location.pathname, setIsSidebarExpanded, activeDrawer]);
+
+  // Handle screen size changes
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 600) {
+        // Always collapse on mobile
+        setIsSidebarExpanded(false);
+      } else {
+        // On desktop, restore expanded state if no drawer is open and we're on home page
+        if (location.pathname === '/' && !activeDrawer) {
+          setIsSidebarExpanded(true);
+        }
+      }
+    };
+
+    // Check on mount
+    handleResize();
+
+    // Add event listener
+    window.addEventListener('resize', handleResize);
+
+    // Cleanup
+    return () => window.removeEventListener('resize', handleResize);
+  }, [setIsSidebarExpanded, location.pathname, activeDrawer]);
 
   const handleHomeClick = () => {
     // Navigate to home page if not already there
@@ -36,7 +67,10 @@ export default function Sidebar() {
     
     // Close any open drawer
     setActiveDrawer(null);
-    setIsSidebarExpanded(true);
+    // Only expand sidebar if screen is >= 600px
+    if (window.innerWidth >= 600) {
+      setIsSidebarExpanded(true);
+    }
     
     // Clear map focus
     setMapFocusLocation(null);
@@ -50,7 +84,10 @@ export default function Sidebar() {
   const toggleDrawer = (drawer) => {
     if (activeDrawer === drawer) {
       setActiveDrawer(null);
-      setIsSidebarExpanded(true);
+      // Only expand sidebar if screen is >= 600px
+      if (window.innerWidth >= 600) {
+        setIsSidebarExpanded(true);
+      }
     } else {
       setActiveDrawer(drawer);
       setIsSidebarExpanded(false);
@@ -65,7 +102,10 @@ export default function Sidebar() {
       focusMapFn(lat, lng);
     }
     setActiveDrawer(null);
-    setIsSidebarExpanded(true);
+    // Only expand sidebar if screen is >= 600px
+    if (window.innerWidth >= 600) {
+      setIsSidebarExpanded(true);
+    }
   };
 
   const collapsedWidth = 'w-14';
@@ -123,7 +163,10 @@ export default function Sidebar() {
           onClick={() => {
             if (activeDrawer === 'results') {
               setActiveDrawer(null);
-              setIsSidebarExpanded(true);
+              // Only expand sidebar if screen is >= 600px
+              if (window.innerWidth >= 600) {
+                setIsSidebarExpanded(true);
+              }
             } else {
               setActiveDrawer('results');
               setIsSidebarExpanded(false);
@@ -142,7 +185,10 @@ export default function Sidebar() {
         isOpen={activeDrawer === 'search'}
         onClose={() => {
           setActiveDrawer(null);
-          setIsSidebarExpanded(true);
+          // Only expand sidebar if screen is >= 600px
+          if (window.innerWidth >= 600) {
+            setIsSidebarExpanded(true);
+          }
         }}
         selectedEventType={selectedEventType}
         setSelectedEventType={setSelectedEventType}
@@ -153,7 +199,10 @@ export default function Sidebar() {
         isOpen={activeDrawer === 'location'}
         onClose={() => {
           setActiveDrawer(null);
-          setIsSidebarExpanded(true);
+          // Only expand sidebar if screen is >= 600px
+          if (window.innerWidth >= 600) {
+            setIsSidebarExpanded(true);
+          }
         }}
       />
 
@@ -162,7 +211,10 @@ export default function Sidebar() {
           results={searchResults}
           onClose={() => {
             setActiveDrawer(null);
-            setIsSidebarExpanded(true);
+            // Only expand sidebar if screen is >= 600px
+            if (window.innerWidth >= 600) {
+              setIsSidebarExpanded(true);
+            }
           }}
           notifyMeParams={notifyMeParams}
           isSidebarExpanded={isSidebarExpanded}

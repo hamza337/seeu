@@ -18,6 +18,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   const [dateRangeError, setDateRangeError] = useState('');
   const [categoryError, setCategoryError] = useState('');
   const [locationError, setLocationError] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const autocompleteRef = useRef(null);
   const baseUrl = import.meta.env.VITE_API_URL;
   const drawerRef = useRef(null);
@@ -46,10 +47,20 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   // Sidebar widths in px (match layout/sidebar)
   const collapsedSidebarWidthPx = 56;
   const expandedSidebarWidthPx = 256;
-  const drawerWidthPx = 415; // w-96
-
-  // Calculate left position based on sidebar state
+  
+  // Responsive drawer width and positioning
+  const drawerWidthPx = isMobile ? Math.min(window.innerWidth - 80, 320) : 415; // Mobile: leave space for sidebar, Desktop: 415px
   const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
+  
+  // Handle window resize for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 600);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   // Function to reset all search fields
   const resetSearchFields = () => {
@@ -325,15 +336,15 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className="px-6 pt-6 flex justify-between items-center border-b">
-        <h2 className="text-lg text-black font-semibold">Search</h2>
+      <div className={`${isMobile ? 'px-4 pt-4' : 'px-6 pt-6'} flex justify-between items-center border-b`}>
+        <h2 className={`${isMobile ? 'text-base' : 'text-lg'} text-black font-semibold`}>Search</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
-      <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 pt-3 scrollbar-hide">
+      <div className={`overflow-y-auto h-[calc(100vh-4rem)] ${isMobile ? 'px-4 pb-4 pt-2' : 'px-6 pb-6 pt-3'} scrollbar-hide`}>
         {/* Categories Field - now a grid, not a dropdown */}
         <div className="mb-4">
-          <label className="block text-gray-800 font-semibold mb-2">Select Categories</label>
-          <div className="grid grid-cols-3 gap-4">
+          <label className={`block text-gray-800 font-semibold ${isMobile ? 'mb-1.5 text-sm' : 'mb-2'}`}>Select Categories</label>
+          <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-3 gap-4'}`}>
             {categoryOptions.map((item) => {
               const cleanedLabel = item.label.replace(' & ', '');
               const isSelected = selectedCategories.includes(cleanedLabel);
@@ -356,12 +367,14 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                       }
                     });
                   }}
-                  className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200
+                  className={`relative flex flex-col items-center justify-center ${isMobile ? 'p-1.5' : 'p-2'} rounded-lg cursor-pointer transition-colors duration-200
                     ${isSelected ? 'opacity-100' : selectedCategories.length >= 2 ? 'opacity-40 grayscale hover:bg-gray-100' : 'opacity-80 hover:bg-gray-100'}
                   `}
                 >
-                  {item.icon}
-                  <span className={`text-s mt-1 ${isSelected ? `text-gray-700 ${item.textClass}` : selectedCategories.length >= 2 ? 'text-gray-400' : `text-gray-700 ${item.textClass}`}`}>{item.label}</span>
+                  <div className={`${isMobile ? 'w-10 h-10' : 'w-14 h-14'}`}>
+                    <img src={item.icon.props.src} alt={item.icon.props.alt} className="w-full h-full" />
+                  </div>
+                  <span className={`${isMobile ? 'text-xs mt-0.5' : 'text-s mt-1'} ${isSelected ? `text-gray-700 ${item.textClass}` : selectedCategories.length >= 2 ? 'text-gray-400' : `text-gray-700 ${item.textClass}`}`}>{item.label}</span>
                 </div>
               );
             })}
@@ -379,7 +392,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
               placeholder="Where"
               value={location.address}
               onChange={handleAddressInputChange}
-              className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-1"
+              className={`w-full ${isMobile ? 'p-2.5 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-1`}
             />
           </Autocomplete>
         )}
@@ -411,8 +424,8 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
             startDate={startDate}
             endDate={endDate}
             selectsRange
-            placeholderText="Select a date range (max 7 days)"
-            className="w-full p-3 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-sm"
+            placeholderText={isMobile ? "Date range (max 7 days)" : "Select a date range (max 7 days)"}
+            className={`w-full ${isMobile ? 'p-2.5 text-sm' : 'p-3'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-sm`}
             dateFormat="MMM d, yyyy"
             isClearable
             showPopperArrow={false}
@@ -423,7 +436,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         </div>
         <button
           onClick={handleSearch}
-          className="w-full bg-[#0868a8] text-white py-2 rounded hover:cursor-pointer"
+          className={`w-full bg-[#0868a8] text-white ${isMobile ? 'py-2.5 text-sm' : 'py-2'} rounded hover:cursor-pointer transition-colors hover:bg-[#0756a0]`}
         >
           Search
         </button>

@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import React,{ useEffect, useState, useRef } from 'react';
 import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star, Video, Trash2, Info } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
@@ -18,6 +18,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [address, setAddress] = useState('');
   const [fileError, setFileError] = useState('');
   const [formError, setFormError] = useState('');
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const drawerRef = useRef(null);
   const autocompleteRef = useRef(null);
   const [mainMediaIndex, setMainMediaIndex] = useState(0);
@@ -37,10 +38,20 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   // Sidebar widths in px (match layout/sidebar)
   const collapsedSidebarWidthPx = 56;
   const expandedSidebarWidthPx = 256;
-  const drawerWidthPx = 500; // w-96
-
-  // Calculate left position based on sidebar state
+  
+  // Responsive drawer width and positioning
+  const drawerWidthPx = isMobile ? Math.min(window.innerWidth - 80, 380) : 500; // Mobile: leave space for sidebar, Desktop: 500px
   const leftPx = isSidebarExpanded ? expandedSidebarWidthPx : collapsedSidebarWidthPx;
+  
+  // Handle window resize for responsive behavior
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 600);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const categoryPlaceholders = {
     'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
@@ -288,17 +299,17 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className="pt-12 px-6 flex justify-between items-center border-b">
+      <div className={`${isMobile ? 'pt-8 px-4' : 'pt-12 px-6'} flex justify-between items-center border-b`}>
         <h2 className="text-lg font-semibold"></h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
-      <div className="overflow-y-auto h-[calc(100vh-4rem)] px-6 pb-6 scrollbar-hide flex flex-col space-y-2">
-        <img src="/brandLogoFinal.png" alt="Poing Logo" className="w-25 object-contain mx-auto mb-4" />
+      <div className={`overflow-y-auto h-[calc(100vh-4rem)] ${isMobile ? 'px-4 pb-4' : 'px-6 pb-6'} scrollbar-hide flex flex-col space-y-2`}>
+        <img src="/brandLogoFinal.png" alt="Poing Logo" className={`${isMobile ? 'w-20 mb-2' : 'w-25 mb-4'} object-contain mx-auto`} />
 
-        <div className="space-y-4">
+        <div className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
           {/* Preview Grid */}
           {previews.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4">
+            <div className={`grid ${isMobile ? 'grid-cols-3 gap-2' : 'grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-4'}`}>
               {previews.map((preview, index) => {
                 const isMainMedia = mainMediaIndex === index;
                 return (
@@ -333,15 +344,15 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           )}
 
           {/* Dropzones */}
-          <div className="grid grid-cols-2 gap-4">
-            <label className="flex flex-col items-center justify-center w-full h-24 p-2 transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400">
-              <Camera className="w-8 h-8 text-gray-500" />
-              <span className="mt-2 text-sm font-medium text-gray-600">Add Photos</span>
+          <div className={`grid grid-cols-2 ${isMobile ? 'gap-2' : 'gap-4'}`}>
+            <label className={`flex flex-col items-center justify-center w-full ${isMobile ? 'h-20 p-1.5' : 'h-24 p-2'} transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400`}>
+              <Camera className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-gray-500`} />
+              <span className={`${isMobile ? 'mt-1 text-xs' : 'mt-2 text-sm'} font-medium text-gray-600`}>Add Photos</span>
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
             </label>
-            <label className="flex flex-col items-center justify-center w-full h-24 p-2 transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400">
-              <Video className="w-8 h-8 text-gray-500" />
-              <span className="mt-2 text-sm font-medium text-gray-600">Add Videos</span>
+            <label className={`flex flex-col items-center justify-center w-full ${isMobile ? 'h-20 p-1.5' : 'h-24 p-2'} transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400`}>
+              <Video className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-gray-500`} />
+              <span className={`${isMobile ? 'mt-1 text-xs' : 'mt-2 text-sm'} font-medium text-gray-600`}>Add Videos</span>
               <input type="file" accept="video/*" multiple className="hidden" onChange={handleFileChange} />
             </label>
           </div>
@@ -361,14 +372,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                 placeholder="Where"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
-                className="p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 w-full"
+                className={`${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 w-full`}
               />
             </Autocomplete>
           )}
           <DatePicker
             selected={selectedDate}
             onChange={(date) => setSelectedDate(date)}
-            className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500"
+            className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500`}
             placeholderText="When"
             maxDate={new Date()}
           />
@@ -376,8 +387,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
         {/* Category Selection - Now a Grid */}
         <div>
-          <label className="block text-gray-800 font-semibold mb-2">Select Category</label>
-          <div className="grid grid-cols-3 gap-4">
+          <label className={`block text-gray-800 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>Select Category</label>
+          <div className={`grid grid-cols-3 ${isMobile ? 'gap-2' : 'gap-4'}`}>
             {categoryOptions.map((item) => {
               const isSelected = selectedEventType === item.label.replace(' & ','');
               return (
@@ -386,12 +397,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                   onClick={() => {
                     setSelectedEventType(item.label.replace(' & ',''));
                   }}
-                  className={`relative flex flex-col items-center justify-center p-2 rounded-lg cursor-pointer transition-colors duration-200
+                  className={`relative flex flex-col items-center justify-center ${isMobile ? 'p-1' : 'p-2'} rounded-lg cursor-pointer transition-colors duration-200
                     ${isSelected ? 'opacity-100' : 'opacity-40 grayscale hover:bg-gray-100'}
                   `}
                 >
-                  {item.icon}
-                  <span className={`text-s mt-1 text-gray-700 ${item.textClass}`}>{item.label}</span>
+                  <div className={`${isMobile ? 'w-10 h-10' : 'w-14 h-14'}`}>
+                    {React.cloneElement(item.icon, { className: `${isMobile ? 'w-10 h-10' : 'w-14 h-14'}` })}
+                  </div>
+                  <span className={`${isMobile ? 'text-xs' : 'text-s'} mt-1 text-gray-700 ${item.textClass}`}>{item.label}</span>
                 </div>
               );
             })}
@@ -402,8 +415,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar min-h-[140px]"
-          rows={4}
+          className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar ${isMobile ? 'min-h-[120px]' : 'min-h-[140px]'}`}
+          rows={isMobile ? 3 : 4}
         />
 
         <div className="relative">
@@ -416,7 +429,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             onChange={(e) => setPrice(e.target.value)}
             onWheel={(e) => e.target.blur()}
             placeholder="Price"
-            className={`pl-10 w-full p-2 rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-number-input ${isFree ? 'bg-gray-100' : ''}`}
+            className={`pl-10 w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-number-input ${isFree ? 'bg-gray-100' : ''}`}
             disabled={isFree}
           />
         </div>
@@ -475,7 +488,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           </div>
         </label>
 
-        <button onClick={handleSubmit} className="w-1/3 py-2 hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto" disabled={loading}>
+        <button onClick={handleSubmit} className={`${isMobile ? 'w-1/2 py-2 text-sm' : 'w-1/3 py-2'} hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto`} disabled={loading}>
           <img src="/brandLogoFinal.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />
           {loading && (
             <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

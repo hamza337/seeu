@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import Footer from './footer/Footer';
 import Topbar from './topbar/Topbar';
 import Sidebar from './sidebar/sidebar';
@@ -9,34 +10,46 @@ import MediaDetail from './mediaContent/mediaDetail/MediaDetail';
 export default function Layout() {
   const topbarHeight = 52;
   const footerHeight = 40;
-  const collapsedSidebarWidth = 56;
-  const expandedSidebarWidth = 150;
-  const sidebarGap = 50; // 16px gap between sidebar and main content
+  const collapsedSidebarWidth = 56; // w-14 in Tailwind
+  const expandedSidebarWidth = 136; // w-34 in Tailwind
+  const sidebarGap = 16; // Proper gap between sidebar and main content
 
   const { modalEventId, setModalEventId } = useModal();
+  
+  // Track screen size for responsive layout
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+  
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 600);
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-  // Main content always starts after collapsed sidebar width + gap
-  const mainContentLeft = collapsedSidebarWidth + sidebarGap;
+  // Main content positioning: on mobile use collapsed sidebar width, on desktop use expanded
+  const mainContentLeft = isMobile ? collapsedSidebarWidth + sidebarGap : expandedSidebarWidth + sidebarGap;
 
   return (
     <div className="relative min-h-screen w-full bg-gray-100 overflow-hidden">
       {/* Fixed Topbar */}
-      <div className="fixed top-0 left-0 w-full z-70">
+      <div className="fixed top-0 left-0 w-full z-[50]">
         <Topbar />
       </div>
 
       {/* Fixed Footer */}
-      <div className="fixed bottom-0 left-0 w-full z-50">
+      <div className="fixed bottom-0 left-0 w-full z-[50]">
         <Footer />
       </div>
 
       {/* Fixed Sidebar (overlays when expanded) */}
       <div
-        className="fixed top-0 left-0 z-50 transition-all duration-300 ease-in-out"
+        className="fixed top-0 left-0 z-[50] transition-all duration-300 ease-in-out"
         style={{ 
           top: `${topbarHeight}px`, 
           bottom: `${footerHeight}px`, 
-          width: `${expandedSidebarWidth}px`,
+          width: `${isMobile ? collapsedSidebarWidth : expandedSidebarWidth}px`,
           pointerEvents: 'auto',
         }}
       >
@@ -45,7 +58,7 @@ export default function Layout() {
 
       {/* Scrollable Content (map) - always starts after collapsed sidebar width + gap */}
       <main
-        className="overflow-visible scrollbar-hide transition-all duration-300 ease-in-out"
+        className="overflow-y-auto overflow-x-hidden scrollbar-hide transition-all duration-300 ease-in-out"
         style={{
           position: 'absolute',
           top: `${topbarHeight}px`,

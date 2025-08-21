@@ -52,6 +52,9 @@ export default function Topbar() {
   // Password visibility states
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Mobile responsiveness state
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
 
   const { showLoginModal, setShowLoginModal, setIsAuthenticated } = useMap();
   const location = useLocation();
@@ -83,6 +86,16 @@ export default function Topbar() {
     }
     return () => clearTimeout(timerId);
   }, [resendTimer, isResendDisabled]);
+
+  // Handle window resize for mobile responsiveness
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 600);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleSignUp = async (e) => {
     e.preventDefault();
@@ -289,8 +302,8 @@ export default function Topbar() {
       <div className="w-full flex justify-end items-center px-2 py-1 bg-transparent relative">
         {/* Brand Logo Overlapping - only on home route */}
         {location.pathname === '/' && (
-          <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[120] pointer-events-none">
-            <img src="/brandLogoFinal.png" alt="Poing Logo" className="w-40 object-contain" />
+          <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[90] pointer-events-none">
+            <img src="/brandLogoFinal.png" alt="Poing Logo" className="w-28 sm:w-32 md:w-36 lg:w-40 object-contain" />
           </div>
         )}
         {/* Help Icon */}
@@ -303,7 +316,7 @@ export default function Topbar() {
             <IoHelpOutline className="text-[#0b4bb2] w-5 h-5 cursor-pointer" />
           </div>
           {showHelp && (
-            <div className="absolute right-0 top-10 w-130 p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-50">
+            <div className={`absolute right-0 top-10 ${isMobile ? 'w-64' : 'w-130'} p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-100`}>
               <p className="text-lg font-semibold mb-2">About Poing</p>
               <p className="mb-2">
                 Poing is a smarter, more effective tool for posting and locating lost items, witnesses to events (such as thefts, accidents, or unique moments), as well as lost pets and people — all based on location and time!
@@ -341,7 +354,7 @@ export default function Topbar() {
                 }}
               />
               {dropdownOpen && (
-                <div className="absolute right-0 mt-2 w-80 bg-white text-gray-900 rounded-lg shadow-2xl z-50 border border-gray-200 dropdown-menu">
+                <div className="absolute right-0 mt-2 w-80 bg-white text-gray-900 rounded-lg shadow-2xl z-100 border border-gray-200 dropdown-menu">
                   {/* Main Menu */}
                   {dropdownView === 'main' && (
                     <div className="py-2">
@@ -608,170 +621,170 @@ export default function Topbar() {
       {/* Modal */}
       {showLoginModal && (
         <div className="fixed opacity-100 inset-0 bg-grey flex items-center justify-center z-[100]">
-          <div className="bg-white rounded-xl shadow-lg p-6 w-[90%] max-w-md mx-auto relative z-70">
+          <div className={`bg-white rounded-xl shadow-lg ${isMobile ? 'p-4 w-[65%] max-w-sm mx-2' : 'p-6 w-[90%] max-w-md'} mx-auto relative z-70`}>
             <button onClick={closeModal} className="absolute top-3 right-3 text-gray-600 hover:text-black">
               <X size={20} />
             </button>
             {currentModalView === 'login' && (
               <div>
-                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Login to your account</h2>
-                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
-                 <form onSubmit={handleLogin} className="space-y-4">
+                 <h2 className={`text-black font-semibold text-center ${isMobile ? 'text-lg mb-3' : 'text-xl mb-4'}`}>Login to your account</h2>
+                 {error && <p className={`text-red-600 text-center ${isMobile ? 'text-xs mb-2' : 'text-sm mb-2'}`}>{error}</p>}
+                 <form onSubmit={handleLogin} className={isMobile ? 'space-y-3' : 'space-y-4'}>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Email</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Email</label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
                         placeholder="you@example.com"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Password</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Password</label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 pr-8 text-sm' : 'px-3 py-2 pr-10'}`}
                           placeholder="••••••••"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                          className={`absolute inset-y-0 right-0 flex items-center text-gray-600 hover:text-black ${isMobile ? 'pr-2' : 'pr-3'}`}
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? <EyeOff size={isMobile ? 16 : 18} /> : <Eye size={isMobile ? 16 : 18} />}
                         </button>
                       </div>
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                      className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                     >
                       Login
                     </button>
                  </form>
-                 <div className="mt-4 text-center">
-                     <p className="text-black text-sm">Don't have an account yet? <button onClick={() => switchModalView('signup')} className="text-blue-600 hover:underline">Sign Up</button></p>
-                     <button onClick={() => switchModalView('forgotPasswordSendOtp')} className="text-sm text-blue-600 hover:underline mt-2">Forget password ?</button>
+                 <div className={isMobile ? 'mt-3 text-center' : 'mt-4 text-center'}>
+                     <p className={`text-black ${isMobile ? 'text-xs' : 'text-sm'}`}>Don't have an account yet? <button onClick={() => switchModalView('signup')} className="text-blue-600 hover:underline">Sign Up</button></p>
+                     <button onClick={() => switchModalView('forgotPasswordSendOtp')} className={`text-blue-600 hover:underline ${isMobile ? 'text-xs mt-1' : 'text-sm mt-2'}`}>Forget password ?</button>
                  </div>
               </div>
             )}
 
             {currentModalView === 'signup' && (
               <div>
-                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Create an account</h2>
-                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
-                 <form onSubmit={handleSignUp} className="space-y-4">
+                 <h2 className={`text-black font-semibold text-center ${isMobile ? 'text-lg mb-3' : 'text-xl mb-4'}`}>Create an account</h2>
+                 {error && <p className={`text-red-600 text-center ${isMobile ? 'text-xs mb-2' : 'text-sm mb-2'}`}>{error}</p>}
+                 <form onSubmit={handleSignUp} className={isMobile ? 'space-y-3' : 'space-y-4'}>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Email</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Email</label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
                         placeholder="you@example.com"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Password</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Password</label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 pr-8 text-sm' : 'px-3 py-2 pr-10'}`}
                           placeholder="••••••••"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                          className={`absolute inset-y-0 right-0 flex items-center text-gray-600 hover:text-black ${isMobile ? 'pr-2' : 'pr-3'}`}
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? <EyeOff size={isMobile ? 16 : 18} /> : <Eye size={isMobile ? 16 : 18} />}
                         </button>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Confirm Password</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Confirm Password</label>
                       <div className="relative">
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 pr-8 text-sm' : 'px-3 py-2 pr-10'}`}
                           placeholder="••••••••"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                          className={`absolute inset-y-0 right-0 flex items-center text-gray-600 hover:text-black ${isMobile ? 'pr-2' : 'pr-3'}`}
                         >
-                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showConfirmPassword ? <EyeOff size={isMobile ? 16 : 18} /> : <Eye size={isMobile ? 16 : 18} />}
                         </button>
                       </div>
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                      className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                     >
                       Sign Up
                     </button>
                  </form>
-                 <div className="mt-4 text-center">
-                     <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline">Back to Login</button>
+                 <div className={isMobile ? 'mt-3 text-center' : 'mt-4 text-center'}>
+                     <button onClick={() => switchModalView('login')} className={`text-blue-600 hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}>Back to Login</button>
                  </div>
               </div>
             )}
 
             {currentModalView === 'forgotPasswordSendOtp' && (
                <div>
-                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Reset Password</h2>
-                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
-                 <form onSubmit={handleSendOtp} className="space-y-4">
+                 <h2 className={`text-black font-semibold text-center ${isMobile ? 'text-lg mb-3' : 'text-xl mb-4'}`}>Reset Password</h2>
+                 {error && <p className={`text-red-600 text-center ${isMobile ? 'text-xs mb-2' : 'text-sm mb-2'}`}>{error}</p>}
+                 <form onSubmit={handleSendOtp} className={isMobile ? 'space-y-3' : 'space-y-4'}>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Email</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Email</label>
                       <input
                         type="email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none"
+                        className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
                         placeholder="you@example.com"
                         required
                       />
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                      className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                     >
                       Send OTP
                     </button>
                  </form>
-                 <div className="mt-4 text-center">
-                     <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline">Back to Login</button>
+                 <div className={isMobile ? 'mt-3 text-center' : 'mt-4 text-center'}>
+                     <button onClick={() => switchModalView('login')} className={`text-blue-600 hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}>Back to Login</button>
                  </div>
                </div>
             )}
 
             {currentModalView === 'forgotPasswordVerifyOtp' && (
                <div>
-                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Verify OTP</h2>
-                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
-                 <form onSubmit={handleVerifyOtp} className="space-y-4">
+                 <h2 className={`text-black font-semibold text-center ${isMobile ? 'text-lg mb-3' : 'text-xl mb-4'}`}>Verify OTP</h2>
+                 {error && <p className={`text-red-600 text-center ${isMobile ? 'text-xs mb-2' : 'text-sm mb-2'}`}>{error}</p>}
+                 <form onSubmit={handleVerifyOtp} className={isMobile ? 'space-y-3' : 'space-y-4'}>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Enter 6-digit OTP</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Enter 6-digit OTP</label>
                       <input
                         type="text"
                         value={otp}
                         onChange={(e) => setOtp(e.target.value)}
-                        className="w-full border border-black text-black rounded-lg px-3 py-2 focus:outline-none text-center tracking-widest"
+                        className={`w-full border border-black text-black rounded-lg focus:outline-none text-center tracking-widest ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
                         placeholder="••••••"
                         maxLength="6"
                         required
@@ -779,76 +792,76 @@ export default function Topbar() {
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                      className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                     >
                       Verify OTP
                     </button>
                  </form>
-                 <div className="mt-4 text-center">
+                 <div className={isMobile ? 'mt-3 text-center' : 'mt-4 text-center'}>
                      {isResendDisabled ? (
-                        <p className="text-gray-600 text-sm">Resend OTP in {resendTimer}s</p>
+                        <p className={`text-gray-600 ${isMobile ? 'text-xs' : 'text-sm'}`}>Resend OTP in {resendTimer}s</p>
                      ) : (
-                        <button onClick={handleSendOtp} className="text-sm text-blue-600 hover:underline">Resend OTP</button>
+                        <button onClick={handleSendOtp} className={`text-blue-600 hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}>Resend OTP</button>
                      )}
-                     <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline ml-4">Back to Login</button>
+                     <button onClick={() => switchModalView('login')} className={`text-blue-600 hover:underline ${isMobile ? 'text-xs ml-2' : 'text-sm ml-4'}`}>Back to Login</button>
                  </div>
                </div>
             )}
 
             {currentModalView === 'forgotPasswordResetPassword' && (
                <div>
-                 <h2 className="text-xl text-black font-semibold mb-4 text-center">Set New Password</h2>
-                 {error && <p className="text-red-600 text-sm text-center mb-2">{error}</p>}
-                 <form onSubmit={handleResetPassword} className="space-y-4">
+                 <h2 className={`text-black font-semibold text-center ${isMobile ? 'text-lg mb-3' : 'text-xl mb-4'}`}>Set New Password</h2>
+                 {error && <p className={`text-red-600 text-center ${isMobile ? 'text-xs mb-2' : 'text-sm mb-2'}`}>{error}</p>}
+                 <form onSubmit={handleResetPassword} className={isMobile ? 'space-y-3' : 'space-y-4'}>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">New Password</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>New Password</label>
                       <div className="relative">
                         <input
                           type={showPassword ? "text" : "password"}
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 pr-8 text-sm' : 'px-3 py-2 pr-10'}`}
                           placeholder="••••••••"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowPassword(!showPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                          className={`absolute inset-y-0 right-0 flex items-center text-gray-600 hover:text-black ${isMobile ? 'pr-2' : 'pr-3'}`}
                         >
-                          {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showPassword ? <EyeOff size={isMobile ? 16 : 18} /> : <Eye size={isMobile ? 16 : 18} />}
                         </button>
                       </div>
                     </div>
                     <div>
-                      <label className="block text-black text-sm font-medium mb-1">Confirm New Password</label>
+                      <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Confirm New Password</label>
                       <div className="relative">
                         <input
                           type={showConfirmPassword ? "text" : "password"}
                           value={confirmPassword}
                           onChange={(e) => setConfirmPassword(e.target.value)}
-                          className="w-full border border-black text-black rounded-lg px-3 py-2 pr-10 focus:outline-none"
+                          className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 pr-8 text-sm' : 'px-3 py-2 pr-10'}`}
                           placeholder="••••••••"
                           required
                         />
                         <button
                           type="button"
                           onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                          className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-600 hover:text-black"
+                          className={`absolute inset-y-0 right-0 flex items-center text-gray-600 hover:text-black ${isMobile ? 'pr-2' : 'pr-3'}`}
                         >
-                          {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                          {showConfirmPassword ? <EyeOff size={isMobile ? 16 : 18} /> : <Eye size={isMobile ? 16 : 18} />}
                         </button>
                       </div>
                     </div>
                     <button
                       type="submit"
-                      className="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition"
+                      className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                     >
                       Reset Password
                     </button>
                  </form>
-                 <div className="mt-4 text-center">
-                      <button onClick={() => switchModalView('login')} className="text-sm text-blue-600 hover:underline">Back to Login</button>
+                 <div className={isMobile ? 'mt-3 text-center' : 'mt-4 text-center'}>
+                      <button onClick={() => switchModalView('login')} className={`text-blue-600 hover:underline ${isMobile ? 'text-xs' : 'text-sm'}`}>Back to Login</button>
                  </div>
                </div>
             )}
