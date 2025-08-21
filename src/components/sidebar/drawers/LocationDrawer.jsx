@@ -18,6 +18,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [address, setAddress] = useState('');
   const [fileError, setFileError] = useState('');
   const [formError, setFormError] = useState('');
+  const [addressError, setAddressError] = useState('');
+  const [dateError, setDateError] = useState('');
+  const [descriptionError, setDescriptionError] = useState('');
+  const [priceError, setPriceError] = useState('');
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const drawerRef = useRef(null);
   const autocompleteRef = useRef(null);
@@ -101,8 +105,13 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       setPrice('');
       setIsFree(false);
       setIsExclusive(false);
+      setAddress('');
       setFileError('');
       setFormError('');
+      setAddressError('');
+      setDateError('');
+      setDescriptionError('');
+      setPriceError('');
       setMainMediaIndex(0);
     }
   }, [isOpen]);
@@ -155,6 +164,9 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     const newUploads = [...uploads];
     newUploads.splice(index, 1);
     setUploads(newUploads);
+    
+    // Clear file error if files are removed
+    if (fileError) setFileError('');
 
     // Adjust mainMediaIndex if the removed item was before it or was the main item itself
     if (mainMediaIndex === index) {
@@ -174,10 +186,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         console.log('LocationDrawer: Setting search location:', { lat, lng });
         setSearchLocation({ lat, lng });
         setAddress(place.formatted_address);
+        setAddressError(''); // Clear error when valid address is selected
       } else if (place.hasOwnProperty('name')) {
         console.log('LocationDrawer: Place has no geometry, using name only');
         setAddress(place.name);
         setSearchLocation(null);
+        setAddressError(''); // Clear error when address is provided
       } else {
         console.log('LocationDrawer: Place has no geometry or name');
         setAddress(autocompleteRef.current.getPlace().name || '');
@@ -188,9 +202,79 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       setAddress('');
       setSearchLocation(null);
     }
+  };
+
+  // Comprehensive form validation function
+  const validateForm = () => {
+    let isValid = true;
+    
+    // Clear all previous errors
+    setFileError('');
+    setAddressError('');
+    setDateError('');
+    setDescriptionError('');
+    setPriceError('');
+    setFormError('');
+
+    // Validate file uploads
+    if (uploads.length === 0) {
+      setFileError('Please upload at least one photo or video.');
+      isValid = false;
+    }
+
+    // Validate address
+    if (!address.trim()) {
+      setAddressError('Please enter a location.');
+      isValid = false;
+    }
+
+    // Validate date
+    if (!selectedDate) {
+      setDateError('Please select a date.');
+      isValid = false;
+    } else if (selectedDate > new Date()) {
+      setDateError('Date cannot be in the future.');
+      isValid = false;
+    }
+
+    // Validate description
+    if (!description.trim()) {
+      setDescriptionError('Please provide a description.');
+      isValid = false;
+    } else if (description.trim().length < 10) {
+      setDescriptionError('Description must be at least 10 characters long.');
+      isValid = false;
+    } else if (description.trim().length > 1000) {
+      setDescriptionError('Description cannot exceed 1000 characters.');
+      isValid = false;
+    }
+
+    // Validate price (only if not free)
+    if (!isFree) {
+      if (!price || price.trim() === '') {
+        setPriceError('Please enter a price or mark as free.');
+        isValid = false;
+      } else {
+        const priceNum = parseFloat(price);
+        if (isNaN(priceNum) || priceNum < 0) {
+          setPriceError('Please enter a valid price (0 or greater).');
+          isValid = false;
+        } else if (priceNum > 10000) {
+          setPriceError('Price cannot exceed $10,000.');
+          isValid = false;
+        }
+      }
+    }
+
+    return isValid;
   };    
 
   const handleSubmit = async () => {
+    // Validate form before submission
+    if (!validateForm()) {
+      return;
+    }
+
     setFormError('');
     let loadingToastId = null;
     try {
@@ -292,7 +376,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   return (
     <div
       ref={drawerRef}
-      className={`fixed top-0 left-0 h-screen z-[100] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
+      className={`fixed top-0 left-0 h-screen z-[1
+      00] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       style={{
         left: `${leftPx}px`,
         width: `${drawerWidthPx}px`,
@@ -361,28 +446,42 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         {fileError && <p className="text-red-500 text-sm mb-4">{fileError}</p>}
         {formError && <p className="text-red-500 text-sm mt-2 mb-4">{formError}</p>}
 
-        <div className="flex gap-2">
-          {isLoaded && (
-            <Autocomplete 
-              onLoad={ref => (autocompleteRef.current = ref)} 
-              onPlaceChanged={handlePlaceChanged}
-            >
-              <input
-                type="text"
-                placeholder="Where"
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className={`${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 w-full`}
+        <div className="space-y-2">
+          <div className="flex gap-2">
+            {isLoaded && (
+              <div className="flex-1">
+                <Autocomplete 
+                  onLoad={ref => (autocompleteRef.current = ref)} 
+                  onPlaceChanged={handlePlaceChanged}
+                >
+                  <input
+                    type="text"
+                    placeholder="Where"
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      if (addressError) setAddressError('');
+                    }}
+                    className={`${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${addressError ? 'border-red-500' : 'border-gray-500'} w-full`}
+                  />
+                </Autocomplete>
+                {addressError && <p className="text-red-500 text-xs mt-1">{addressError}</p>}
+              </div>
+            )}
+            <div className="flex-1">
+              <DatePicker
+                selected={selectedDate}
+                onChange={(date) => {
+                  setSelectedDate(date);
+                  if (dateError) setDateError('');
+                }}
+                className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${dateError ? 'border-red-500' : 'border-gray-500'}`}
+                placeholderText="When"
+                maxDate={new Date()}
               />
-            </Autocomplete>
-          )}
-          <DatePicker
-            selected={selectedDate}
-            onChange={(date) => setSelectedDate(date)}
-            className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500`}
-            placeholderText="When"
-            maxDate={new Date()}
-          />
+              {dateError && <p className="text-red-500 text-xs mt-1">{dateError}</p>}
+            </div>
+          </div>
         </div>
 
         {/* Category Selection - Now a Grid */}
@@ -411,27 +510,42 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           </div>
         </div>
 
-        <textarea
-          placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-scrollbar ${isMobile ? 'min-h-[120px]' : 'min-h-[140px]'}`}
-          rows={isMobile ? 3 : 4}
-        />
-
-        <div className="relative">
-          <span className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400">
-            <DollarSign size={16} />
-          </span>
-          <input
-            type="number"
-            value={isFree ? "0" : price}
-            onChange={(e) => setPrice(e.target.value)}
-            onWheel={(e) => e.target.blur()}
-            placeholder="Price"
-            className={`pl-10 w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 custom-number-input ${isFree ? 'bg-gray-100' : ''}`}
-            disabled={isFree}
+        <div>
+          <textarea
+            placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
+            value={description}
+            onChange={(e) => {
+              setDescription(e.target.value);
+              if (descriptionError) setDescriptionError('');
+            }}
+            className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${descriptionError ? 'border-red-500' : 'border-gray-500'} custom-scrollbar ${isMobile ? 'min-h-[120px]' : 'min-h-[140px]'}`}
+            rows={isMobile ? 3 : 4}
           />
+          {descriptionError && <p className="text-red-500 text-xs mt-1">{descriptionError}</p>}
+          <div className="text-right text-xs text-gray-500 mt-1">
+            {description.length}/1000 characters
+          </div>
+        </div>
+
+        <div>
+          <div className="relative">
+            <span className="absolute top-1/2 left-3 transform -translate-y-1/2 text-gray-400">
+              <DollarSign size={16} />
+            </span>
+            <input
+              type="number"
+              value={isFree ? "0" : price}
+              onChange={(e) => {
+                setPrice(e.target.value);
+                if (priceError) setPriceError('');
+              }}
+              onWheel={(e) => e.target.blur()}
+              placeholder="Price"
+              className={`pl-10 w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${priceError ? 'border-red-500' : 'border-gray-500'} custom-number-input ${isFree ? 'bg-gray-100' : ''}`}
+              disabled={isFree}
+            />
+          </div>
+          {priceError && <p className="text-red-500 text-xs mt-1">{priceError}</p>}
         </div>
 
         {selectedEventType !== 'Select cateogry' && recommendedPrices[selectedEventType] !== undefined && (
@@ -449,6 +563,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
               if (!isFree) {
                 setIsExclusive(false);
               }
+              // Clear price error when toggling free option
+              if (priceError) setPriceError('');
             }}
             disabled={isExclusive}
             className={`${isExclusive ? 'opacity-50 cursor-not-allowed' : ''}`}

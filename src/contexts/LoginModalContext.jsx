@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
 import { useMap } from './MapContext';
 
 const LoginModalContext = createContext();
@@ -28,16 +29,32 @@ export const LoginModalProvider = ({ children }) => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
 
-  const { showLoginModal, setShowLoginModal, setIsAuthenticated } = useMap();
+  const { 
+    showLoginModal, 
+    setShowLoginModal, 
+    setIsAuthenticated,
+    setSearchResults,
+    setCategorizedSearchResults,
+    setActiveSearchQuery,
+    setSearchLocation,
+    clearAllEntriesFn
+  } = useMap();
+  const navigate = useNavigate();
   const baseUrl = import.meta.env.VITE_API_URL;
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
     const storedAvatar = localStorage.getItem('userAvatar');
+    const storedProfileImage = localStorage.getItem('profileImageUrl');
+    
     if (storedUser) {
       setUser(JSON.parse(storedUser));
     }
-    if (storedAvatar) {
+    
+    // Prioritize profileImageUrl over userAvatar
+    if (storedProfileImage) {
+      setSelectedAvatar(storedProfileImage);
+    } else if (storedAvatar) {
       setSelectedAvatar(storedAvatar);
     }
   }, []);
@@ -97,6 +114,17 @@ export const LoginModalProvider = ({ children }) => {
       if (response.status === 201) {
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.access_token);
+        
+        // Store profile image URL if available
+        if (response.data.profileImageUrl) {
+          localStorage.setItem('profileImageUrl', response.data.profileImageUrl);
+          setSelectedAvatar(response.data.profileImageUrl);
+        } else {
+          // Remove any existing profile image URL if user doesn't have one
+          localStorage.removeItem('profileImageUrl');
+          setSelectedAvatar('/icons8-male-user-48.png');
+        }
+        
         setIsAuthenticated(true);
         setUser(response.data.user);
         setShowLoginModal(false);
@@ -187,12 +215,28 @@ export const LoginModalProvider = ({ children }) => {
   };
 
   const handleLogout = () => {
+    // Clear authentication data
     localStorage.removeItem('token');
     localStorage.removeItem('user');
     localStorage.removeItem('userAvatar');
+    localStorage.removeItem('profileImageUrl');
     setIsAuthenticated(false);
     setUser(null);
     setSelectedAvatar('/icons8-male-user-48.png');
+    
+    // Clear search results and search fields
+    setSearchResults(null);
+    setCategorizedSearchResults(null);
+    setActiveSearchQuery(null);
+    setSearchLocation(null);
+    
+    // Clear all search entries if function is available
+    if (clearAllEntriesFn) {
+      clearAllEntriesFn();
+    }
+    
+    // Redirect to home page
+    navigate('/');
   };
 
   const handleAvatarSelect = (avatarPath) => {

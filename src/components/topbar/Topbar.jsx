@@ -1,22 +1,11 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { IoHelpOutline } from "react-icons/io5";
+import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
 import { useLoginModal } from '../../contexts/LoginModalContext';
 import LoginModal from '../modals/LoginModal';
-
-// Array of available avatar options
-const AVATAR_OPTIONS = [
-  '/avatar1.png',
-  '/avatar2.png',
-  '/avatar3.png',
-  '/avatar4.png',
-  '/avatar5.png',
-  '/avatar6.png',
-  '/avatar7.png',
-  '/avatar8.png',
-  '/avatar9.png',
-];
+import toast from 'react-hot-toast';
 
 // Language options
 const LANGUAGE_OPTIONS = [
@@ -29,15 +18,54 @@ const LANGUAGE_OPTIONS = [
   { code: 'es', name: 'Spanish', nativeName: 'Español' },
 ];
 
+// Component to render profile image or initial
+const ProfileImage = ({ src, alt, className, onClick }) => {
+  const [imageError, setImageError] = useState(false);
+  
+  // Reset imageError when src changes
+  useEffect(() => {
+    setImageError(false);
+  }, [src]);
+  
+  const handleImageError = () => {
+    setImageError(true);
+  };
+  
+  if (!src || src === '/icons8-male-user-48.png' || imageError) {
+    return (
+      <div 
+        className={`${className} bg-blue-500 text-white flex items-center justify-center font-semibold text-lg cursor-pointer`}
+        onClick={onClick}
+      >
+        U
+      </div>
+    );
+  }
+  
+  return (
+    <img
+      src={src}
+      alt={alt}
+      className={className}
+      onClick={onClick}
+      onError={handleImageError}
+    />
+  );
+};
+
 export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
   const [dropdownView, setDropdownView] = useState('main'); // 'main', 'avatar', 'settings', 'language'
   const [searchLanguage, setSearchLanguage] = useState('');
+  const [uploadingAvatar, setUploadingAvatar] = useState(null); // Track which avatar is being uploaded
   
   // Mobile responsiveness state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
+  
+  const baseUrl = import.meta.env.VITE_API_URL;
+  const userEmail = JSON.parse(localStorage.getItem('user'));
 
   const { setShowLoginModal, setIsAuthenticated, isAuthenticated } = useMap();
   const { user, selectedAvatar, handleLogout, handleAvatarSelect } = useLoginModal();
@@ -80,20 +108,99 @@ export default function Topbar() {
     lang.nativeName.toLowerCase().includes(searchLanguage.toLowerCase())
   );
 
-  const handleDownloadAvatar = async (avatarPath, index) => {
+  const handleUploadAvatar = async () => {
     try {
-      const response = await fetch(avatarPath);
-      const blob = await response.blob();
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = `avatar-${index + 1}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
+      // Create file input element
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/jpeg,image/jpg,image/png,image/gif';
+      fileInput.multiple = false; // Ensure only single file selection
+      fileInput.style.display = 'none';
+      
+      fileInput.onchange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        
+        // Validate file type
+        const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+        if (!allowedTypes.includes(file.type)) {
+          alert('Please select a valid image file (JPG, PNG, or GIF)');
+          return;
+        }
+        
+        // Validate file size (5MB limit)
+        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        if (file.size > maxSize) {
+          alert('File size must be less than 5MB');
+          return;
+        }
+        
+        setUploadingAvatar('custom');
+        
+        try {
+          // Step 1: Get presigned URL
+          const fileName = file.name;
+          const fileType = file.type;
+          
+          const presignedResponse = await axios.post(`${baseUrl}events/presigned-urls`, {
+            files: [{ fileName, fileType }]
+          });
+          
+          if (presignedResponse.status !== 201) {
+            throw new Error('Failed to get presigned URL');
+          }
+          
+          const { url, imageUrl } = presignedResponse.data[0];
+          
+          // Step 2: Upload file to presigned URL
+          const uploadResponse = await fetch(url, {
+            method: 'PUT',
+            body: file,
+            headers: {
+              'Content-Type': fileType
+            }
+          });
+          
+          if (uploadResponse.status !== 200) {
+            throw new Error('Failed to upload file');
+          }
+          
+          // Step 3: Save image URL to user profile
+          const saveResponse = await axios.post(`${baseUrl}auth/me/save-image`, {
+            imageUrl
+          }, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`
+            }
+          });
+          
+          if (saveResponse.status === 201) {
+            // Update the avatar in the UI and store in localStorage
+            handleAvatarSelect(imageUrl);
+            localStorage.setItem('profileImageUrl', imageUrl);
+            
+            // Reset dropdown view to main to show updated avatar
+            setDropdownView('main');
+            
+            toast.success('Profile picture updated successfully!');
+          }
+          
+        } catch (error) {
+          console.error('Error uploading avatar:', error);
+          alert('Failed to upload image. Please try again.');
+        } finally {
+          setUploadingAvatar(null);
+        }
+      };
+      
+      // Trigger file selection
+      document.body.appendChild(fileInput);
+      fileInput.click();
+      document.body.removeChild(fileInput);
+      
     } catch (error) {
-      console.error('Error downloading avatar:', error);
+      console.error('Error setting up file upload:', error);
+      setUploadingAvatar(null);
     }
   };
 
@@ -162,7 +269,7 @@ export default function Topbar() {
             <button onClick={() => { setShowLoginModal(true); setCurrentModalView('login'); }} className="text-black font-normal hover:underline">Login</button>
           ) : (
             <div className="relative">
-              <img
+              <ProfileImage
                 src={selectedAvatar}
                 alt="Profile"
                 className="h-11 w-11 rounded-full object-cover cursor-pointer profile-image"
@@ -180,13 +287,13 @@ export default function Topbar() {
                     <div className="py-2">
                       <div className="px-4 py-3 border-b border-gray-200">
                         <div className="flex items-center space-x-3">
-                          <img
+                          <ProfileImage
                             src={selectedAvatar}
                             alt="Profile"
                             className="h-10 w-10 rounded-full object-cover"
                           />
                           <div>
-                            <div className="font-medium text-gray-900">User Name</div>
+                            <div className="font-medium text-gray-900">{userEmail}</div>
                             <div className="text-sm text-gray-500">See your profile</div>
                           </div>
                         </div>
@@ -276,51 +383,58 @@ export default function Topbar() {
                         <h3 className="text-lg font-medium">User Profile </h3>
                       </div>
                       
-                      <div className="p-4">
-                         <div className="grid grid-cols-3 gap-4">
-                           {AVATAR_OPTIONS.map((avatar, index) => (
-                             <div key={index} className="relative group">
-                               <div className="relative">
-                                 <button
-                                   onClick={() => handleAvatarSelectClick(avatar)}
-                                   className="relative w-full block"
-                                 >
-                                   <img
-                                     src={avatar}
-                                     alt={`Avatar ${index + 1}`}
-                                     className={`w-16 h-16 rounded-full object-cover transition-all duration-200 ${
-                                       selectedAvatar === avatar 
-                                         ? 'ring-4 ring-blue-500 ring-offset-2 ring-offset-white' 
-                                         : 'group-hover:ring-2 group-hover:ring-blue-400 group-hover:ring-offset-2 group-hover:ring-offset-white'
-                                     }`}
-                                   />
-                                   {selectedAvatar === avatar && (
-                                     <div className="absolute -top-2 -right-2 bg-blue-500 rounded-full p-1.5 shadow-lg border-2 border-white">
-                                       <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                         <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                       </svg>
-                                     </div>
-                                   )}
-                                 </button>
-                                 
-                                 {/* Download button */}
-                                 <button
-                                   onClick={(e) => {
-                                     e.stopPropagation();
-                                     handleDownloadAvatar(avatar, index);
-                                   }}
-                                   className="absolute -bottom-2 -right-2 bg-gray-600 hover:bg-gray-700 text-white p-2 rounded-full shadow-lg border-2 border-white transition-all duration-200 opacity-0 group-hover:opacity-100 transform scale-90 group-hover:scale-100"
-                                   title="Download Avatar"
-                                 >
-                                   <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                                     <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                                   </svg>
-                                 </button>
-                               </div>
-                             </div>
-                           ))}
-                         </div>
-                       </div>
+                      <div className="p-6">
+                        {/* Current Avatar Display */}
+                        <div className="flex flex-col items-center mb-6">
+                          <div className="relative mb-4">
+                            <ProfileImage
+                              src={selectedAvatar || '/avatar1.png'}
+                              alt="Current Avatar"
+                              className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 shadow-lg"
+                            />
+                            {selectedAvatar && (
+                              <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1.5 shadow-lg border-2 border-white">
+                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                            )}
+                          </div>
+                          <h4 className="text-lg font-medium text-gray-900 mb-2">Profile Picture</h4>
+                          <p className="text-sm text-gray-500 text-center mb-6">Upload a custom image to personalize your profile</p>
+                        </div>
+                        
+                        {/* Upload Button */}
+                        <div className="space-y-4">
+                          <button
+                            onClick={handleUploadAvatar}
+                            disabled={uploadingAvatar === 'custom'}
+                            className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-blue-300 disabled:to-blue-400 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none"
+                          >
+                            {uploadingAvatar === 'custom' ? (
+                              <>
+                                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
+                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                <span className="font-medium">Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                                </svg>
+                                <span className="font-medium">Choose Image</span>
+                              </>
+                            )}
+                          </button>
+                          
+                          <div className="text-xs text-gray-500 text-center">
+                            <p>Supported formats: JPG, PNG, GIF</p>
+                            <p>Maximum file size: 5MB</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
 
