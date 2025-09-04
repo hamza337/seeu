@@ -4,6 +4,7 @@ import { IoHelpOutline } from "react-icons/io5";
 import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
 import { useLoginModal } from '../../contexts/LoginModalContext';
+import { useNotification } from '../../contexts/NotificationContext';
 import LoginModal from '../modals/LoginModal';
 import toast from 'react-hot-toast';
 
@@ -57,18 +58,31 @@ export default function Topbar() {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showAvatarModal, setShowAvatarModal] = useState(false);
-  const [dropdownView, setDropdownView] = useState('main'); // 'main', 'avatar', 'settings', 'language'
+  const [dropdownView, setDropdownView] = useState('main'); // 'main', 'avatar', 'settings', 'language', 'profile'
   const [searchLanguage, setSearchLanguage] = useState('');
   const [uploadingAvatar, setUploadingAvatar] = useState(null); // Track which avatar is being uploaded
+  
+  // Profile form states
+  const [profileData, setProfileData] = useState({
+    firstName: '',
+    lastName: '',
+    phoneNumber: '',
+    country: '',
+    address: '',
+    profileImageUrl: ''
+  });
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
   
   // Mobile responsiveness state
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   
   const baseUrl = import.meta.env.VITE_API_URL;
-  const userEmail = JSON.parse(localStorage.getItem('user'));
+  const storedUser = localStorage.getItem('user');
+  const userName = storedUser ? JSON.parse(storedUser).firstName + ' ' + JSON.parse(storedUser).lastName : null;
 
   const { setShowLoginModal, setIsAuthenticated, isAuthenticated } = useMap();
   const { user, selectedAvatar, handleLogout, handleAvatarSelect } = useLoginModal();
+  const { hasUnreadNotifications, unreadCount } = useNotification();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -108,13 +122,27 @@ export default function Topbar() {
     lang.nativeName.toLowerCase().includes(searchLanguage.toLowerCase())
   );
 
+  // Load profile data when component mounts or user changes
+  useEffect(() => {
+    if (user) {
+      setProfileData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phoneNumber: user.phoneNumber || '',
+        country: user.country || '',
+        address: user.address || '',
+        profileImageUrl: user.profileImageUrl || ''
+      });
+    }
+  }, [user]);
+
   const handleUploadAvatar = async () => {
     try {
       // Create file input element
       const fileInput = document.createElement('input');
       fileInput.type = 'file';
       fileInput.accept = 'image/jpeg,image/jpg,image/png,image/gif';
-      fileInput.multiple = false; // Ensure only single file selection
+      fileInput.multiple = false;
       fileInput.style.display = 'none';
       
       fileInput.onchange = async (event) => {
@@ -124,14 +152,14 @@ export default function Topbar() {
         // Validate file type
         const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
         if (!allowedTypes.includes(file.type)) {
-          alert('Please select a valid image file (JPG, PNG, or GIF)');
+          toast.error('Please select a valid image file (JPG, PNG, or GIF)');
           return;
         }
         
         // Validate file size (5MB limit)
-        const maxSize = 5 * 1024 * 1024; // 5MB in bytes
+        const maxSize = 5 * 1024 * 1024;
         if (file.size > maxSize) {
-          alert('File size must be less than 5MB');
+          toast.error('File size must be less than 5MB');
           return;
         }
         
@@ -165,29 +193,33 @@ export default function Topbar() {
             throw new Error('Failed to upload file');
           }
           
-          // Step 3: Save image URL to user profile
-          const saveResponse = await axios.post(`${baseUrl}auth/me/save-image`, {
-            imageUrl
+          // Step 3: Update profile with new image URL
+          const updateResponse = await axios.patch(`${baseUrl}auth/profile`, {
+            profileImageUrl: imageUrl
           }, {
             headers: {
               'Authorization': `Bearer ${localStorage.getItem('token')}`
             }
           });
           
-          if (saveResponse.status === 201) {
-            // Update the avatar in the UI and store in localStorage
+          if (updateResponse.status === 200) {
+            // Update the avatar in the UI and localStorage
             handleAvatarSelect(imageUrl);
             localStorage.setItem('profileImageUrl', imageUrl);
             
-            // Reset dropdown view to main to show updated avatar
-            setDropdownView('main');
+            // Update user data in localStorage
+            const updatedUser = { ...user, profileImageUrl: imageUrl };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            
+            // Update profile form data
+            setProfileData(prev => ({ ...prev, profileImageUrl: imageUrl }));
             
             toast.success('Profile picture updated successfully!');
           }
           
         } catch (error) {
           console.error('Error uploading avatar:', error);
-          alert('Failed to upload image. Please try again.');
+          toast.error('Failed to upload image. Please try again.');
         } finally {
           setUploadingAvatar(null);
         }
@@ -202,6 +234,52 @@ export default function Topbar() {
       console.error('Error setting up file upload:', error);
       setUploadingAvatar(null);
     }
+  };
+
+  const handleProfileUpdate = async (e) => {
+    e.preventDefault();
+    setIsUpdatingProfile(true);
+    
+    try {
+      const updateData = {};
+      
+      // Only include fields that have values
+      Object.keys(profileData).forEach(key => {
+        if (profileData[key] && profileData[key].trim() !== '') {
+          updateData[key] = profileData[key].trim();
+        }
+      });
+      
+      const response = await axios.patch(`${baseUrl}auth/profile`, updateData, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+      
+      if (response.status === 200) {
+        // Update user data in localStorage
+        const updatedUser = { ...user, ...updateData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        // Update profile image if changed
+        if (updateData.profileImageUrl) {
+          handleAvatarSelect(updateData.profileImageUrl);
+          localStorage.setItem('profileImageUrl', updateData.profileImageUrl);
+        }
+        
+        toast.success('Profile updated successfully!');
+        setDropdownView('main');
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      toast.error('Failed to update profile. Please try again.');
+    } finally {
+      setIsUpdatingProfile(false);
+    }
+  };
+
+  const handleProfileInputChange = (field, value) => {
+    setProfileData(prev => ({ ...prev, [field]: value }));
   };
 
   // Add click-outside handler for dropdown
@@ -266,7 +344,7 @@ export default function Topbar() {
 
         <div className="flex items-center gap-6 ml-4">
           {!user ? (
-            <button onClick={() => { setShowLoginModal(true); setCurrentModalView('login'); }} className="text-black font-normal hover:underline">Login</button>
+            <button onClick={() => setShowLoginModal(true)} className="text-black font-normal hover:underline">Login</button>
           ) : (
             <div className="relative">
               <ProfileImage
@@ -280,6 +358,14 @@ export default function Topbar() {
                   setDropdownOpen(prev => !prev);
                 }}
               />
+              {/* Red dot indicator for unread notifications */}
+              {hasUnreadNotifications && (
+                <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-xs font-bold">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                </div>
+              )}
               {dropdownOpen && (
                 <div className="absolute right-0 mt-2 w-80 bg-white text-gray-900 rounded-lg shadow-2xl z-100 border border-gray-200 dropdown-menu">
                   {/* Main Menu */}
@@ -293,7 +379,7 @@ export default function Topbar() {
                             className="h-10 w-10 rounded-full object-cover"
                           />
                           <div>
-                            <div className="font-medium text-gray-900">{userEmail}</div>
+                            <div className="font-medium text-gray-900">{userName}</div>
                             <div className="text-sm text-gray-500">See your profile</div>
                           </div>
                         </div>
@@ -306,18 +392,29 @@ export default function Topbar() {
                           onClick={() => setDropdownOpen(false)}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
+                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center relative">
                               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
                                 <path fillRule="evenodd" d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z" clipRule="evenodd" />
                               </svg>
+                              {/* Red dot indicator for My Events */}
+                              {hasUnreadNotifications && (
+                                <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
+                              )}
                             </div>
                             <span>My Events</span>
                           </div>
+                          {hasUnreadNotifications && (
+                            <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
+                              <span className="text-white text-xs font-bold">
+                                {unreadCount > 9 ? '9+' : unreadCount}
+                              </span>
+                            </div>
+                          )}
                         </NavLink>
                         
                         <button
                           className="flex items-center justify-between w-full px-4 py-3 text-left hover:bg-gray-100 transition-colors"
-                          onClick={() => setDropdownView('avatar')}
+                          onClick={() => setDropdownView('profile')}
                         >
                           <div className="flex items-center space-x-3">
                             <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
@@ -368,8 +465,8 @@ export default function Topbar() {
                     </div>
                   )}
 
-                  {/* Avatar Selection View */}
-                  {dropdownView === 'avatar' && (
+                  {/* Profile Edit View */}
+                  {dropdownView === 'profile' && (
                     <div className="py-2">
                       <div className="flex items-center px-4 py-3 border-b border-gray-200">
                         <button
@@ -380,60 +477,115 @@ export default function Topbar() {
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
-                        <h3 className="text-lg font-medium">User Profile </h3>
+                        <h3 className="text-lg font-medium">Edit Profile</h3>
                       </div>
                       
-                      <div className="p-6">
-                        {/* Current Avatar Display */}
-                        <div className="flex flex-col items-center mb-6">
-                          <div className="relative mb-4">
-                            <ProfileImage
-                              src={selectedAvatar || '/avatar1.png'}
-                              alt="Current Avatar"
-                              className="w-24 h-24 rounded-full object-cover border-4 border-gray-200 shadow-lg"
+                      <div className="p-6 max-h-96 overflow-y-auto">
+                        <form onSubmit={handleProfileUpdate} className="space-y-4">
+                          {/* Profile Picture Section */}
+                          <div className="flex flex-col items-center mb-6">
+                            <div className="relative mb-4">
+                              <ProfileImage
+                                src={selectedAvatar}
+                                alt="Profile Picture"
+                                className="w-20 h-20 rounded-full object-cover border-4 border-gray-200 shadow-lg"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleUploadAvatar}
+                              disabled={uploadingAvatar === 'custom'}
+                              className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-blue-300"
+                            >
+                              {uploadingAvatar === 'custom' ? 'Uploading...' : 'Change Picture'}
+                            </button>
+                          </div>
+
+                          {/* Form Fields */}
+                          <div className="grid grid-cols-2 gap-4">
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                First Name
+                              </label>
+                              <input
+                                type="text"
+                                value={profileData.firstName}
+                                onChange={(e) => handleProfileInputChange('firstName', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Enter first name"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-sm font-medium text-gray-700 mb-1">
+                                Last Name
+                              </label>
+                              <input
+                                type="text"
+                                value={profileData.lastName}
+                                onChange={(e) => handleProfileInputChange('lastName', e.target.value)}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                placeholder="Enter last name"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Phone Number
+                            </label>
+                            <input
+                              type="tel"
+                              value={profileData.phoneNumber}
+                              onChange={(e) => handleProfileInputChange('phoneNumber', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Enter phone number"
                             />
-                            {selectedAvatar && (
-                              <div className="absolute -top-2 -right-2 bg-green-500 rounded-full p-1.5 shadow-lg border-2 border-white">
-                                <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                            )}
                           </div>
-                          <h4 className="text-lg font-medium text-gray-900 mb-2">Profile Picture</h4>
-                          <p className="text-sm text-gray-500 text-center mb-6">Upload a custom image to personalize your profile</p>
-                        </div>
-                        
-                        {/* Upload Button */}
-                        <div className="space-y-4">
-                          <button
-                            onClick={handleUploadAvatar}
-                            disabled={uploadingAvatar === 'custom'}
-                            className="w-full flex items-center justify-center space-x-3 px-6 py-4 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-blue-300 disabled:to-blue-400 text-white rounded-xl transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-[1.02] disabled:transform-none"
-                          >
-                            {uploadingAvatar === 'custom' ? (
-                              <>
-                                <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                                </svg>
-                                <span className="font-medium">Uploading...</span>
-                              </>
-                            ) : (
-                              <>
-                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                                </svg>
-                                <span className="font-medium">Choose Image</span>
-                              </>
-                            )}
-                          </button>
-                          
-                          <div className="text-xs text-gray-500 text-center">
-                            <p>Supported formats: JPG, PNG, GIF</p>
-                            <p>Maximum file size: 5MB</p>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Country
+                            </label>
+                            <input
+                              type="text"
+                              value={profileData.country}
+                              onChange={(e) => handleProfileInputChange('country', e.target.value)}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                              placeholder="Enter country"
+                            />
                           </div>
-                        </div>
+
+                          <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">
+                              Address
+                            </label>
+                            <textarea
+                              value={profileData.address}
+                              onChange={(e) => handleProfileInputChange('address', e.target.value)}
+                              rows={3}
+                              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
+                              placeholder="Enter address"
+                            />
+                          </div>
+
+                          {/* Action Buttons */}
+                          <div className="flex space-x-3 pt-4">
+                            <button
+                              type="button"
+                              onClick={() => setDropdownView('main')}
+                              className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                            >
+                              Cancel
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={isUpdatingProfile}
+                              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition-colors"
+                            >
+                              {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+                            </button>
+                          </div>
+                        </form>
                       </div>
                     </div>
                   )}

@@ -201,7 +201,7 @@ const HomeContent = () => {
   const [activeView, setActiveView] = useState('mapView'); // Add state for active view
   const [showLoginModal, setShowLoginModal] = useState(false); // Add state for login modal
   const [hoveredEvent, setHoveredEvent] = useState(null); // State for the hovered event
-  const [tooltipPosition, setTooltipPosition] = useState({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 }); // Initialize tooltip off-screen
+  const [tooltipPosition, setTooltipPosition] = useState({ x: -1000, y: -1000, anchor: 'left', markerX: 0, markerY: 0, arrowX: 0, arrowY: 0 }); // Initialize tooltip off-screen
   const tooltipRef = useRef(null); // Ref for the tooltip div
   const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
   const [showTooltip, setShowTooltip] = useState(false);
@@ -264,11 +264,33 @@ const HomeContent = () => {
   // Define the function to focus the map
   const focusMapOnLocation = useCallback((lat, lng) => {
     if (mapRef.current && isLoaded) {
-      console.log('Focusing map directly on:', { lat, lng });
-      mapRef.current.panTo({ lat, lng });
-      mapRef.current.setZoom(18); // Adjusted zoom level
+      // Convert to numbers and validate coordinates
+      const latitude = parseFloat(lat);
+      const longitude = parseFloat(lng);
+      
+      if (isNaN(latitude) || isNaN(longitude)) {
+        console.error('Invalid coordinates provided:', { lat, lng });
+        return;
+      }
+      
+      // Clear any animated marker to prevent interference
+      setAnimatedMarkerId(null);
+      
+      const targetLocation = { lat: latitude, lng: longitude };
+      
+      // Use a more aggressive approach for focusing
+      mapRef.current.setCenter(targetLocation);
+      mapRef.current.setZoom(18);
+      setCenter(targetLocation); // Update the center state as well
+      
+      // Also use panTo as a fallback
+      setTimeout(() => {
+        if (mapRef.current) {
+          mapRef.current.panTo(targetLocation);
+        }
+      }, 100);
     }
-  }, [isLoaded]); // Depend on isLoaded
+  }, [isLoaded, setAnimatedMarkerId]); // Depend on isLoaded and setAnimatedMarkerId
 
   // Define the function to get user's current location and focus map on it
   const getUserLocationAndFocus = useCallback(() => {
@@ -308,6 +330,18 @@ const HomeContent = () => {
       setGetUserLocationFn(() => getUserLocationAndFocus); // Set the function in context
     }
   }, [getUserLocationAndFocus, setGetUserLocationFn]); // Depend on the function and its setter
+
+  // Handle mapFocusLocation when component mounts or when it changes
+  useEffect(() => {
+    if (mapFocusLocation && mapFocusLocation.lat && mapFocusLocation.lng && focusMapOnLocation) {
+      // Small delay to ensure map is ready
+      setTimeout(() => {
+        focusMapOnLocation(mapFocusLocation.lat, mapFocusLocation.lng);
+        // Clear the mapFocusLocation after focusing
+        setMapFocusLocation(null);
+      }, 200);
+    }
+  }, [mapFocusLocation, focusMapOnLocation, setMapFocusLocation]); // Depend on mapFocusLocation and related functions
 
   const fetchEvents = async (bounds) => {
     try {
@@ -491,7 +525,7 @@ const HomeContent = () => {
                      const tooltipHeight = 280;
                      
                      // Smart tooltip positioning - calculate available space in all directions
-                     const offset = 15;
+                     const offset = 25;
                      const padding = 10;
                      
                      // Calculate available space in each direction
@@ -501,69 +535,47 @@ const HomeContent = () => {
                      const spaceBottom = mapHeight - screenY - padding;
                      
                      // Determine the best position based on available space
-                     let tooltipX, tooltipY, anchorPosition;
+                     let tooltipX, tooltipY, anchorPosition, arrowX, arrowY;
                      
                      // Priority order: right, left, bottom, top (most professional looking)
                      if (spaceRight >= tooltipWidth + offset) {
                          // Position to the right
                          tooltipX = screenX + offset;
                          tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
-                         
-                         // Determine arrow vertical position
-                         if (tooltipY <= padding) {
-                             anchorPosition = 'left-top';
-                         } else if (tooltipY + tooltipHeight >= mapHeight - padding) {
-                             anchorPosition = 'left-bottom';
-                         } else {
-                             anchorPosition = 'left-center';
-                         }
+                         anchorPosition = 'left';
+                         // Calculate exact arrow position to point at marker
+                         arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                      } else if (spaceLeft >= tooltipWidth + offset) {
                          // Position to the left
                          tooltipX = screenX - tooltipWidth - offset;
                          tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
-                         
-                         // Determine arrow vertical position
-                         if (tooltipY <= padding) {
-                             anchorPosition = 'right-top';
-                         } else if (tooltipY + tooltipHeight >= mapHeight - padding) {
-                             anchorPosition = 'right-bottom';
-                         } else {
-                             anchorPosition = 'right-center';
-                         }
+                         anchorPosition = 'right';
+                         // Calculate exact arrow position to point at marker
+                         arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                      } else if (spaceBottom >= tooltipHeight + offset) {
                          // Position below
                          tooltipY = screenY + offset;
                          tooltipX = Math.max(padding, Math.min(screenX - tooltipWidth / 2, mapWidth - tooltipWidth - padding));
-                         
-                         // Determine arrow horizontal position
-                         if (tooltipX <= padding) {
-                             anchorPosition = 'top-left';
-                         } else if (tooltipX + tooltipWidth >= mapWidth - padding) {
-                             anchorPosition = 'top-right';
-                         } else {
-                             anchorPosition = 'top-center';
-                         }
+                         anchorPosition = 'top';
+                         // Calculate exact arrow position to point at marker
+                         arrowX = Math.max(9, Math.min(screenX - tooltipX, tooltipWidth - 9));
                      } else if (spaceTop >= tooltipHeight + offset) {
                          // Position above
                          tooltipY = screenY - tooltipHeight - offset;
                          tooltipX = Math.max(padding, Math.min(screenX - tooltipWidth / 2, mapWidth - tooltipWidth - padding));
-                         
-                         // Determine arrow horizontal position
-                         if (tooltipX <= padding) {
-                             anchorPosition = 'bottom-left';
-                         } else if (tooltipX + tooltipWidth >= mapWidth - padding) {
-                             anchorPosition = 'bottom-right';
-                         } else {
-                             anchorPosition = 'bottom-center';
-                         }
+                         anchorPosition = 'bottom';
+                         // Calculate exact arrow position to point at marker
+                         arrowX = Math.max(9, Math.min(screenX - tooltipX, tooltipWidth - 9));
                      } else {
                          // Fallback: position where there's most space (right side preferred)
                          if (spaceRight >= spaceLeft) {
                              tooltipX = screenX + offset;
-                             anchorPosition = 'left-center';
+                             anchorPosition = 'left';
+                             arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                          } else {
                              tooltipX = screenX - tooltipWidth - offset;
-                             anchorPosition = 'right-center';
+                             anchorPosition = 'right';
+                             arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                          }
                          tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
                      }
@@ -573,7 +585,9 @@ const HomeContent = () => {
                          y: tooltipY, 
                          anchor: anchorPosition,
                          markerX: screenX,
-                         markerY: screenY
+                         markerY: screenY,
+                         arrowX: arrowX,
+                         arrowY: arrowY
                      });
                      console.log('Calculated tooltip position:', { x: tooltipX, y: tooltipY, anchor: anchorPosition });
                  }
@@ -587,7 +601,7 @@ const HomeContent = () => {
              mouseOutTimerRef.current = setTimeout(() => {
                  setHoveredEvent(null);
                  setHoveredEventId(null); // Only clear hoveredEventId
-                 setTooltipPosition({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 }); // Hide tooltip by moving it off-screen
+                 setTooltipPosition({ x: -1000, y: -1000, anchor: 'left', markerX: 0, markerY: 0, arrowX: 0, arrowY: 0 }); // Hide tooltip by moving it off-screen
              }, 100); // Use a slightly longer delay here
           });
 
@@ -744,9 +758,14 @@ const HomeContent = () => {
     }
   }, [animatedMarkerId, mapRef.current]);
 
-  // Effect to apply animation to markers
+  // Effect to apply glow animation to markers
   useEffect(() => {
-    let animationInterval = null;
+    // Remove glow from all markers first
+    const allMarkerImages = document.querySelectorAll('img[src*=".svg"]');
+    allMarkerImages.forEach(img => {
+      img.classList.remove('marker-glow');
+      img.parentElement?.classList.remove('marker-glow');
+    });
     
     if (animatedMarkerId) {
       // Find the marker to animate
@@ -755,44 +774,39 @@ const HomeContent = () => {
       );
       
       if (targetMarker) {
-        const originalPosition = targetMarker.getPosition();
-        const originalLat = originalPosition.lat();
-        const originalLng = originalPosition.lng();
-        let isUp = false;
-        
-        // Create bouncing animation
-        animationInterval = setInterval(() => {
-          if (isUp) {
-            // Normal position
-            targetMarker.setPosition(new window.google.maps.LatLng(originalLat, originalLng));
-          } else {
-            // Bounced up position (move up by a small amount)
-            const bounceOffset = 0.0002; // Small offset for bouncing effect
-            targetMarker.setPosition(new window.google.maps.LatLng(originalLat + bounceOffset, originalLng));
+        // Add glow effect using CSS by finding the marker's DOM element
+        setTimeout(() => {
+          const iconUrl = targetMarker.getIcon()?.url;
+          if (iconUrl) {
+            // Find the specific marker image in the DOM
+            const markerImages = document.querySelectorAll('img[src*=".svg"]');
+            markerImages.forEach(img => {
+              if (img.src.includes(iconUrl.split('/').pop() || '')) {
+                // Apply glow to the image itself
+                img.classList.add('marker-glow');
+                // Also apply to parent div for better effect
+                if (img.parentElement) {
+                  img.parentElement.classList.add('marker-glow');
+                }
+              }
+            });
           }
-          isUp = !isUp;
-        }, 250); // Change position every 300ms for bouncing effect
+        }, 200); // Increased timeout to ensure DOM is ready
       }
     }
     
     // Cleanup function
     return () => {
-      if (animationInterval) {
-        clearInterval(animationInterval);
-      }
-      
-      // Reset all markers to their original positions when animation stops
-      markersRef.current.forEach(marker => {
-        if (marker.eventData) {
-          // Reset to original position if this was the animated marker
-          if (marker.eventData.id === animatedMarkerId) {
-            const originalPosition = marker.getPosition();
-            const originalLat = originalPosition.lat();
-            const originalLng = originalPosition.lng();
-            marker.setPosition(new window.google.maps.LatLng(originalLat, originalLng));
-          }
-        }
+      // Remove glow from all marker elements
+      const allMarkerImages = document.querySelectorAll('img[src*=".svg"]');
+      allMarkerImages.forEach(img => {
+        img.classList.remove('marker-glow');
+        img.parentElement?.classList.remove('marker-glow');
       });
+      
+      // Also clean up any remaining glow effects
+      const glowElements = document.querySelectorAll('.marker-glow');
+      glowElements.forEach(el => el.classList.remove('marker-glow'));
     };
   }, [animatedMarkerId]);
 
@@ -855,7 +869,7 @@ const HomeContent = () => {
           {/* Always render the tooltip for fade effect */}
           <div
             ref={tooltipRef}
-            className={`event-tooltip absolute z-20 bg-gray-200 text-gray-800 p-3 rounded shadow-lg transition-opacity duration-400
+            className={`event-tooltip absolute z-20 bg-white text-gray-800 p-3 rounded-lg shadow-xl border border-gray-300 transition-opacity duration-400
               ${hoveredEvent ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             style={{
               top: tooltipPosition.y,
@@ -866,113 +880,111 @@ const HomeContent = () => {
           >
             {/* Tooltip Arrow */}
             <div
-              className="absolute w-0 h-0"
+              className="absolute"
               style={{
-                filter: 'drop-shadow(0 1px 3px rgba(0, 0, 0, 0.1))',
-                
-                // Left side arrows (tooltip is to the right of marker)
-                ...(tooltipPosition.anchor === 'left-center' && {
-                  left: '-8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  borderTop: '8px solid transparent',
-                  borderBottom: '8px solid transparent',
-                  borderRight: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'left-top' && {
-                  left: '-8px',
-                  top: '20px',
-                  borderTop: '8px solid transparent',
-                  borderBottom: '8px solid transparent',
-                  borderRight: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'left-bottom' && {
-                  left: '-8px',
-                  bottom: '20px',
-                  borderTop: '8px solid transparent',
-                  borderBottom: '8px solid transparent',
-                  borderRight: '8px solid #e5e7eb',
-                }),
-                
-                // Right side arrows (tooltip is to the left of marker)
-                ...(tooltipPosition.anchor === 'right-center' && {
-                  right: '-8px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  borderTop: '8px solid transparent',
-                  borderBottom: '8px solid transparent',
-                  borderLeft: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'right-top' && {
-                  right: '-8px',
-                  top: '20px',
-                  borderTop: '8px solid transparent',
-                  borderBottom: '8px solid transparent',
-                  borderLeft: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'right-bottom' && {
-                  right: '-8px',
-                  bottom: '20px',
-                  borderTop: '8px solid transparent',
-                  borderBottom: '8px solid transparent',
-                  borderLeft: '8px solid #e5e7eb',
-                }),
-                
-                // Top arrows (tooltip is below marker)
-                ...(tooltipPosition.anchor === 'top-center' && {
-                  top: '-8px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderBottom: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'top-left' && {
-                  top: '-8px',
-                  left: '20px',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderBottom: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'top-right' && {
-                  top: '-8px',
-                  right: '20px',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderBottom: '8px solid #e5e7eb',
-                }),
-                
-                // Bottom arrows (tooltip is above marker)
-                ...(tooltipPosition.anchor === 'bottom-center' && {
-                  bottom: '-8px',
-                  left: '50%',
-                  transform: 'translateX(-50%)',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderTop: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'bottom-left' && {
-                  bottom: '-8px',
-                  left: '20px',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderTop: '8px solid #e5e7eb',
-                }),
-                ...(tooltipPosition.anchor === 'bottom-right' && {
-                  bottom: '-8px',
-                  right: '20px',
-                  borderLeft: '8px solid transparent',
-                  borderRight: '8px solid transparent',
-                  borderTop: '8px solid #e5e7eb',
-                }),
-              }}
-            />
+              // Left side arrows (tooltip is to the right of marker)
+              ...(tooltipPosition.anchor === 'left' && {
+                left: '-9px',
+                top: `${tooltipPosition.arrowY}px`,
+              }),
+              
+              // Right side arrows (tooltip is to the left of marker)
+              ...(tooltipPosition.anchor === 'right' && {
+                right: '-9px',
+                top: `${tooltipPosition.arrowY}px`,
+              }),
+              
+              // Top arrows (tooltip is below marker)
+              ...(tooltipPosition.anchor === 'top' && {
+                top: '-9px',
+                left: `${tooltipPosition.arrowX}px`,
+              }),
+              
+              // Bottom arrows (tooltip is above marker)
+              ...(tooltipPosition.anchor === 'bottom' && {
+                bottom: '-9px',
+                left: `${tooltipPosition.arrowX}px`,
+              }),
+            }}
+            >
+              {/* Arrow border (gray) */}
+               <div
+                 className="absolute w-0 h-0"
+                 style={{
+                   // Left side arrows - border
+                   ...(tooltipPosition.anchor === 'left' && {
+                     borderTop: '9px solid transparent',
+                     borderBottom: '9px solid transparent',
+                     borderRight: '9px solid #d1d5db',
+                   }),
+                   
+                   // Right side arrows - border
+                   ...(tooltipPosition.anchor === 'right' && {
+                     borderTop: '9px solid transparent',
+                     borderBottom: '9px solid transparent',
+                     borderLeft: '9px solid #d1d5db',
+                   }),
+                   
+                   // Top arrows - border
+                   ...(tooltipPosition.anchor === 'top' && {
+                     borderLeft: '9px solid transparent',
+                     borderRight: '9px solid transparent',
+                     borderBottom: '9px solid #d1d5db',
+                   }),
+                   
+                   // Bottom arrows - border
+                   ...(tooltipPosition.anchor === 'bottom' && {
+                     borderLeft: '9px solid transparent',
+                     borderRight: '9px solid transparent',
+                     borderTop: '9px solid #d1d5db',
+                   }),
+                 }}
+               />
+              {/* Arrow fill (white) */}
+              <div
+                className="absolute w-0 h-0"
+                style={{
+                  // Left side arrows - fill
+                  ...(tooltipPosition.anchor === 'left' && {
+                    left: '1px',
+                    borderTop: '8px solid transparent',
+                    borderBottom: '8px solid transparent',
+                    borderRight: '8px solid white',
+                  }),
+                  
+                  // Right side arrows - fill
+                  ...(tooltipPosition.anchor === 'right' && {
+                    right: '1px',
+                    borderTop: '8px solid transparent',
+                    borderBottom: '8px solid transparent',
+                    borderLeft: '8px solid white',
+                  }),
+                  
+                  // Top arrows - fill
+                  ...(tooltipPosition.anchor === 'top' && {
+                    top: '1px',
+                    borderLeft: '8px solid transparent',
+                    borderRight: '8px solid transparent',
+                    borderBottom: '8px solid white',
+                  }),
+                  
+                  // Bottom arrows - fill
+                  ...(tooltipPosition.anchor === 'bottom' && {
+                    bottom: '1px',
+                    borderLeft: '8px solid transparent',
+                    borderRight: '8px solid transparent',
+                    borderTop: '8px solid white',
+                  }),
+                }}
+              />
+            </div>
             <h3 className="font-semibold text-base mb-1">{hoveredEvent?.category || 'Unknown Category'}</h3>
             <p className="text-xs mb-1">{hoveredEvent?.address || 'No address'}</p>
+            <p className="text-xs text-red-500 mb-1">{hoveredEvent?.date || 'N/A'}</p>
             {/* Media Info Row */}
             <div className="grid grid-cols-2 gap-2 mb-2" style={{ width: 180 }}>
               <div
-                className="bg-white text-gray-800 text-xs rounded flex flex-col justify-center items-center"
+                className="bg-gray-100 text-gray-800 text-xs rounded flex flex-col justify-center items-center"
                 style={{ width: 80, height: 80 }}
               >
                 <div className="text-center">
@@ -985,7 +997,7 @@ const HomeContent = () => {
                 </div>
               </div>
               <div
-                className="bg-white rounded overflow-hidden flex items-center justify-center"
+                className="bg-gray-100 rounded overflow-hidden flex items-center justify-center"
                 style={{ width: 80, height: 80 }}
               >
                 {(() => {
@@ -1037,7 +1049,7 @@ const HomeContent = () => {
             </div>
 
             {/* Description and Claim Button Grouped */}
-            <div className="bg-white rounded flex flex-col items-stretch my-2">
+            <div className="bg-gray-100 rounded flex flex-col items-stretch my-2">
               <div className="px-2 py-2 text-xs text-gray-800">
                 {hoveredEvent?.description
                   ? hoveredEvent.description.slice(0, 50) + (hoveredEvent.description.length > 50 ? '...' : '')

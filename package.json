@@ -16,6 +16,7 @@
     "axios": "^1.9.0",
     "date-fns": "^4.1.0",
     "ejs": "^3.1.10",
+    "jszip": "^3.10.1",
     "lodash": "^4.17.21",
     "lodash.debounce": "^4.0.8",
     "lucide-react": "^0.503.0",
@@ -26,6 +27,7 @@
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
     "react-icons": "^5.5.0",
+    "react-phone-number-input": "^3.4.12",
     "react-router-dom": "^7.5.2",
     "tailwindcss": "^4.1.4"
   },

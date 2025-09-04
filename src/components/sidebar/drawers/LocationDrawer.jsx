@@ -1,5 +1,5 @@
 import React,{ useEffect, useState, useRef } from 'react';
-import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star, Video, Trash2, Info } from 'lucide-react';
+import { X, SquareActivity, PawPrint, Camera, Bike, MapPin, DollarSign, Check, Star, Video, Trash2, Info, Mail, Phone, ChevronDown } from 'lucide-react';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
@@ -25,10 +25,15 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const drawerRef = useRef(null);
   const autocompleteRef = useRef(null);
+  const sharingDropdownRef = useRef(null);
   const [mainMediaIndex, setMainMediaIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [previews, setPreviews] = useState([]);
   const [showExclusiveTooltip, setShowExclusiveTooltip] = useState(false);
+  const [shareEmail, setShareEmail] = useState(false);
+  const [sharePhone, setSharePhone] = useState(false);
+  const [showSharingDropdown, setShowSharingDropdown] = useState(false);
+  const [sharingError, setSharingError] = useState('');
 
   const baseUrl = import.meta.env.VITE_API_URL;
 
@@ -56,6 +61,23 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  // Handle click outside to close sharing dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (sharingDropdownRef.current && !sharingDropdownRef.current.contains(event.target)) {
+        setShowSharingDropdown(false);
+      }
+    };
+
+    if (showSharingDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showSharingDropdown]);
 
   const categoryPlaceholders = {
     'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
@@ -113,6 +135,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       setDescriptionError('');
       setPriceError('');
       setMainMediaIndex(0);
+      setShareEmail(false);
+      setSharePhone(false);
+      setShowSharingDropdown(false);
+      setSharingError('');
     }
   }, [isOpen]);
 
@@ -215,6 +241,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     setDescriptionError('');
     setPriceError('');
     setFormError('');
+    setSharingError('');
 
     // Validate file uploads
     if (uploads.length === 0) {
@@ -266,6 +293,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       }
     }
 
+    // Validate contact sharing
+    if (!shareEmail && !sharePhone) {
+      setSharingError('Please select at least one contact sharing option.');
+      isValid = false;
+    }
+
     return isValid;
   };    
 
@@ -273,6 +306,15 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     // Validate form before submission
     if (!validateForm()) {
       return;
+    }
+
+    // Check phone number if user wants to share it
+    if (sharePhone) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (!user.phoneNumber) {
+        toast.error('Please update your profile with a phone number to share it with buyers.');
+        return;
+      }
     }
 
     setFormError('');
@@ -321,6 +363,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         isFree,
         price: isFree ? 0 : Number(price),
         date: selectedDate.toISOString(),
+        shareEmail,
+        sharePhone,
       };
 
       const createEventRes = await axios.post(`${baseUrl}events/create-event`, createEventPayload, {
@@ -343,6 +387,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         setFileError('');
         setFormError('');
         setMainMediaIndex(0);
+        setShareEmail(false);
+        setSharePhone(false);
+        setShowSharingDropdown(false);
+        setSharingError('');
         if (autocompleteRef.current && typeof autocompleteRef.current.setVal === 'function') {
             autocompleteRef.current.setVal('');
         } else {
@@ -603,6 +651,61 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             )}
           </div>
         </label>
+
+        {/* Contact Sharing Preferences */}
+        <div className="space-y-2">
+          <label className="block text-gray-800 font-semibold text-sm">Share Contact Information</label>
+          <div className="relative" ref={sharingDropdownRef}>
+            <button
+              type="button"
+              onClick={() => setShowSharingDropdown(!showSharingDropdown)}
+              className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex items-center justify-between hover:bg-gray-300 transition-all duration-200`}
+            >
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {shareEmail && <Mail size={16} className="text-gray-600" />}
+                  {sharePhone && <Phone size={16} className="text-gray-600" />}
+                </div>
+                <span className="text-gray-700 text-sm">
+                  {!shareEmail && !sharePhone ? 'Select contact options' : 
+                   shareEmail && sharePhone ? 'Email & Phone' :
+                   shareEmail ? 'Email only' : 'Phone only'}
+                </span>
+              </div>
+              <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${showSharingDropdown ? 'rotate-180' : ''}`} />
+            </button>
+            
+            {showSharingDropdown && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border-dotted border-1 border-gray-500 rounded-xl shadow-lg z-50">
+                <div className="p-2 space-y-1">
+                  <label className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={shareEmail}
+                      onChange={(e) => setShareEmail(e.target.checked)}
+                      className="w-4 h-4 text-gray-600 rounded focus:ring-gray-500"
+                    />
+                    <Mail size={16} className="text-gray-600" />
+                    <span className="text-sm text-gray-700">Share Email Address</span>
+                  </label>
+                  <label className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors">
+                    <input
+                      type="checkbox"
+                      checked={sharePhone}
+                      onChange={(e) => setSharePhone(e.target.checked)}
+                      className="w-4 h-4 text-gray-600 rounded focus:ring-gray-500"
+                    />
+                    <Phone size={16} className="text-gray-600" />
+                    <span className="text-sm text-gray-700">Share Phone Number</span>
+                  </label>
+                </div>
+              </div>
+            )}
+          </div>
+          {sharingError && (
+            <p className="text-red-500 text-xs mt-1">{sharingError}</p>
+          )}
+        </div>
 
         <button onClick={handleSubmit} className={`${isMobile ? 'w-1/2 py-2 text-sm' : 'w-1/3 py-2'} hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto`} disabled={loading}>
           <img src="/brandLogoFinal.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />

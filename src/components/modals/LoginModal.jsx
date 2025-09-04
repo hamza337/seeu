@@ -1,5 +1,7 @@
 import { X, Eye, EyeOff } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import PhoneInput from 'react-phone-number-input';
+import 'react-phone-number-input/style.css';
 import { useLoginModal } from '../../contexts/LoginModalContext';
 import { useMap } from '../../contexts/MapContext';
 
@@ -9,6 +11,8 @@ export default function LoginModal() {
     currentModalView,
     email,
     setEmail,
+    phoneNumber,
+    setPhoneNumber,
     password,
     setPassword,
     confirmPassword,
@@ -103,6 +107,23 @@ export default function LoginModal() {
                     onChange={(e) => setEmail(e.target.value)}
                     className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
                     placeholder="you@example.com"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className={`block text-black font-medium mb-1 ${isMobile ? 'text-xs' : 'text-sm'}`}>Phone Number</label>
+                  <PhoneInput
+                    international
+                    countryCallingCodeEditable={false}
+                    defaultCountry="US"
+                    value={phoneNumber}
+                    onChange={setPhoneNumber}
+                    className={`w-full border border-black text-black rounded-lg focus:outline-none ${isMobile ? 'px-2 py-1.5 text-sm' : 'px-3 py-2'}`}
+                    style={{
+                      '--PhoneInputCountryFlag-height': '1em',
+                      '--PhoneInputCountrySelectArrow-color': '#6b7280',
+                      '--PhoneInput-color--focus': '#2563eb'
+                    }}
                     required
                   />
                 </div>

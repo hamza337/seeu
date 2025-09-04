@@ -72,13 +72,14 @@ export default function Sidebar() {
       setIsSidebarExpanded(true);
     }
     
-    // Clear map focus
-    setMapFocusLocation(null);
-    
-    // Reset map to user's current location
-    if (getUserLocationFn) {
+    // Only reset map to user's current location if there's no pending map focus
+    // This prevents interference with event location focusing from notifications
+    if (getUserLocationFn && !mapFocusLocation) {
       getUserLocationFn();
     }
+    
+    // Clear map focus after checking
+    setMapFocusLocation(null);
   };
 
   const toggleDrawer = (drawer) => {
@@ -218,7 +219,29 @@ export default function Sidebar() {
           }}
           notifyMeParams={notifyMeParams}
           isSidebarExpanded={isSidebarExpanded}
-          onEventClick={event => setModalEventId(event.id)}
+          onEventClick={event => {
+            // Set modal event ID to open the event details
+            setModalEventId(event.id);
+            
+            // Navigate to home page if not already there
+            if (location.pathname !== '/') {
+              navigate('/');
+            }
+            
+            // Focus map on event location with smooth transition
+            if (event.latitude && event.longitude && focusMapFn) {
+              // Small delay to ensure navigation completes before focusing map
+              setTimeout(() => {
+                focusMapFn(event.latitude, event.longitude);
+              }, location.pathname !== '/' ? 100 : 0);
+            }
+            
+            // Close the results drawer for a cleaner experience
+            setActiveDrawer(null);
+            if (window.innerWidth >= 600) {
+              setIsSidebarExpanded(true);
+            }
+          }}
         />
       )}
     </>

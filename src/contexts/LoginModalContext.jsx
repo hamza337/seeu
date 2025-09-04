@@ -17,6 +17,7 @@ export const useLoginModal = () => {
 export const LoginModalProvider = ({ children }) => {
   const [currentModalView, setCurrentModalView] = useState('login');
   const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
@@ -44,18 +45,21 @@ export const LoginModalProvider = ({ children }) => {
 
   useEffect(() => {
     const storedUser = localStorage.getItem('user');
-    const storedAvatar = localStorage.getItem('userAvatar');
     const storedProfileImage = localStorage.getItem('profileImageUrl');
     
     if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
-    
-    // Prioritize profileImageUrl over userAvatar
-    if (storedProfileImage) {
-      setSelectedAvatar(storedProfileImage);
-    } else if (storedAvatar) {
-      setSelectedAvatar(storedAvatar);
+      const userData = JSON.parse(storedUser);
+      setUser(userData);
+      
+      // Set profile image from stored data or user data
+      if (storedProfileImage) {
+        setSelectedAvatar(storedProfileImage);
+      } else if (userData.profileImageUrl) {
+        setSelectedAvatar(userData.profileImageUrl);
+        localStorage.setItem('profileImageUrl', userData.profileImageUrl);
+      } else {
+        setSelectedAvatar('/icons8-male-user-48.png');
+      }
     }
   }, []);
 
@@ -88,6 +92,7 @@ export const LoginModalProvider = ({ children }) => {
     try {
       const response = await axios.post(`${baseUrl}auth/register`, {
         email,
+        phoneNumber,
         password,
       });
       if (response.status === 201) {
@@ -95,6 +100,7 @@ export const LoginModalProvider = ({ children }) => {
         setShowLoginModal(false);
         setCurrentModalView('login');
         setEmail('');
+        setPhoneNumber('');
         setPassword('');
         setConfirmPassword('');
         setError('');
@@ -112,13 +118,15 @@ export const LoginModalProvider = ({ children }) => {
         password,
       });
       if (response.status === 201) {
+        // Store the complete login response
         localStorage.setItem('user', JSON.stringify(response.data.user));
         localStorage.setItem('token', response.data.access_token);
+        // localStorage.setItem('loginResponse', JSON.stringify(response.data));
         
         // Store profile image URL if available
-        if (response.data.profileImageUrl) {
-          localStorage.setItem('profileImageUrl', response.data.profileImageUrl);
-          setSelectedAvatar(response.data.profileImageUrl);
+        if (response.data.user.profileImageUrl) {
+          localStorage.setItem('profileImageUrl', response.data.user.profileImageUrl);
+          setSelectedAvatar(response.data.user.profileImageUrl);
         } else {
           // Remove any existing profile image URL if user doesn't have one
           localStorage.removeItem('profileImageUrl');
@@ -208,6 +216,7 @@ export const LoginModalProvider = ({ children }) => {
     setCurrentModalView('login');
     setError('');
     setEmail('');
+    setPhoneNumber('');
     setPassword('');
     setConfirmPassword('');
     setShowPassword(false);
@@ -220,6 +229,7 @@ export const LoginModalProvider = ({ children }) => {
     localStorage.removeItem('user');
     localStorage.removeItem('userAvatar');
     localStorage.removeItem('profileImageUrl');
+    // localStorage.removeItem('loginResponse');
     setIsAuthenticated(false);
     setUser(null);
     setSelectedAvatar('/icons8-male-user-48.png');
@@ -248,6 +258,7 @@ export const LoginModalProvider = ({ children }) => {
     setCurrentModalView(view);
     setError('');
     setEmail('');
+    setPhoneNumber('');
     setPassword('');
     setConfirmPassword('');
     setShowPassword(false);
@@ -258,6 +269,8 @@ export const LoginModalProvider = ({ children }) => {
     currentModalView,
     email,
     setEmail,
+    phoneNumber,
+    setPhoneNumber,
     password,
     setPassword,
     confirmPassword,

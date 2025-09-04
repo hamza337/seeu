@@ -182,17 +182,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
     else navigate('/');
   };
 
-  const handleNextMedia = () => {
-    if (event && event.media && event.media.length > 1) {
-      setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % event.media.length);
-    }
-  };
-
-  const handlePrevMedia = () => {
-    if (event && event.media && event.media.length > 1) {
-      setCurrentMediaIndex((prevIndex) => (prevIndex - 1 + event.media.length) % event.media.length);
-    }
-  };
+  // Navigation functions will be defined after media parsing
 
   if (loading) {
     return <div className="text-center text-gray-600 mt-8">Loading event details...</div>;
@@ -208,6 +198,32 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
 
   const media = parseMedia(event.media);
   const currentMedia = media[currentMediaIndex];
+  
+  // Check if current user owns this event
+  const isOwner = () => {
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      return user.id && event.sellerId && user.id === event.sellerId;
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+      return false;
+    }
+  };
+  
+  const userOwnsEvent = isOwner();
+  
+  // Navigation functions
+  const handleNextMedia = () => {
+    if (event && media && media.length > 1) {
+      setCurrentMediaIndex((prevIndex) => (prevIndex + 1) % media.length);
+    }
+  };
+
+  const handlePrevMedia = () => {
+    if (event && media && media.length > 1) {
+      setCurrentMediaIndex((prevIndex) => (prevIndex - 1 + media.length) % media.length);
+    }
+  };
 
   if (isModal) {
     return (
@@ -220,17 +236,16 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
             &times;
           </button>
           {/* Event Details Content (copied from below) */}
-          {event.media.length > 0 ? 'true' : 'false'}
-          {media.length > 0 ? (
+          {(userOwnsEvent && media.length > 0) ? (
              <div className="media-container relative w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
                 <div key={currentMediaIndex} className="media-item relative w-full h-full flex items-center justify-center">
-                   {currentMedia.type === 'image' ? (
+                   {currentMedia && currentMedia.type === 'image' ? (
                       <img src={currentMedia.url} alt={`Event Media ${currentMediaIndex + 1}`} className="w-full h-full object-contain" onContextMenu={(e) => e.preventDefault()} draggable="false"/>
-                   ) : (
+                   ) : currentMedia && (
                       <video src={currentMedia.url} className="w-full h-full object-contain" controls controlsList="nodownload" disablePictureInPicture onContextMenu={(e) => e.preventDefault()}/>
                    )}
                 </div>
-                {media.length > 1 && (
+                {userOwnsEvent && media.length > 1 && (
                    <>
                       <button
                          onClick={handlePrevMedia}
@@ -246,43 +261,57 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
                       >
                          <ChevronRight size={24} />
                       </button>
+                      {/* Media Counter */}
+                       <div className="absolute bottom-4 right-4 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full text-sm z-20">
+                          {currentMediaIndex + 1} of {media.length}
+                       </div>
                    </>
                 )}
+             </div>
+          ) : event.previewImage ? (
+             <div className="w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+                <img src={event.previewImage} alt="Event Preview" className="w-full h-full object-contain" />
              </div>
           ) : (
              <div className="w-full h-72 bg-gray-200 rounded-lg flex items-center justify-center">
                 <span className="text-gray-500">No media available</span>
              </div>
           )}
-          <h2 className="text-3xl font-bold mt-6 text-black">{event.title || 'No Title'}</h2>
           <div className="mt-4 flex flex-col gap-3 text-black">
              <div className="text-gray-600 text-sm">
-                Listing ID: {event.eventCode}
+                Listings ID: {event.eventCode}
              </div>
              <div className="flex flex-wrap items-center gap-6">
                 <div className="flex items-center gap-2">
-                   <span>Category:</span>
-                   <span className="font-semibold">{event.category || 'Unknown'}</span>
+                   <span className=' font-semibold'>Category:</span>
+                   <span className="text-gray-600 italic">{event.category || 'Unknown'}</span>
                 </div>
                  <div className="flex items-center gap-2">
-                   <MapPin size={16} />
-                   <span>{event.address || 'No address'}</span>
+                   <span className=' font-semibold'>Location:</span>
+                   <span className="text-gray-600 italic">{event.address || 'No address'}</span>
                  </div>
              </div>
              <div className="flex flex-wrap items-center gap-6">
                 <div className="flex items-center gap-2">
-                   <Calendar size={16} />
-                   <span>{formatDate(event.date)}</span>
+                   <span className=' font-semibold'>Event Date:</span>
+                   <span className="text-gray-600 italic">{formatDate(event.date)}</span>
                 </div>
-                 <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2">
+                   <span className=' font-semibold'>Posted On:</span>
+                   <span className="text-gray-600 italic">{formatDate(event.createdAt)}</span>
+                </div>
+             </div>
+             <div className="flex flex-wrap items-center gap-6">
+                <div className="flex items-center gap-2">
                    {event.isFree ? (
                       <span className="text-green-600 font-semibold">Free</span>
-                   ) : event.isExclusive ? (
-                      <span className="flex items-center gap-1 text-purple-600 font-semibold"><Lock size={16} /> Exclusive</span>
                    ) : ( event.price !== undefined && event.price !== null && (
                       <span className="text-green-600 font-semibold"><DollarSign size={16} className="inline-block mr-1" />{event.price}</span>
                    ))}
                  </div>
+                 {event.isExclusive && (
+                     <span className="flex items-center gap-1 text-purple-600 font-semibold"><Lock size={16} /> Exclusive</span>
+                  )}
              </div>
           </div>
           <p className="mt-6 text-black">{event.description || 'No description'}</p>
@@ -290,7 +319,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
               onClick={handleBuyNow}
               className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
           >
-              Buy Now
+              Claim
           </button>
         </div>
     );
@@ -304,18 +333,18 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
       {/* Event Details Content */}
       <div className="w-full">
         {/* Media Slider */}
-        {media.length > 0 ? (
+        {(userOwnsEvent && media.length > 0) ? (
            <div className="media-container relative w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center"> {/* Use flex for slider */}
               <div key={currentMediaIndex} className="media-item relative w-full h-full flex items-center justify-center"> {/* Added media-item class */}
-                 {currentMedia.type === 'image' ? (
+                 {currentMedia && currentMedia.type === 'image' ? (
                     <img src={currentMedia.url} alt={`Event Media ${currentMediaIndex + 1}`} className="w-full h-full object-contain" onContextMenu={(e) => e.preventDefault()} draggable="false"/>
-                 ) : (
+                 ) : currentMedia && (
                     <video src={currentMedia.url} className="w-full h-full object-contain" controls controlsList="nodownload" disablePictureInPicture onContextMenu={(e) => e.preventDefault()}/>
                  )}
               </div>
 
               {/* Slider Navigation Buttons */}
-              {media.length > 1 && (
+              {userOwnsEvent && media.length > 1 && (
                  <>
                     <button
                        onClick={handlePrevMedia}
@@ -331,8 +360,16 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
                     >
                        <ChevronRight size={24} />
                     </button>
+                    {/* Media Counter */}
+                     <div className="absolute bottom-4 right-4 bg-black bg-opacity-40 text-white px-3 py-1 rounded-full text-sm z-20">
+                        {currentMediaIndex + 1} of {media.length}
+                     </div>
                  </>
               )}
+           </div>
+        ) : event.previewImage ? (
+           <div className="w-full h-72 bg-gray-200 rounded-lg overflow-hidden flex items-center justify-center">
+              <img src={event.previewImage} alt="Event Preview" className="w-full h-full object-contain" />
            </div>
         ) : (
            <div className="w-full h-72 bg-gray-200 rounded-lg flex items-center justify-center">
@@ -341,7 +378,14 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
         )}
 
         {/* Title */}
-        <h2 className="text-3xl font-bold mt-6 text-black">{event.title || 'No Title'}</h2>
+        <div className="flex items-center gap-3 mt-6">
+          <h2 className="text-3xl font-bold text-black">{event.category || ''}</h2>
+          {userOwnsEvent && (
+            <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full border border-blue-200">
+              Creator
+            </span>
+          )}
+        </div>
 
         {/* Info Rows */}
         <div className="mt-4 flex flex-col gap-3 text-black"> {/* Use flex-col and gap for rows */}
@@ -353,41 +397,50 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
            {/* Row 2: Category and Address */}
            <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
-                 <span>Category:</span>
-                 <span className="font-semibold">{event.category || 'Unknown'}</span>
+                 <span className='font-semibold'>Category:</span>
+                 <span className="text-gray-500 italic">{event.category || 'Unknown'}</span>
               </div>
                <div className="flex items-center gap-2">
-                 <MapPin size={16} />
-                 <span>{event.address || 'No address'}</span>
+                 <span className='font-semibold'>Location:</span>
+                 <span className="text-gray-500 italic">{event.address || 'No address'}</span>
                </div>
            </div>
 
            {/* Row 3: Date, Price/Exclusivity */}
            <div className="flex flex-wrap items-center gap-6">
               <div className="flex items-center gap-2">
-                 <Calendar size={16} />
-                 <span>{formatDate(event.date)}</span>
+                 <span className='font-semibold'>Event Date:</span>
+                 <span className="text-gray-500 italic">{formatDate(event.date)}</span>
               </div>
-               <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2">
+                 <span className='font-semibold'>Posted On:</span>
+                 <span className="text-gray-500 italic">{formatDate(event.createdAt)}</span>
+              </div>
+           </div>
+           <div className="flex flex-wrap items-center gap-6">
+              <div className="flex items-center gap-2">
                  {event.isFree ? (
                     <span className="text-green-600 font-semibold">Free</span>
-                 ) : event.isExclusive ? (
-                    <span className="flex items-center gap-1 text-purple-600 font-semibold"><Lock size={16} /> Exclusive</span>
                  ) : ( event.price !== undefined && event.price !== null && (
                     <span className="text-green-600 font-semibold"><DollarSign size={16} className="inline-block mr-1" />{event.price}</span>
                  ))}
               </div>
+              {event.isExclusive && (
+                 <span className="flex items-center gap-1 text-purple-600 font-semibold"><Lock size={16} /> Exclusive</span>
+               )}
            </div>
         </div>
 
         {/* Description */}
         <p className="mt-6 text-black">{event.description || 'No description'}</p>
+        {!userOwnsEvent && (
           <button
               onClick={handleBuyNow}
               className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
           >
-              Buy Now
+              Claim
           </button>
+        )}
       </div>
     </div>
   );

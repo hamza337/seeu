@@ -17,7 +17,7 @@ export default function ResultsDrawer({
   leftPx,
   drawerWidthPx
 }) {
-  const { setHoveredEventId, activeSearchQuery, setShowLoginModal, triggerRefreshEvents, notifyMePayload, setAnimatedMarkerId } = useMap();
+  const { hoveredEventId, setHoveredEventId, activeSearchQuery, setShowLoginModal, triggerRefreshEvents, notifyMePayload, setAnimatedMarkerId } = useMap();
   const [modalEventId, setModalEventId] = useState(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
   const baseUrl = import.meta.env.VITE_API_URL;
@@ -196,15 +196,23 @@ export default function ResultsDrawer({
               <h3 className={`${isMobile ? 'text-base' : 'text-lg'} font-semibold text-gray-800 ${isMobile ? 'mb-2' : 'mb-3'}`}>{category}</h3>
               {displayResults && displayResults[category] && displayResults[category].length > 0 ? (
                 <div className={`${isMobile ? 'space-y-2' : 'space-y-4'}`}>
-                  {displayResults[category].map((event) => (
+                  {displayResults[category].map((event) => {
+                    const isHovered = hoveredEventId === event.id;
+                    return (
                     <div 
                       key={event.id} 
-                      className={`flex items-center ${isMobile ? 'gap-2 p-2' : 'gap-4 p-3'} bg-gray-50 rounded-lg cursor-pointer hover:bg-gray-100 transition-all`}
+                      className={`flex items-center ${isMobile ? 'gap-2 p-2' : 'gap-4 p-3'} rounded-lg cursor-pointer transition-all duration-300 ease-in-out transform ${
+                        isHovered 
+                          ? 'bg-gradient-to-r from-blue-50 via-indigo-50 to-blue-50 shadow-xl shadow-blue-200/60 scale-[1.02] border-2 border-blue-300 ring-4 ring-blue-100/50 glow-effect' 
+                          : 'bg-gray-50 hover:bg-gray-100 hover:shadow-md border-2 border-transparent'
+                      }`}
                       onClick={() => onEventClick && onEventClick(event)}
                       onMouseEnter={() => { setHoveredEventId(event.id); setAnimatedMarkerId(event.id); }}
                       onMouseLeave={() => { setHoveredEventId(null); setAnimatedMarkerId(null); }}
                     >
-                      <div className={`${isMobile ? 'w-16 h-16' : 'w-24 h-24'} bg-gray-200 rounded-lg overflow-hidden flex-shrink-0`}>
+                      <div className={`${isMobile ? 'w-16 h-16' : 'w-24 h-24'} bg-gray-200 rounded-lg overflow-hidden flex-shrink-0 transition-all duration-300 ${
+                        isHovered ? 'ring-2 ring-blue-300 shadow-md' : ''
+                      }`}>
                         {event.media && event.media[0] ? (
                           event.media[0].type === 'video' ? (
                             <video 
@@ -227,28 +235,43 @@ export default function ResultsDrawer({
                       </div>
                       <div className="flex-1">
                         <div className={`flex items-center gap-2 ${isMobile ? 'mb-0.5' : 'mb-1'}`}>
-                          <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'}`}>
+                          <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} transition-all duration-300 ${
+                            isHovered ? 'scale-110 drop-shadow-sm' : ''
+                          }`}>
                             {React.cloneElement(categoryIcons[event.category], { 
-                              className: `${isMobile ? 'w-4 h-4' : 'w-5 h-5'}` 
+                              className: `${isMobile ? 'w-4 h-4' : 'w-5 h-5'} transition-all duration-300 ${
+                                isHovered ? 'brightness-110' : ''
+                              }` 
                             })}
                           </div>
-                          <h4 className={`font-medium text-gray-900 ${isMobile ? 'text-sm' : ''}`}>{event.title}</h4>
+                          <h4 className={`font-medium transition-colors duration-300 ${isMobile ? 'text-sm' : ''} ${
+                            isHovered ? 'text-blue-900' : 'text-gray-900'
+                          }`}>{event.category}</h4>
                         </div>
-                        <p className={`${isMobile ? 'text-xs mb-1' : 'text-sm mb-2'} text-gray-600`}>{event.address}</p>
+                        <p className={`${isMobile ? 'text-xs mb-1' : 'text-sm mb-2'} transition-colors duration-300 ${
+                          isHovered ? 'text-blue-700' : 'text-gray-600'
+                        }`}>{event.address}</p>
                         <div className="flex items-center gap-2">
                           {!event.isFree && (
-                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium text-green-600`}>${event.price}</span>
+                            <span className={`${isMobile ? 'text-xs' : 'text-sm'} font-medium transition-all duration-300 ${
+                              isHovered ? 'text-green-700 font-semibold' : 'text-green-600'
+                            }`}>${event.price}</span>
                           )}
                           {event.isExclusive && (
-                            <span className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} text-purple-600`}>
-                              <Lock size={isMobile ? 12 : 14} />
+                            <span className={`flex items-center gap-1 ${isMobile ? 'text-xs' : 'text-sm'} transition-all duration-300 ${
+                              isHovered ? 'text-purple-700 font-semibold' : 'text-purple-600'
+                            }`}>
+                              <Lock size={isMobile ? 12 : 14} className={`transition-all duration-300 ${
+                                isHovered ? 'scale-110' : ''
+                              }`} />
                               Exclusive
                             </span>
                           )}
                         </div>
                       </div>
                     </div>
-                  ))}
+                    );
+                  })}
                 </div>
               ) : (
                 <div className={`text-center text-gray-600 ${isMobile ? 'mt-4' : 'mt-8'}`}>
