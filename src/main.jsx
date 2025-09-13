@@ -18,9 +18,9 @@ import ShareEvent from './components/shareEvent/ShareEvent';
 import SearchResults from './components/searchResults/SearchResults';
 import { MapProvider } from './contexts/MapContext';
 import { LoginModalProvider } from './contexts/LoginModalContext';
-import MyEvents from './pages/MyEvents/MyEvents';
 import { Toaster } from 'react-hot-toast';
 import { ModalProvider } from './contexts/ModalContext';
+import MyEvents from './pages/MyEvents/myevents';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

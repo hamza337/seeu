@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Calendar, Clock, MapPin, DollarSign, Lock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Calendar, Clock, MapPin, DollarSign, Lock, ChevronLeft, ChevronRight, Share2, Twitter, Facebook } from 'lucide-react';
 import BackButton from '../../../components/backBtn/backButton';
 import moment from 'moment'; // Import moment for date formatting
 import toast from 'react-hot-toast';
+import { useModal } from '../../../contexts/ModalContext';
 
 // Helper function to parse media JSON
 const parseMedia = (mediaData) => {
@@ -41,10 +42,33 @@ const formatDate = (dateString) => {
     return date.isValid() ? date.format('YYYY-MM-DD') : 'Invalid Date';
 };
 
+// Social Media Sharing Functions
+const shareToTwitter = (event) => {
+  const text = `Check out this ${event.category} event: ${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}`;
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
+  const hashtags = `SeeU,${event.category.replace(/\s+/g, '')}`;
+  
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=${encodeURIComponent(hashtags)}`;
+  window.open(twitterUrl, '_blank', 'width=600,height=400');
+};
+
+const shareToFacebook = (event) => {
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
+  const quote = `Check out this ${event.category} event: ${event.description.substring(0, 200)}${event.description.length > 200 ? '...' : ''}`;
+  
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(quote)}`;
+  window.open(facebookUrl, '_blank', 'width=600,height=400');
+};
+
+
+
 const EventDetail = ({ eventId, isModal, onClose }) => {
   const { id: routeId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
+  const { openReportModal } = useModal();
   const id = eventId || routeId;
   const [event, setEvent] = useState(location.state?.event || null);
   const [loading, setLoading] = useState(!location.state?.event);
@@ -203,7 +227,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
   const isOwner = () => {
     try {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      return user.id && event.sellerId && user.id === event.sellerId;
+      return user.id && event.seller.id && user.id === event.seller.id;
     } catch (error) {
       console.error('Error parsing user data:', error);
       return false;
@@ -315,12 +339,20 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
              </div>
           </div>
           <p className="mt-6 text-black">{event.description || 'No description'}</p>
-          <button
-              onClick={handleBuyNow}
-              className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
-          >
-              Claim
-          </button>
+          <div className="flex gap-3">
+            <button
+               onClick={handleBuyNow}
+               className=" flex-1 bg-blue-600 text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-blue-700 transition"
+            >
+               Claim
+            </button>
+            <button
+               onClick={() => openReportModal(event.id)}
+               className="flex-1 bg-red-500 text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-red-600 transition"
+            >
+                  Report
+            </button>
+         </div>
         </div>
     );
   }
@@ -433,13 +465,49 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
 
         {/* Description */}
         <p className="mt-6 text-black">{event.description || 'No description'}</p>
+        
+        {/* Social Media Share - Only for user's own events */}
+        {userOwnsEvent && (
+          <div className='mt-6'>
+            <h4 className='font-semibold text-gray-900 mb-3 flex items-center gap-2'>
+              <Share2 size={18} />
+              Share Event
+            </h4>
+            <div className='flex gap-3'>
+              <button
+                onClick={() => shareToTwitter(event)}
+                className='flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors'
+              >
+                <Twitter size={16} />
+                Twitter
+              </button>
+              <button
+                onClick={() => shareToFacebook(event)}
+                className='flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors'
+              >
+                <Facebook size={16} />
+                Facebook
+              </button>
+
+            </div>
+          </div>
+        )}
+        
         {!userOwnsEvent && (
-          <button
-              onClick={handleBuyNow}
-              className="bg-blue-600 text-white rounded-lg py-3 mt-6 w-full text-xl font-semibold hover:bg-blue-700 transition"
-          >
-              Claim
-          </button>
+          <div className="flex gap-3 mt-6">
+            <button
+                onClick={handleBuyNow}
+                className="flex-1 bg-blue-600 text-white rounded-lg py-3 text-xl font-semibold hover:bg-blue-700 transition"
+            >
+                Claim
+            </button>
+            <button
+                onClick={() => openReportModal(event.id)}
+                className="flex-1 bg-red-500 text-white rounded-lg py-3 text-xl font-semibold hover:bg-red-600 transition"
+            >
+                Report
+            </button>
+          </div>
         )}
       </div>
     </div>

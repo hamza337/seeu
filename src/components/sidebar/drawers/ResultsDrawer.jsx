@@ -39,10 +39,17 @@ export default function ResultsDrawer({
   const categoryIcons = {
     'Accident': <img src="/accident.svg" alt="Accident" className="w-5 h-5" />,
     'Pet': <img src="/pet.svg" alt="Pet" className="w-5 h-5" />,
-    'Lost & Found': <img src="/lostnfound.svg" alt="Lost and Found" className="w-5 h-5" />,
+    'Lost & Found': <img src="/lost.svg" alt="Lost and Found" className="w-5 h-5" />,
+    'LostFound': <img src="/lost.svg" alt="Lost and Found" className="w-5 h-5" />,
     'Crime': <img src="/crime.svg" alt="Crime" className="w-5 h-5" />,
     'People': <img src="/people.svg" alt="People" className="w-5 h-5" />,
-    'Other': <img src="/other.svg" alt="Other" className="w-5 h-5" />
+    'Other': <img src="/other.svg" alt="Other" className="w-5 h-5" />,
+    'Others': <img src="/other.svg" alt="Other" className="w-5 h-5" />
+  };
+
+  // Function to get category icon with fallback
+  const getCategoryIcon = (category) => {
+    return categoryIcons[category] || <img src="/other.svg" alt="Other" className="w-5 h-5" />;
   };
 
   const frontendCategories = ['within 1 mile', 'within 3 miles', 'within 5 miles', 'within 6-200 miles'];
@@ -238,7 +245,7 @@ export default function ResultsDrawer({
                           <div className={`${isMobile ? 'w-4 h-4' : 'w-5 h-5'} transition-all duration-300 ${
                             isHovered ? 'scale-110 drop-shadow-sm' : ''
                           }`}>
-                            {React.cloneElement(categoryIcons[event.category], { 
+                            {React.cloneElement(getCategoryIcon(event.category), { 
                               className: `${isMobile ? 'w-4 h-4' : 'w-5 h-5'} transition-all duration-300 ${
                                 isHovered ? 'brightness-110' : ''
                               }` 

@@ -1,14 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Camera, Lock, SquareActivity, PawPrint, Bike, Users, MapPin, Glasses, X, ChevronLeft, ChevronRight, Bell, ShoppingBag, Plus, Edit, Trash2 } from 'lucide-react';
+import { Camera, Lock, SquareActivity, PawPrint, Bike, Users, MapPin, Glasses, X, ChevronLeft, ChevronRight, Bell, ShoppingBag, Plus, Edit, Trash2, Share2, Twitter, Facebook } from 'lucide-react';
 import BackButton from '../../components/backBtn/backButton'
 import ConfirmationModal from '../../components/modals/ConfirmationModal';
 import EditEventModal from '../../components/modals/EditEventModal';
-import { useNotification } from '../../contexts/NotificationContext';
 import { useNavigate } from 'react-router-dom';
 import { useMap } from '../../contexts/MapContext';
 import { useModal } from '../../contexts/ModalContext';
 import { toast } from 'react-hot-toast';
+import { useNotification } from '../../contexts/notificationcontext';
+
+// Social Media Sharing Functions
+const shareToTwitter = (event) => {
+  const text = `Check out this ${event.category} event: ${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}`;
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
+  const hashtags = `SeeU,${event.category.replace(/\s+/g, '')}`;
+  
+  const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=${encodeURIComponent(hashtags)}`;
+  window.open(twitterUrl, '_blank', 'width=600,height=400');
+};
+
+const shareToFacebook = (event) => {
+  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+  const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
+  const quote = `Check out this ${event.category} event: ${event.description.substring(0, 200)}${event.description.length > 200 ? '...' : ''}`;
+  
+  const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(quote)}`;
+  window.open(facebookUrl, '_blank', 'width=600,height=400');
+};
+
+
+
 const MediaGallery = ({ media, isOpen, onClose }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
@@ -600,11 +623,38 @@ const MyEvents = () => {
               </div>
             )}
 
-            {/* Description - Last */}
+            {/* Description */}
             <div className='mb-6'>
               <h4 className='font-semibold text-gray-900 mb-2'>Description</h4>
               <p className='text-gray-700 leading-relaxed'>{event.description}</p>
             </div>
+
+            {/* Social Media Share - Only for created events */}
+            {type === 'created' && (
+              <div className='mb-6'>
+                <h4 className='font-semibold text-gray-900 mb-3 flex items-center gap-2'>
+                  <Share2 size={18} />
+                  Share Event
+                </h4>
+                <div className='flex gap-3'>
+                  <button
+                    onClick={() => shareToTwitter(event)}
+                    className='flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors'
+                  >
+                    <Twitter size={16} />
+                    Twitter
+                  </button>
+                  <button
+                    onClick={() => shareToFacebook(event)}
+                    className='flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors'
+                  >
+                    <Facebook size={16} />
+                    Facebook
+                  </button>
+
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>

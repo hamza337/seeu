@@ -206,7 +206,7 @@ const HomeContent = () => {
   const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
   const [showTooltip, setShowTooltip] = useState(false);
   const { animatedMarkerId, setAnimatedMarkerId } = useMap();
-  const { modalEventId, setModalEventId } = useModal();
+  const { modalEventId, setModalEventId, openReportModal } = useModal();
 
   const { isLoaded } = useJsApiLoader({
     googleMapsApiKey: import.meta.env.VITE_GOOGLE_MAPS_API_KEY,
@@ -546,8 +546,9 @@ const HomeContent = () => {
                          // Calculate exact arrow position to point at marker
                          arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                      } else if (spaceLeft >= tooltipWidth + offset) {
-                         // Position to the left
-                         tooltipX = screenX - tooltipWidth - offset;
+                         // Position to the left with extra offset to avoid covering marker
+                         const leftOffset = offset + 65; // Extra space to prevent covering marker
+                         tooltipX = screenX - tooltipWidth - leftOffset;
                          tooltipY = Math.max(padding, Math.min(screenY - tooltipHeight / 2, mapHeight - tooltipHeight - padding));
                          anchorPosition = 'right';
                          // Calculate exact arrow position to point at marker
@@ -573,7 +574,8 @@ const HomeContent = () => {
                              anchorPosition = 'left';
                              arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                          } else {
-                             tooltipX = screenX - tooltipWidth - offset;
+                             const leftOffset = offset + 15; // Extra space to prevent covering marker
+                             tooltipX = screenX - tooltipWidth - leftOffset;
                              anchorPosition = 'right';
                              arrowY = Math.max(9, Math.min(screenY - tooltipY, tooltipHeight - 9));
                          }
@@ -869,13 +871,13 @@ const HomeContent = () => {
           {/* Always render the tooltip for fade effect */}
           <div
             ref={tooltipRef}
-            className={`event-tooltip absolute z-20 bg-white text-gray-800 p-3 rounded-lg shadow-xl border border-gray-300 transition-opacity duration-400
+            className={`event-tooltip absolute z-20 bg-white text-gray-800 p-4 rounded-xl shadow-2xl border border-gray-200 transition-opacity duration-400
               ${hoveredEvent ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
             style={{
               top: tooltipPosition.y,
               left: tooltipPosition.x,
-              minWidth: '100px',
-              maxWidth: '200px',
+              minWidth: '220px',
+              maxWidth: '260px',
             }}
           >
             {/* Tooltip Arrow */}
@@ -978,27 +980,31 @@ const HomeContent = () => {
                 }}
               />
             </div>
-            <h3 className="font-semibold text-base mb-1">{hoveredEvent?.category || 'Unknown Category'}</h3>
-            <p className="text-xs mb-1">{hoveredEvent?.address || 'No address'}</p>
-            <p className="text-xs text-red-500 mb-1">{hoveredEvent?.date || 'N/A'}</p>
+            <div className="mb-3">
+              <h3 className="font-bold text-lg mb-2 text-gray-900">{hoveredEvent?.category || 'Unknown Category'}</h3>
+              <p className="text-sm text-gray-600 mb-1">{hoveredEvent?.address || 'No address'}</p>
+              <p className="text-sm text-red-500 font-medium">
+                {hoveredEvent?.date ? moment(hoveredEvent.date).format('MMM DD, YYYY') : 'N/A'}
+              </p>
+            </div>
             {/* Media Info Row */}
-            <div className="grid grid-cols-2 gap-2 mb-2" style={{ width: 180 }}>
+            <div className="grid grid-cols-2 gap-3 mb-4" style={{ width: '100%' }}>
               <div
-                className="bg-gray-100 text-gray-800 text-xs rounded flex flex-col justify-center items-center"
-                style={{ width: 80, height: 80 }}
+                className="bg-gray-50 text-gray-700 text-sm rounded-lg flex flex-col justify-center items-center p-3"
+                style={{ height: 100 }}
               >
-                <div className="text-center">
+                <div className="text-center font-medium">
                   {parseMediaAndCount(hoveredEvent?.media).videoCount > 0 &&
                     `${parseMediaAndCount(hoveredEvent?.media).videoCount} video(s)`}
                 </div>
-                <div className="text-center">
+                <div className="text-center font-medium">
                   {parseMediaAndCount(hoveredEvent?.media).imageCount > 0 &&
                     `${parseMediaAndCount(hoveredEvent?.media).imageCount} photo(s)`}
                 </div>
               </div>
               <div
-                className="bg-gray-100 rounded overflow-hidden flex items-center justify-center"
-                style={{ width: 80, height: 80 }}
+                className="bg-gray-50 rounded-lg overflow-hidden flex items-center justify-center"
+                style={{ height: 100, width: '100%' }}
               >
                 {(() => {
                   const previewImageUrl = hoveredEvent?.previewImage;
@@ -1018,7 +1024,7 @@ const HomeContent = () => {
                       <div className="relative w-full h-full flex items-center justify-center bg-gray-100">
                         <video 
                           src={actualPreviewMedia.url}
-                          className="w-full h-full object-cover"
+                          className="w-full h-full object-contain"
                           preload="metadata"
                         />
                         <div className="absolute inset-0 flex items-center justify-center">
@@ -1037,7 +1043,7 @@ const HomeContent = () => {
                       <img
                         src={actualPreviewMedia.url}
                         alt="Preview Media"
-                        className="object-cover w-full h-full"
+                        className="object-contain w-full h-full"
                         style={{ maxWidth: '100%', maxHeight: '100%' }}
                       />
                     );
@@ -1048,39 +1054,48 @@ const HomeContent = () => {
               </div>
             </div>
 
-            {/* Description and Claim Button Grouped */}
-            <div className="bg-gray-100 rounded flex flex-col items-stretch my-2">
-              <div className="px-2 py-2 text-xs text-gray-800">
-                {hoveredEvent?.description
-                  ? hoveredEvent.description.slice(0, 50) + (hoveredEvent.description.length > 50 ? '...' : '')
-                  : 'No description'}
-              </div>
-              <div className="border-t border-gray-300" />
+            {/* Description */}
+            <p className="text-sm text-gray-700 mb-4 leading-relaxed">
+              {hoveredEvent?.description
+                ? hoveredEvent.description.length > 120
+                  ? `${hoveredEvent.description.substring(0, 120)}...`
+                  : hoveredEvent.description
+                : 'No description available'}
+            </p>
+
+            {/* Action Buttons */}
+            <div className="flex gap-3 mb-3">
               <button
+                className="flex-1 bg-blue-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
                 onClick={() => {
-                  console.log('Claim button clicked for event:', hoveredEvent.id);
-                  navigate(`/event/${hoveredEvent.id}`, { state: { event: hoveredEvent } });
+                  navigate(`/event/${hoveredEvent?.id}`);
                 }}
-                className="w-full text-blue-600 font-semibold py-2 text-sm hover:underline focus:outline-none"
-                style={{ background: 'none' }}
               >
                 Claim
               </button>
+              <button
+                className="flex-1 bg-red-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium"
+                onClick={() => {
+                  openReportModal(hoveredEvent?.id);
+                }}
+              >
+                Report
+              </button>
             </div>
 
-            {/* Listing ID */}
-            <p className="text-xs">Listing ID: {hoveredEvent?.eventCode || 'N/A'}</p>
-            
-            {/* Posted Date */}
-            <p className="text-xs">
-              Posted {hoveredEvent?.createdAt ? 
-                new Date(hoveredEvent.createdAt).toLocaleDateString('en-US', {
-                  month: '2-digit',
-                  day: '2-digit', 
-                  year: 'numeric'
-                }) : 'N/A'
-              }
-            </p>
+            {/* Listing ID and Posted Date */}
+            <div className="text-xs text-gray-500 pt-2 border-t border-gray-200 space-y-1">
+              <div className="font-medium">ID: {hoveredEvent?.eventCode || 'N/A'}</div>
+              <div className="font-medium">
+                Posted: {hoveredEvent?.createdAt ? 
+                  new Date(hoveredEvent.createdAt).toLocaleDateString('en-US', {
+                    month: '2-digit',
+                    day: '2-digit', 
+                    year: 'numeric'
+                  }) : 'N/A'
+                }
+              </div>
+            </div>
           </div>
         </div>
       </div>

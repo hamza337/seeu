@@ -305,3 +305,7 @@ h1 {
 .react-datepicker-wrapper .react-datepicker__close-icon:hover::after {
   color: #6b7280 !important;
 }
+
+.wmde-markdown{
+  background-color: transparent !important;
+}

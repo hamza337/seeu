@@ -6,6 +6,7 @@ import Sidebar from './sidebar/sidebar';
 import { useMap } from '../contexts/MapContext';
 import { useModal } from '../contexts/ModalContext';
 import MediaDetail from './mediaContent/mediaDetail/MediaDetail';
+import ReportModal from './modals/ReportModal';
 
 function LayoutContent() {
   const topbarHeight = 52;
@@ -14,7 +15,7 @@ function LayoutContent() {
   const expandedSidebarWidth = 136; // w-34 in Tailwind
   const sidebarGap = 16; // Proper gap between sidebar and main content
 
-  const { modalEventId, setModalEventId } = useModal();
+  const { modalEventId, setModalEventId, reportModalOpen, reportEventId, closeReportModal } = useModal();
   
   // Track screen size for responsive layout
   const [isMobile, setIsMobile] = useState(window.innerWidth < 600);
@@ -92,6 +93,13 @@ function LayoutContent() {
           </div>
         </div>
       )}
+
+      {/* Global Report Modal */}
+      <ReportModal
+        isOpen={reportModalOpen}
+        onClose={closeReportModal}
+        eventId={reportEventId}
+      />
 
     </div>
   );
