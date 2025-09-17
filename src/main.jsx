@@ -20,7 +20,7 @@ import { MapProvider } from './contexts/MapContext';
 import { LoginModalProvider } from './contexts/LoginModalContext';
 import { Toaster } from 'react-hot-toast';
 import { ModalProvider } from './contexts/ModalContext';
-import MyEvents from './pages/MyEvents/myevents';
+import MyEvents from './pages/MyEvents/MyEvents';
 import { NotificationProvider } from './contexts/NotificationContext';
 
 ReactDOM.createRoot(document.getElementById('root')).render(

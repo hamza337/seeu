@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useMap } from '../../contexts/MapContext';
 import { useModal } from '../../contexts/ModalContext';
 import { toast } from 'react-hot-toast';
-import { useNotification } from '../../contexts/notificationcontext';
+import { useNotification } from '../../contexts/NotificationContext';
 
 // Social Media Sharing Functions
 const shareToTwitter = (event) => {
