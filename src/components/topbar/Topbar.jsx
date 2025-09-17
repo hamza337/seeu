@@ -6,7 +6,7 @@ import { useMap } from '../../contexts/MapContext';
 import { useLoginModal } from '../../contexts/LoginModalContext';
 import toast from 'react-hot-toast';
 import { useNotification } from '../../contexts/NotificationContext';
-import LoginModal from '../../components/modals/loginmodal.jsx';
+import LoginModal from "../modals/LoginModal"
 
 // Language options
 const LANGUAGE_OPTIONS = [
