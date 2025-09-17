@@ -5,8 +5,8 @@ import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
 import { useLoginModal } from '../../contexts/LoginModalContext';
 import toast from 'react-hot-toast';
-import { useNotification } from '../../contexts/notificationcontext';
 import LoginModal from '../modals/loginmodal';
+import { useNotification } from '../../contexts/NotificationContext';
 
 // Language options
 const LANGUAGE_OPTIONS = [
