@@ -104,7 +104,7 @@ export const NotificationProvider = ({ children }) => {
                        });
                        
                        // Show toast notification
-                       toast.success(`New ${parsedData.event.category} event matches your criteria!`, {
+                       toast.success(`New ${parsedData.event.category === 'LostFound' ? 'Lost & Found' : parsedData.event.category} event matches your criteria!`, {
                          duration: 5000,
                          position: 'top-right'
                        });
@@ -328,10 +328,10 @@ const NewEventNotificationCard = ({ notification, onViewEvent, onViewLocation })
         <div className="flex-1 min-w-0">
           <div className="flex items-center space-x-2 mb-1">
             <h3 className="text-lg font-semibold text-gray-900 truncate">
-              {event.category}
+              {event.category === 'LostFound' ? 'Lost & Found' : event.category}
             </h3>
             <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-              {event.category}
+              {event.category === 'LostFound' ? 'Lost & Found' : event.category}
             </span>
           </div>
           

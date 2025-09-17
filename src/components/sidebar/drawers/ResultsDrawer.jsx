@@ -65,25 +65,27 @@ export default function ResultsDrawer({
       'within 6-200 miles': []
     };
     
-    // Map API categories to frontend categories
+    // Track processed event IDs to prevent duplicates
+    const processedEventIds = new Set();
+    
+    // Process categories in order of priority (closest distance first)
+    const categoryPriority = ['within 1 mile', 'within 3 miles', 'within 5 miles'];
+    
+    // First, process the priority categories
+    categoryPriority.forEach(apiCategory => {
+      if (apiResults[apiCategory] && Array.isArray(apiResults[apiCategory])) {
+        const events = apiResults[apiCategory].filter(event => !processedEventIds.has(event.id));
+        events.forEach(event => processedEventIds.add(event.id));
+        transformedResults[apiCategory] = events;
+      }
+    });
+    
+    // Then process all other distance categories into 6-200 miles
     Object.keys(apiResults).forEach(apiCategory => {
-      if (Array.isArray(apiResults[apiCategory])) {
-        const events = apiResults[apiCategory];
-        
-        // Determine which frontend category this API category maps to
-        let targetCategory;
-        if (apiCategory === 'within 1 mile') {
-          targetCategory = 'within 1 mile';
-        } else if (apiCategory === 'within 3 miles') {
-          targetCategory = 'within 3 miles';
-        } else if (apiCategory === 'within 5 miles') {
-          targetCategory = 'within 5 miles';
-        } else {
-          // Any other distance category (like "within 10 miles", "within 20 miles", etc.) goes to 6-200 miles
-          targetCategory = 'within 6-200 miles';
-        }
-        
-        transformedResults[targetCategory] = [...transformedResults[targetCategory], ...events];
+      if (Array.isArray(apiResults[apiCategory]) && !categoryPriority.includes(apiCategory)) {
+        const events = apiResults[apiCategory].filter(event => !processedEventIds.has(event.id));
+        events.forEach(event => processedEventIds.add(event.id));
+        transformedResults['within 6-200 miles'] = [...transformedResults['within 6-200 miles'], ...events];
       }
     });
     
@@ -164,7 +166,7 @@ export default function ResultsDrawer({
           <div className={`${isMobile ? 'pt-3 pb-3 mb-3' : 'pt-4 pb-4 mb-4'} border-b`}>
             <div className={`flex items-center gap-2 mb-2 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
               <span className="font-semibold">Categories:</span>
-              <span>{activeSearchQuery.categories.join(', ') || 'Any'}</span>
+              <span>{activeSearchQuery.categories.map(cat => cat === 'LostFound' ? 'Lost & Found' : cat).join(', ') || 'Any'}</span>
             </div>
             <div className={`flex items-center gap-2 mb-2 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
               <span className="font-semibold">Where:</span>
@@ -253,7 +255,7 @@ export default function ResultsDrawer({
                           </div>
                           <h4 className={`font-medium transition-colors duration-300 ${isMobile ? 'text-sm' : ''} ${
                             isHovered ? 'text-blue-900' : 'text-gray-900'
-                          }`}>{event.category}</h4>
+                          }`}>{event.category === 'LostFound' ? 'Lost & Found' : event.category}</h4>
                         </div>
                         <p className={`${isMobile ? 'text-xs mb-1' : 'text-sm mb-2'} transition-colors duration-300 ${
                           isHovered ? 'text-blue-700' : 'text-gray-600'

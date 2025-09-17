@@ -13,8 +13,9 @@ import { MarkerClusterer } from '@googlemaps/markerclusterer';
 import { useMap } from '../../contexts/MapContext';
 import moment from 'moment'; // Import moment for date formatting
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import MediaDetail from '../mediaContent/mediaDetail/MediaDetail'; // Import MediaDetail component
+// import MediaDetail from '../mediaContent/mediaDetail/MediaDetail'; // Import MediaDetail component
 import { useModal } from '../../contexts/ModalContext';
+import toast from 'react-hot-toast';
 const containerStyle = {
   width: '100%',
   height: '100%'
@@ -767,6 +768,8 @@ const HomeContent = () => {
     allMarkerImages.forEach(img => {
       img.classList.remove('marker-glow');
       img.parentElement?.classList.remove('marker-glow');
+      // Remove the data attribute used for identification
+      img.removeAttribute('data-event-id');
     });
     
     if (animatedMarkerId) {
@@ -778,20 +781,63 @@ const HomeContent = () => {
       if (targetMarker) {
         // Add glow effect using CSS by finding the marker's DOM element
         setTimeout(() => {
-          const iconUrl = targetMarker.getIcon()?.url;
-          if (iconUrl) {
-            // Find the specific marker image in the DOM
+          const markerPosition = targetMarker.getPosition();
+          if (markerPosition) {
+            // Find the specific marker image in the DOM by position matching
             const markerImages = document.querySelectorAll('img[src*=".svg"]');
+            let targetImage = null;
+            let minDistance = Infinity;
+            
             markerImages.forEach(img => {
-              if (img.src.includes(iconUrl.split('/').pop() || '')) {
-                // Apply glow to the image itself
-                img.classList.add('marker-glow');
-                // Also apply to parent div for better effect
-                if (img.parentElement) {
-                  img.parentElement.classList.add('marker-glow');
+              const imgRect = img.getBoundingClientRect();
+              const imgCenterX = imgRect.left + imgRect.width / 2;
+              const imgCenterY = imgRect.top + imgRect.height / 2;
+              
+              // Convert marker position to screen coordinates
+              if (mapRef.current) {
+                const projection = mapRef.current.getProjection();
+                if (projection) {
+                  const pixelPosition = projection.fromLatLngToPoint(markerPosition);
+                  const scale = Math.pow(2, mapRef.current.getZoom());
+                  const mapDiv = mapRef.current.getDiv();
+                  const mapRect = mapDiv.getBoundingClientRect();
+                  
+                  const markerX = pixelPosition.x * scale;
+                  const markerY = pixelPosition.y * scale;
+                  
+                  const mapCenter = mapRef.current.getCenter();
+                  const mapCenterPixel = projection.fromLatLngToPoint(mapCenter);
+                  const mapCenterX = mapCenterPixel.x * scale;
+                  const mapCenterY = mapCenterPixel.y * scale;
+                  
+                  const relativeX = markerX - mapCenterX;
+                  const relativeY = markerY - mapCenterY;
+                  
+                  const screenX = mapRect.left + (mapDiv.clientWidth / 2) + relativeX;
+                  const screenY = mapRect.top + (mapDiv.clientHeight / 2) + relativeY;
+                  
+                  // Calculate distance between image center and marker screen position
+                  const distance = Math.sqrt(
+                    Math.pow(imgCenterX - screenX, 2) + Math.pow(imgCenterY - screenY, 2)
+                  );
+                  
+                  // Find the closest image (should be the exact marker)
+                  if (distance < minDistance && distance < 50) { // 50px tolerance
+                    minDistance = distance;
+                    targetImage = img;
+                  }
                 }
               }
             });
+            
+            // Apply glow to the closest matching image
+            if (targetImage) {
+              targetImage.classList.add('marker-glow');
+              targetImage.setAttribute('data-event-id', animatedMarkerId);
+              if (targetImage.parentElement) {
+                targetImage.parentElement.classList.add('marker-glow');
+              }
+            }
           }
         }, 200); // Increased timeout to ensure DOM is ready
       }
@@ -804,6 +850,7 @@ const HomeContent = () => {
       allMarkerImages.forEach(img => {
         img.classList.remove('marker-glow');
         img.parentElement?.classList.remove('marker-glow');
+        img.removeAttribute('data-event-id');
       });
       
       // Also clean up any remaining glow effects
@@ -851,7 +898,7 @@ const HomeContent = () => {
                   icon={{
                     url: '/Ppoing.png',
                     scaledSize: new window.google.maps.Size(50, 50),
-                    anchor: new window.google.maps.Point(24, 43)
+                    anchor: new window.google.maps.Point(25, 25)
                   }}
                   title="Drag to select location"
                 />
@@ -981,7 +1028,7 @@ const HomeContent = () => {
               />
             </div>
             <div className="mb-3">
-              <h3 className="font-bold text-lg mb-2 text-gray-900">{hoveredEvent?.category || 'Unknown Category'}</h3>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">{hoveredEvent?.category === 'LostFound' ? 'Lost & Found' : hoveredEvent?.category || 'Unknown Category'}</h3>
               <p className="text-sm text-gray-600 mb-1">{hoveredEvent?.address || 'No address'}</p>
               <p className="text-sm text-red-500 font-medium">
                 {hoveredEvent?.date ? moment(hoveredEvent.date).format('MMM DD, YYYY') : 'N/A'}
@@ -1063,25 +1110,25 @@ const HomeContent = () => {
                 : 'No description available'}
             </p>
 
-            {/* Action Buttons */}
-            <div className="flex gap-3 mb-3">
-              <button
-                className="flex-1 bg-blue-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
-                onClick={() => {
-                  navigate(`/event/${hoveredEvent?.id}`);
-                }}
-              >
-                Claim
-              </button>
-              <button
-                className="flex-1 bg-red-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-red-600 transition-colors font-medium"
-                onClick={() => {
-                  openReportModal(hoveredEvent?.id);
-                }}
-              >
-                Report
-              </button>
-            </div>
+            {/* Action Buttons - Only show claim button if user is not the event owner */}
+            {(() => {
+              const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+              const currentUserId = currentUser.id;
+              const isOwner = hoveredEvent?.sellerId === currentUserId;
+              
+              return !isOwner ? (
+                <div className="flex gap-3 mb-3">
+                  <button
+                    className="flex-1 bg-blue-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
+                    onClick={() => {
+                      navigate(`/event/${hoveredEvent?.id}`);
+                    }}
+                  >
+                    Claim
+                  </button>
+                </div>
+              ) : null;
+            })()}
 
             {/* Listing ID and Posted Date */}
             <div className="text-xs text-gray-500 pt-2 border-t border-gray-200 space-y-1">
@@ -1095,6 +1142,29 @@ const HomeContent = () => {
                   }) : 'N/A'
                 }
               </div>
+              
+              {/* Report Button - New Design - Only show if user is not the event owner */}
+              {(() => {
+                const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+                const currentUserId = currentUser.id;
+                const isOwner = hoveredEvent?.sellerId === currentUserId;
+                
+                return !isOwner ? (
+                  <div className="pt-2">
+                    <button
+                      className="flex items-center gap-2 bg-white text-red-500 text-sm hover:cursor-pointer transition-colors font-medium"
+                      onClick={() => {
+                        openReportModal(hoveredEvent?.id);
+                      }}
+                    >
+                      <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
+                        <span className="text-white text-xs font-bold">!</span>
+                      </div>
+                      Report
+                    </button>
+                  </div>
+                ) : null;
+              })()}
             </div>
           </div>
         </div>

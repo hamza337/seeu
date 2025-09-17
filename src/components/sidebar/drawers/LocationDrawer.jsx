@@ -30,7 +30,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   const [loading, setLoading] = useState(false);
   const [previews, setPreviews] = useState([]);
   const [showExclusiveTooltip, setShowExclusiveTooltip] = useState(false);
-  const [shareEmail, setShareEmail] = useState(false);
+  const [shareEmail, setShareEmail] = useState(true);
   const [sharePhone, setSharePhone] = useState(false);
   const [showSharingDropdown, setShowSharingDropdown] = useState(false);
   const [sharingError, setSharingError] = useState('');
@@ -42,7 +42,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     libraries: ['places']
   });
 
-  const { triggerRefreshEvents, setSearchLocation, setSetSearchAddressFn, isSidebarExpanded, setShowLoginModal } = useMap();
+  const { triggerRefreshEvents, setSearchLocation, searchLocation, setSetSearchAddressFn, isSidebarExpanded, setShowLoginModal } = useMap();
 
   // Sidebar widths in px (match layout/sidebar)
   const collapsedSidebarWidthPx = 56;
@@ -88,13 +88,41 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     'Other': "Hi, I walked down the street last night and witnessed this fireball falling out of the sky."
   };
 
-  const recommendedPrices = {
-    'Accident': 10,
-    'Pet': 20,
-    'LostFound': 30,
-    'Crime': 40,
-    'People': 50,
-    'Other': 60,
+  const [recommendedPrice, setRecommendedPrice] = useState(null);
+  const [recommendedCategory, setRecommendedCategory] = useState('');
+  const [categoryFees, setCategoryFees] = useState([]);
+  const [currentCategoryFee, setCurrentCategoryFee] = useState(null);
+
+  // Fetch category fees when drawer opens
+  const fetchCategoryFees = async () => {
+    try {
+      const response = await axios.get(`${baseUrl}admin/category-fees`);
+      if (response.data && Array.isArray(response.data)) {
+        setCategoryFees(response.data);
+        // Set initial category fee for default selected category
+        const initialFee = response.data.find(fee => fee.category === selectedEventType);
+        setCurrentCategoryFee(initialFee || null);
+      }
+    } catch (error) {
+      console.error('Error fetching category fees:', error);
+      setCategoryFees([]);
+      setCurrentCategoryFee(null);
+    }
+  };
+
+  // Fetch recommended price when category changes
+  const fetchRecommendedPrice = async (category) => {
+    try {
+      const response = await axios.get(`${baseUrl}admin/recommended-prices/${category}`);
+      if (response.data) {
+        setRecommendedPrice(response.data.price);
+        setRecommendedCategory(response.data.category);
+      }
+    } catch (error) {
+      console.error('Error fetching recommended price:', error);
+      setRecommendedPrice(null);
+      setRecommendedCategory('');
+    }
   };
 
   // Define the category options with icons for the grid
@@ -116,6 +144,16 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     return () => setSetSearchAddressFn(null);
   }, [setSetSearchAddressFn]);
 
+  // Fetch category fees and recommended price when drawer opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchCategoryFees();
+      if (selectedEventType) {
+        fetchRecommendedPrice(selectedEventType);
+      }
+    }
+  }, [isOpen]);
+
   // Clear state when drawer closes
   useEffect(() => {
     if (!isOpen) {
@@ -125,6 +163,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       setSelectedEventType('Accident');
       setDescription('');
       setPrice('');
+      setRecommendedPrice(null);
+      setRecommendedCategory('');
+      setCategoryFees([]);
+      setCurrentCategoryFee(null);
       setIsFree(false);
       setIsExclusive(false);
       setAddress('');
@@ -135,7 +177,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       setDescriptionError('');
       setPriceError('');
       setMainMediaIndex(0);
-      setShareEmail(false);
+      setShareEmail(true);
       setSharePhone(false);
       setShowSharingDropdown(false);
       setSharingError('');
@@ -227,6 +269,42 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       console.log('LocationDrawer: No autocomplete reference');
       setAddress('');
       setSearchLocation(null);
+    }
+  };
+
+  const handleMyLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Use Google's Geocoding service to get address from coordinates
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode(
+            { location: { lat, lng } },
+            (results, status) => {
+              if (status === 'OK' && results[0]) {
+                setAddress(results[0].formatted_address);
+                setSearchLocation({ lat, lng });
+                setAddressError('');
+                console.log('LocationDrawer: My location set:', { lat, lng, address: results[0].formatted_address });
+              } else {
+                setAddress(`${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+                setSearchLocation({ lat, lng });
+                setAddressError('');
+                console.log('LocationDrawer: My location set with coordinates:', { lat, lng });
+              }
+            }
+          );
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setAddressError('Unable to get your location. Please enter manually.');
+        }
+      );
+    } else {
+      setAddressError('Geolocation is not supported by this browser.');
     }
   };
 
@@ -357,6 +435,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         description,
         category: selectedEventType,
         address,
+        ...(searchLocation && {
+          latitude: String(searchLocation.lat),
+          longitude: String(searchLocation.lng)
+        }),
         media: uploadedMediaData,
         mainMediaIndex: String(mainMediaIndex),
         isExclusive,
@@ -387,7 +469,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         setFileError('');
         setFormError('');
         setMainMediaIndex(0);
-        setShareEmail(false);
+        setShareEmail(true);
         setSharePhone(false);
         setShowSharingDropdown(false);
         setSharingError('');
@@ -397,6 +479,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             const input = document.querySelector('input[placeholder="Where"]');
             if(input) input.value = '';
         }
+        setSearchLocation(null); // Clear the blue location marker
         triggerRefreshEvents(); // Trigger map refresh
       }
     } catch (err) {
@@ -497,24 +580,34 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         <div className="space-y-2">
           <div className="flex gap-2">
             {isLoaded && (
-              <div className="flex-1">
-                <Autocomplete 
-                  onLoad={ref => (autocompleteRef.current = ref)} 
-                  onPlaceChanged={handlePlaceChanged}
-                >
-                  <input
-                    type="text"
-                    placeholder="Where"
-                    value={address}
-                    onChange={(e) => {
-                      setAddress(e.target.value);
-                      if (addressError) setAddressError('');
-                    }}
-                    className={`${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${addressError ? 'border-red-500' : 'border-gray-500'} w-full`}
-                  />
-                </Autocomplete>
-                {addressError && <p className="text-red-500 text-xs mt-1">{addressError}</p>}
-              </div>
+              <div className="flex-1 relative">
+                 <Autocomplete 
+                   onLoad={ref => (autocompleteRef.current = ref)} 
+                   onPlaceChanged={handlePlaceChanged}
+                 >
+                   <input
+                     type="text"
+                     placeholder="Where"
+                     value={address}
+                     onChange={(e) => {
+                       setAddress(e.target.value);
+                       if (addressError) setAddressError('');
+                     }}
+                     className={`${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${addressError ? 'border-red-500' : 'border-gray-500'} w-full`}
+                   />
+                 </Autocomplete>
+                 <button
+                    type="button"
+                    onClick={handleMyLocation}
+                    className="absolute -bottom-6 right-0 px-2 py-1 text-xs bg-transparent text-blue-500 underline cursor-pointer flex items-center gap-1"
+                  >
+                    <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                      <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                    </svg>
+                    My Location
+                  </button>
+                 {addressError && <p className="text-red-500 text-xs mt-1">{addressError}</p>}
+               </div>
             )}
             <div className="flex-1">
               <DatePicker
@@ -542,7 +635,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                 <div
                   key={item.label}
                   onClick={() => {
-                    setSelectedEventType(item.label.replace(' & ',''));
+                    const newCategory = item.label.replace(' & ','');
+                    setSelectedEventType(newCategory);
+                    fetchRecommendedPrice(newCategory);
+                    // Update current category fee
+                    const categoryFee = categoryFees.find(fee => fee.category === newCategory);
+                    setCurrentCategoryFee(categoryFee || null);
                   }}
                   className={`relative flex flex-col items-center justify-center ${isMobile ? 'p-1' : 'p-2'} rounded-lg cursor-pointer transition-colors duration-200
                     ${isSelected ? 'opacity-100' : 'opacity-40 grayscale hover:bg-gray-100'}
@@ -596,10 +694,22 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           {priceError && <p className="text-red-500 text-xs mt-1">{priceError}</p>}
         </div>
 
-        {selectedEventType !== 'Select cateogry' && recommendedPrices[selectedEventType] !== undefined && (
+        {recommendedPrice !== null && recommendedCategory && (
           <p className="text-gray-600 text-sm mt-1">
-            Recommended price for {selectedEventType} event is {recommendedPrices[selectedEventType]} USD.
+            Recommended price for {recommendedCategory} event is {recommendedPrice} USD.
           </p>
+        )}
+
+        {/* Platform Fee Information */}
+        {currentCategoryFee && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
+            <p className="text-blue-800 text-sm font-medium">
+              {isFree 
+                ? `Poing charges ${currentCategoryFee.flatFee} USD on free ${currentCategoryFee.category} events.`
+                : `Poing charges ${currentCategoryFee.platformFee}% on ${currentCategoryFee.category} events.`
+              }
+            </p>
+          </div>
         )}
 
         <label className="flex items-center gap-2">
@@ -678,15 +788,15 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             {showSharingDropdown && (
               <div className="absolute top-full left-0 right-0 mt-1 bg-white border-dotted border-1 border-gray-500 rounded-xl shadow-lg z-50">
                 <div className="p-2 space-y-1">
-                  <label className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors">
+                  <label className="flex items-center gap-3 p-2 rounded transition-colors opacity-75">
                     <input
                       type="checkbox"
                       checked={shareEmail}
-                      onChange={(e) => setShareEmail(e.target.checked)}
-                      className="w-4 h-4 text-gray-600 rounded focus:ring-gray-500"
+                      disabled={true}
+                      className="w-4 h-4 text-gray-600 rounded focus:ring-gray-500 cursor-not-allowed"
                     />
                     <Mail size={16} className="text-gray-600" />
-                    <span className="text-sm text-gray-700">Share Email Address</span>
+                    <span className="text-sm text-gray-700">Share Email Address (Required)</span>
                   </label>
                   <label className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors">
                     <input
@@ -708,7 +818,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         </div>
 
         <button onClick={handleSubmit} className={`${isMobile ? 'w-1/2 py-2 text-sm' : 'w-1/3 py-2'} hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto`} disabled={loading}>
-          <img src="/brandLogoFinal.png" alt="Map Marker" className="w-20 h-12 text-blue-600" />
+          <img src="/brandLogoFinal.png" alt="Map Marker" className="w-24 h-12 text-blue-600" />
           {loading && (
             <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

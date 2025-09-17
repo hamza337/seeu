@@ -4,9 +4,9 @@ import { IoHelpOutline } from "react-icons/io5";
 import axios from 'axios';
 import { useMap } from '../../contexts/MapContext';
 import { useLoginModal } from '../../contexts/LoginModalContext';
-import { useNotification } from '../../contexts/NotificationContext';
-import LoginModal from '../modals/LoginModal';
 import toast from 'react-hot-toast';
+import { useNotification } from '../../contexts/notificationcontext';
+import LoginModal from '../modals/loginmodal';
 
 // Language options
 const LANGUAGE_OPTIONS = [
@@ -78,7 +78,11 @@ export default function Topbar() {
   
   const baseUrl = import.meta.env.VITE_API_URL;
   const storedUser = localStorage.getItem('user');
-  const userName = storedUser ? JSON.parse(storedUser).firstName + ' ' + JSON.parse(storedUser).lastName : null;
+  const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+  const userName = parsedUser ? 
+    (parsedUser.firstName && parsedUser.lastName ? 
+      parsedUser.firstName + ' ' + parsedUser.lastName : 
+      parsedUser.email) : null;
 
   const { setShowLoginModal, setIsAuthenticated, isAuthenticated } = useMap();
   const { user, selectedAvatar, handleLogout, handleAvatarSelect } = useLoginModal();

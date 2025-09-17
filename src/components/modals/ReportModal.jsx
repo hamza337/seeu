@@ -100,7 +100,7 @@ const ReportModal = ({ isOpen, onClose, eventId }) => {
 
           {/* Title */}
           <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
-            Report Event
+            Report Post
           </h3>
 
           {/* Description */}
@@ -113,7 +113,7 @@ const ReportModal = ({ isOpen, onClose, eventId }) => {
             {/* Report Categories */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-3">
-                Why are you reporting this event?
+                Why are you reporting this post?
               </label>
               <div className="space-y-2">
                 {reportCategories.map((category) => (
@@ -142,7 +142,7 @@ const ReportModal = ({ isOpen, onClose, eventId }) => {
                 <textarea
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
-                  placeholder="Provide details about why you're reporting this event..."
+                  placeholder="Provide details about why you're reporting this post..."
                   rows={4}
                   className="w-full text-black px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-red-500 resize-none"
                   disabled={isSubmitting}

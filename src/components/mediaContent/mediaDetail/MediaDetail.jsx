@@ -157,33 +157,65 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
       if (!event?.id) return;
 
       const token = localStorage.getItem('token');
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
 
-      if (!token) {
+      if (!token || !user.id) {
           console.log('User not authenticated. Cannot proceed with purchase.');
-           toast.error('Please login to purchase this event.');
+          toast.error('Please login to purchase this event.');
           return;
       }
 
-      // Use different URLs based on whether the event is free or not
-      const purchaseUrl = event.isFree 
-          ? `${baseUrl}stripe/purchase/free/${event.id}`
-          : `${baseUrl}stripe/purchase/${event.id}`;
-
       try {
-          const response = await axios.post(purchaseUrl, {}, {
-              headers: {
-                  'Authorization': `Bearer ${token}`
-              }
-          });
-
-          console.log('Stripe purchase API response:', response.data);
-
           if (event.isFree) {
-              // For free events, show success message and redirect to home
-              toast.success(response.data.message || 'Event added to your purchases successfully!');
-              navigate('/my-events');
+              // For free events, check if category has flat fee
+              const categoryFeesResponse = await axios.get(`${baseUrl}admin/category-fees`);
+              const categoryFees = categoryFeesResponse.data;
+              
+              // Find the category fee for this event's category
+              const categoryFee = categoryFees.find(fee => fee.category === event.category);
+              
+              if (categoryFee && categoryFee.flatFee > 0) {
+                  // Category has flat fee, use flat-fee-checkout API
+                  const flatFeeResponse = await axios.post(`${baseUrl}stripe/flat-fee-checkout`, {
+                      eventId: event.id,
+                      buyerId: user.id
+                  }, {
+                      headers: {
+                          'Authorization': `Bearer ${token}`
+                      }
+                  });
+                  
+                  console.log('Flat fee checkout response:', flatFeeResponse.data);
+                  
+                  // Redirect to Stripe checkout for flat fee payment
+                  if (flatFeeResponse.data) {
+                      window.location.href = flatFeeResponse.data;
+                  } else {
+                      toast.error('Failed to get Stripe checkout URL for flat fee.');
+                  }
+              } else {
+                  // No flat fee, use original free purchase API
+                  const response = await axios.post(`${baseUrl}stripe/purchase/free/${event.id}`, {}, {
+                      headers: {
+                          'Authorization': `Bearer ${token}`
+                      }
+                  });
+                  
+                  console.log('Free purchase API response:', response.data);
+                  toast.success(response.data.message || 'Event added to your purchases successfully!');
+                  navigate('/my-events');
+              }
           } else {
-              // For paid events, redirect to Stripe checkout
+              // For paid events, use regular purchase API
+              const response = await axios.post(`${baseUrl}stripe/purchase/${event.id}`, {}, {
+                  headers: {
+                      'Authorization': `Bearer ${token}`
+                  }
+              });
+              
+              console.log('Paid purchase API response:', response.data);
+              
+              // Redirect to Stripe checkout for paid events
               if (response.data && response.data.url) {
                   window.location.href = response.data.url;
               } else {
@@ -192,11 +224,11 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
           }
 
       } catch (error) {
-          console.error('Error calling Stripe purchase API:', error);
+          console.error('Error calling purchase API:', error);
           toast.error(error.response?.data?.message || 'Failed to initiate purchase. Please try again.');
-           if (error.response && error.response.status === 401) {
-               toast.error('Your session has expired. Please login again.');
-           }
+          if (error.response && error.response.status === 401) {
+              toast.error('Your session has expired. Please login again.');
+          }
       }
   };
 
@@ -411,7 +443,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
 
         {/* Title */}
         <div className="flex items-center gap-3 mt-6">
-          <h2 className="text-3xl font-bold text-black">{event.category || ''}</h2>
+          <h2 className="text-3xl font-bold text-black">{event.category === 'LostFound' ? 'Lost & Found' : event.category || ''}</h2>
           {userOwnsEvent && (
             <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full border border-blue-200">
               Creator

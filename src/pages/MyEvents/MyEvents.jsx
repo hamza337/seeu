@@ -12,10 +12,10 @@ import { useNotification } from '../../contexts/notificationcontext';
 
 // Social Media Sharing Functions
 const shareToTwitter = (event) => {
-  const text = `Check out this ${event.category} event: ${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}`;
+  const text = `Check out this ${event.category === 'LostFound' ? 'Lost & Found' : event.category} event: ${event.description.substring(0, 100)}${event.description.length > 100 ? '...' : ''}`;
   const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
   const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
-  const hashtags = `SeeU,${event.category.replace(/\s+/g, '')}`;
+  const hashtags = `SeeU,${event.category .replace(/\s+/g, '')}`;
   
   const twitterUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}&hashtags=${encodeURIComponent(hashtags)}`;
   window.open(twitterUrl, '_blank', 'width=600,height=400');
@@ -24,7 +24,7 @@ const shareToTwitter = (event) => {
 const shareToFacebook = (event) => {
   const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
   const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
-  const quote = `Check out this ${event.category} event: ${event.description.substring(0, 200)}${event.description.length > 200 ? '...' : ''}`;
+  const quote = `Check out this ${event.category === 'LostFound' ? 'Lost & Found' : event.category} event: ${event.description.substring(0, 200)}${event.description.length > 200 ? '...' : ''}`;
   
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(quote)}`;
   window.open(facebookUrl, '_blank', 'width=600,height=400');
@@ -431,7 +431,7 @@ const MyEvents = () => {
         <div className="bg-white rounded-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
           {/* Modal Header */}
           <div className="flex justify-between items-center p-6 border-b border-gray-200">
-            <h2 className="text-2xl font-bold text-gray-900">{event.category}</h2>
+            <h2 className="text-2xl font-bold text-gray-900">{event.category === 'LostFound' ? 'Lost & Found' : event.category}</h2>
             <button
               onClick={onClose}
               className="p-2 hover:bg-gray-100 rounded-full transition-colors"
@@ -527,7 +527,7 @@ const MyEvents = () => {
                 {categoryIcons[event.category] || <SquareActivity className="w-6 h-6 text-gray-600" />}
               </div>
               <div>
-                <h3 className='text-lg font-semibold text-gray-900'>{event.category}</h3>
+                <h3 className='text-lg font-semibold text-gray-900'>{event.category === 'LostFound' ? 'Lost & Found' : event.category}</h3>
                 <span className='text-sm text-gray-500'>Listings ID: {event.eventCode}</span>
               </div>
             </div>
@@ -847,7 +847,7 @@ const MyEvents = () => {
                 {categoryIcons[event.category] || <SquareActivity className="w-5 h-5 text-gray-600" />}
               </div>
               <div>
-                <h2 className='text-xl font-semibold text-gray-900'>{event.category}</h2>
+                <h2 className='text-xl font-semibold text-gray-900'>{event.category === 'LostFound' ? 'Lost & Found' : event.category}</h2>
               </div>
             </div>
             

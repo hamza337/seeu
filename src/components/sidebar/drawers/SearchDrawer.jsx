@@ -201,6 +201,56 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     debouncedPlaceChanged();
   };
 
+  const handleMyLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          
+          // Use Google's Geocoding service to get address from coordinates
+          const geocoder = new window.google.maps.Geocoder();
+          geocoder.geocode(
+            { location: { lat, lng } },
+            (results, status) => {
+              if (status === 'OK' && results[0]) {
+                setLocation({
+                  address: results[0].formatted_address,
+                  lat,
+                  lng
+                });
+                setLocationError('');
+                setSearchLocation({ lat, lng });
+                // Update the autocomplete input field
+                if (autocompleteRef.current && autocompleteRef.current.input) {
+                  autocompleteRef.current.input.value = results[0].formatted_address;
+                }
+              } else {
+                setLocation({
+                  address: `${lat.toFixed(6)}, ${lng.toFixed(6)}`,
+                  lat,
+                  lng
+                });
+                setLocationError('');
+                setSearchLocation({ lat, lng });
+                // Update the autocomplete input field
+                if (autocompleteRef.current && autocompleteRef.current.input) {
+                  autocompleteRef.current.input.value = `${lat.toFixed(6)}, ${lng.toFixed(6)}`;
+                }
+              }
+            }
+          );
+        },
+        (error) => {
+          console.error('Error getting location:', error);
+          setLocationError('Unable to get your location. Please enter manually.');
+        }
+      );
+    } else {
+      setLocationError('Geolocation is not supported by this browser.');
+    }
+  };
+
   const handleSearch = async () => {
     // Reset all error states
     setDateRangeError('');
@@ -254,6 +304,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       });
       console.log('Search Results:', response.data);
       setSearchResults(response.data);
+      setSearchLocation(null); // Clear blue location marker when search results are shown
       // Set the active search query for the results drawer
       setActiveSearchQuery({
         categories: selectedCategories,
@@ -275,6 +326,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       if (error.response && error.response.status === 404) {
         console.log('Search received 404. Displaying No Record found and Notify Me option.');
         setSearchResults({ status: 404 });
+        setSearchLocation(null); // Clear blue location marker when search results are shown
         // Set the active search query for the results drawer even when 404 occurs
         setActiveSearchQuery({
           categories: selectedCategories,
@@ -332,12 +384,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       className={` pt-26 fixed top-0 left-0 h-screen z-[100] bg-white shadow-lg transition-all duration-500 ease-in-out ${isOpen ? 'opacity-100 pointer-events-auto' : 'opacity-0 pointer-events-none'}`}
       style={{
         left: `${leftPx}px`,
-        width: `${drawerWidthPx}px`,
+        width: `${drawerWidthPx + 10}px`,
         boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className={`${isMobile ? 'px-4 pt-4' : 'px-6 pt-6'} flex justify-between items-center border-b`}>
-        <h2 className={`${isMobile ? 'text-base' : 'text-lg'} text-black font-semibold`}>Search</h2>
+      <div className={`${isMobile ? 'px-4 pt-4' : 'px-6 pt-6 pb-4'} flex justify-between items-center border-b`}>
+        <h2 className={`${isMobile ? 'text-base' : 'text-2xl'} text-black font-semibold`}>Search</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
       <div className={`overflow-y-auto h-[calc(100vh-4rem)] ${isMobile ? 'px-4 pb-4 pt-2' : 'px-6 pb-6 pt-3'} scrollbar-hide`}>
@@ -383,18 +435,30 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         </div>
         {/* Where Field */}
         {isLoaded && (
-          <Autocomplete
-            onLoad={ref => (autocompleteRef.current = ref)}
-            onPlaceChanged={handlePlaceChanged}
-          >
-            <input
-              type="text"
-              placeholder="Where"
-              value={location.address}
-              onChange={handleAddressInputChange}
-              className={`w-full ${isMobile ? 'p-2.5 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-1`}
-            />
-          </Autocomplete>
+          <div className="relative">
+             <Autocomplete
+               onLoad={ref => (autocompleteRef.current = ref)}
+               onPlaceChanged={handlePlaceChanged}
+             >
+               <input
+                 type="text"
+                 placeholder="Where"
+                 value={location.address}
+                 onChange={handleAddressInputChange}
+                 className={`w-full ${isMobile ? 'p-2.5 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-1`}
+               />
+             </Autocomplete>
+             <button
+                type="button"
+                onClick={handleMyLocation}
+                className="absolute -bottom-6 right-0 px-2 py-1 text-xs bg-transparent text-blue-500 underline cursor-pointer flex items-center gap-1"
+              >
+                <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
+                </svg>
+                My Location
+              </button>
+           </div>
         )}
         {locationError && <p className="text-red-500 text-sm mb-4">{locationError}</p>}
         {!locationError && <div className="mb-4"></div>}
@@ -431,6 +495,24 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
             showPopperArrow={false}
             maxDate={new Date()}
             wrapperClassName="w-full"
+            filterDate={(date) => {
+              const today = new Date();
+              
+              // If no start date is selected, allow all dates up to today
+              if (!startDate) {
+                return date <= today;
+              }
+              
+              // Allow all past dates without restriction
+              if (date < startDate) {
+                return date <= today;
+              }
+              
+              // For future dates from start date, apply 7-day limit
+              const diffTime = date - startDate;
+              const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+              return diffDays <= 7 && date <= today;
+            }}
           />
           {dateRangeError && <p className="text-red-500 text-sm mt-1">{dateRangeError}</p>}
         </div>
