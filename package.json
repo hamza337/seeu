@@ -12,6 +12,8 @@
   "dependencies": {
     "@googlemaps/markerclusterer": "^2.5.3",
     "@react-google-maps/api": "^2.20.6",
+    "@stripe/react-stripe-js": "^5.2.0",
+    "@stripe/stripe-js": "^8.1.0",
     "@tailwindcss/vite": "^4.1.4",
     "@uiw/react-md-editor": "^4.0.8",
     "axios": "^1.9.0",

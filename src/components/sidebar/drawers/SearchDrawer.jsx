@@ -6,6 +6,7 @@ import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import axios from 'axios';
 import { debounce } from 'lodash';
 import { useMap } from '../../../contexts/MapContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 import ResultsDrawer from './ResultsDrawer';
 
@@ -29,6 +30,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
   });
 
   const { 
+    searchLocation,
     setSearchLocation, 
     setSetSearchAddressFn, 
     setCategorizedSearchResults, 
@@ -43,6 +45,8 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     setNotifyMePayload,
     setClearAllEntriesFn,
   } = useMap();
+
+  const { t } = useLanguage();
 
   // Sidebar widths in px (match layout/sidebar)
   const collapsedSidebarWidthPx = 56;
@@ -95,6 +99,42 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
       setNotifyMeParams(null);
     }
   }, [isOpen, setSelectedCategories, setNotifyMeParams]);
+
+  // Effect to handle searchLocation changes from map clicks
+  useEffect(() => {
+    if (searchLocation && searchLocation.lat && searchLocation.lng && isOpen) {
+      // Reverse geocode the coordinates to get the address
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: searchLocation.lat, lng: searchLocation.lng } },
+        (results, status) => {
+          if (status === 'OK' && results[0]) {
+            setLocation({
+              address: results[0].formatted_address,
+              lat: searchLocation.lat,
+              lng: searchLocation.lng
+            });
+            setLocationError('');
+            // Update the autocomplete input field
+            if (autocompleteRef.current && autocompleteRef.current.input) {
+              autocompleteRef.current.input.value = results[0].formatted_address;
+            }
+          } else {
+            setLocation({
+              address: `${searchLocation.lat.toFixed(6)}, ${searchLocation.lng.toFixed(6)}`,
+              lat: searchLocation.lat,
+              lng: searchLocation.lng
+            });
+            setLocationError('');
+            // Update the autocomplete input field
+            if (autocompleteRef.current && autocompleteRef.current.input) {
+              autocompleteRef.current.input.value = `${searchLocation.lat.toFixed(6)}, ${searchLocation.lng.toFixed(6)}`;
+            }
+          }
+        }
+      );
+    }
+  }, [searchLocation, isOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -149,12 +189,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
 
   // Define the category options with icons for the dropdown grid
   const categoryOptions = [
-    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-14 h-14" />, textClass: 'text-red-600' },
-    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-14 h-14" />, textClass: '' },
-    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-14 h-14" />, textClass: '' },
-    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-14 h-14" />, textClass: 'text-red-600' },
-    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-14 h-14" />, textClass: '' },
-    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.accident'), icon: <img src="/accident.svg" alt={t('categories.accident')} className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: t('categories.pets'), icon: <img src="/pet.svg" alt={t('categories.pets')} className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.lost'), icon: <img src="/lost.svg" alt={t('categories.lost')} className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.crime'), icon: <img src="/crime.svg" alt={t('categories.crime')} className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: t('categories.people'), icon: <img src="/people.svg" alt={t('categories.people')} className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.other'), icon: <img src="/others.svg" alt={t('categories.other')} className="w-14 h-14" />, textClass: '' },
   ];
 
   const debouncedPlaceChanged = debounce(() => {
@@ -243,11 +283,11 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         },
         (error) => {
           console.error('Error getting location:', error);
-          setLocationError('Unable to get your location. Please enter manually.');
+          setLocationError(t('search.locationError'));
         }
       );
     } else {
-      setLocationError('Geolocation is not supported by this browser.');
+      setLocationError(t('search.geolocationNotSupported'));
     }
   };
 
@@ -261,12 +301,12 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
     let hasErrors = false;
     
     if (selectedCategories.length === 0) {
-      setCategoryError('Please select at least one category.');
+      setCategoryError(t('search.selectCategoryError'));
       hasErrors = true;
     }
     
     if (!location.lat || !location.lng) {
-      setLocationError('Please select a location.');
+      setLocationError(t('search.selectLocationError'));
       hasErrors = true;
     }
     
@@ -362,15 +402,15 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                   }
               });
               if (response.status === 201) {
-                  toast.success('Notification request successful! We will notify you if events match your criteria.');
+                  toast.success(t('search.notificationSuccess'));
                   setNotifyMeParams(null);
                   setSearchResults(null);
               } else {
-                   toast.error('Failed to subscribe for notifications.');
+                   toast.error(t('search.notificationFailed'));
               }
           } catch (error) {
                console.error('Error calling notify-me API:', error);
-               toast.error(error.response?.data?.message || 'Failed to subscribe for notifications.');
+               toast.error(error.response?.data?.message || t('search.notificationFailed'));
           }
       } else {
           console.log('User not authenticated. Opening login modal.');
@@ -388,14 +428,14 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className={`${isMobile ? 'px-4 pt-4' : 'px-6 pt-6 pb-4'} flex justify-between items-center border-b`}>
-        <h2 className={`${isMobile ? 'text-base' : 'text-2xl'} text-black font-semibold`}>Search</h2>
+      <div className={`${isMobile ? 'px-4 pt-4' : 'px-6 pt-6 pb-4'} flex justify-between items-center border-b border-gray-300`}>
+        <h2 className={`${isMobile ? 'text-base' : 'text-2xl'} text-black font-semibold`}>{t('search.search')}</h2>
         <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
       </div>
       <div className={`overflow-y-auto h-[calc(100vh-4rem)] ${isMobile ? 'px-4 pb-4 pt-2' : 'px-6 pb-6 pt-3'} scrollbar-hide`}>
         {/* Categories Field - now a grid, not a dropdown */}
         <div className="mb-4">
-          <label className={`block text-gray-800 font-semibold ${isMobile ? 'mb-1.5 text-sm' : 'mb-2'}`}>Select Categories</label>
+          <label className={`block text-gray-800 font-semibold ${isMobile ? 'mb-1.5 text-sm' : 'mb-2'}`}>{t('search.selectCategories')}</label>
           <div className={`grid ${isMobile ? 'grid-cols-2 gap-2' : 'grid-cols-3 gap-4'}`}>
             {categoryOptions.map((item) => {
               const cleanedLabel = item.label.replace(' & ', '');
@@ -442,10 +482,10 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
              >
                <input
                  type="text"
-                 placeholder="Where"
+                 placeholder={t('search.where')}
                  value={location.address}
                  onChange={handleAddressInputChange}
-                 className={`w-full ${isMobile ? 'p-2.5 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 mb-1`}
+                 className={`w-full ${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 border-gray-300 mb-1 focus:border-blue-500 focus:outline-none transition-colors`}
                />
              </Autocomplete>
              <button
@@ -456,7 +496,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                 <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                 </svg>
-                My Location
+                {t('search.myLocation')}
               </button>
            </div>
         )}
@@ -472,7 +512,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
                 const diffTime = Math.abs(end - start);
                 const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                 if (diffDays > 7) {
-                  setDateRangeError('Please select a date range of maximum 7 days.');
+                  setDateRangeError(t('search.dateRangeError'));
                   setStartDate(start);
                   setEndDate(null);
                   return;
@@ -488,8 +528,8 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
             startDate={startDate}
             endDate={endDate}
             selectsRange
-            placeholderText={isMobile ? "Date range (max 7 days)" : "Select a date range (max 7 days)"}
-            className={`w-full ${isMobile ? 'p-2.5 text-sm' : 'p-3'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 text-sm`}
+            placeholderText={isMobile ? t('search.dateRangeShort') : t('search.dateRangeLong')}
+            className={`w-full ${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 border-gray-300 text-sm focus:border-blue-500 focus:outline-none transition-colors`}
             dateFormat="MMM d, yyyy"
             isClearable
             showPopperArrow={false}
@@ -518,9 +558,9 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         </div>
         <button
           onClick={handleSearch}
-          className={`w-full bg-[#0868a8] text-white ${isMobile ? 'py-2.5 text-sm' : 'py-2'} rounded hover:cursor-pointer transition-colors hover:bg-[#0756a0]`}
+          className={`w-full bg-[#0868a8] text-white ${isMobile ? 'py-3 text-sm' : 'py-4'} rounded-xl hover:cursor-pointer transition-colors hover:bg-[#0756a0] font-medium border-2 border-[#0868a8] hover:border-[#0756a0]`}
         >
-          Search
+          {t('search.search')}
         </button>
       </div>
     </div>

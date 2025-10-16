@@ -82,7 +82,7 @@ export default function LoginModal() {
                 </div>
                 <button
                   type="submit"
-                  className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
+                  className={`w-full bg-[#0868A8] text-white rounded-lg hover:bg-[#0868A8] transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                 >
                   Login
                 </button>
@@ -169,7 +169,7 @@ export default function LoginModal() {
                 </div>
                 <button
                   type="submit"
-                  className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
+                  className={`w-full bg-[#0868A8] text-white rounded-lg hover:bg-[#0868A8] transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                 >
                   Sign Up
                 </button>
@@ -198,7 +198,7 @@ export default function LoginModal() {
                 </div>
                 <button
                   type="submit"
-                  className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
+                  className={`w-full bg-[#0868A8] text-white rounded-lg hover:bg-[#0868A8] transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                 >
                   Send OTP
                 </button>
@@ -228,7 +228,7 @@ export default function LoginModal() {
                 </div>
                 <button
                   type="submit"
-                  className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
+                  className={`w-full bg-[#0868A8] text-white rounded-lg hover:bg-[#0868A8] transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                 >
                   Verify OTP
                 </button>
@@ -291,7 +291,7 @@ export default function LoginModal() {
                 </div>
                 <button
                   type="submit"
-                  className={`w-full bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
+                  className={`w-full bg-[#0868A8] text-white rounded-lg hover:bg-[#0868A8] transition ${isMobile ? 'py-1.5 text-sm' : 'py-2'}`}
                 >
                   Reset Password
                 </button>

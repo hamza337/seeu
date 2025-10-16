@@ -32,7 +32,7 @@ const ConfirmationModal = ({
         return {
           icon: <AlertTriangle className="w-6 h-6 text-blue-600" />,
           iconBg: 'bg-blue-100',
-          confirmBtn: 'bg-blue-600 hover:bg-blue-700 text-white'
+          confirmBtn: 'bg-[#0868A8] hover:bg-[#0868A8] text-white'
         };
     }
   };

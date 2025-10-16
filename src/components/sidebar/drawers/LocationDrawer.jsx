@@ -5,9 +5,11 @@ import 'react-datepicker/dist/react-datepicker.css';
 import axios from 'axios';
 import { useJsApiLoader, Autocomplete } from '@react-google-maps/api';
 import { useMap } from '../../../contexts/MapContext';
+import { useLanguage } from '../../../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 
 export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
+  const { t } = useLanguage();
   const [uploads, setUploads] = useState([]);
   const [selectedDate, setSelectedDate] = useState(null);
   const [selectedEventType, setSelectedEventType] = useState('Accident');
@@ -80,12 +82,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
   }, [showSharingDropdown]);
 
   const categoryPlaceholders = {
-    'Accident': "Hi, I was driving down highway 95 southbound and witnessed your accident by the exit around 9PM . attached is my dash cam footage from that night. P.S- I'm only asking for a small fee to cover the time uploading the content and the equipment that helped in capturing it.",
-    'Pet': "Hi. I just found this sweet dog on Tuesday morning at the grand park. the tag is very blurry . come and get it.",
-    'LostFound': "Hi. I found these glasses on a seat in the stadium last night after the concert. attached are some photos, if it's your reach out with description and you can receive them from me. Sorry for the small charge to cover the time involved",
-    'Crime': "Hi, My security camera captured this bike theft in front of the movie theater, I don't know who's bike it is but here is a video of the guy who cut the lock.",
-    'People': "Hi, we started chatting last week at the event and made plans to meet but I never took your number, hopefully you recognize us in the photo and reach out.",
-    'Other': "Hi, I walked down the street last night and witnessed this fireball falling out of the sky."
+    'Accident': t('location.placeholders.accident'),
+    'Pet': t('location.placeholders.pet'),
+    'LostFound': t('location.placeholders.lostFound'),
+    'Crime': t('location.placeholders.crime'),
+    'People': t('location.placeholders.people'),
+    'Other': t('location.placeholders.other')
   };
 
   const [recommendedPrice, setRecommendedPrice] = useState(null);
@@ -127,12 +129,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
   // Define the category options with icons for the grid
   const categoryOptions = [
-    { label: 'Accident', icon: <img src="/accident.svg" alt="Accident" className="w-14 h-14" />, textClass: 'text-red-600' },
-    { label: 'Pet', icon: <img src="/pet.svg" alt="Pet" className="w-14 h-14" />, textClass: '' },
-    { label: 'Lost & Found', icon: <img src="/lost.svg" alt="Lost and Found" className="w-14 h-14" />, textClass: '' },
-    { label: 'Crime', icon: <img src="/crime.svg" alt="Crime" className="w-14 h-14" />, textClass: 'text-red-600' },
-    { label: 'People', icon: <img src="/people.svg" alt="People" className="w-14 h-14" />, textClass: '' },
-    { label: 'Other', icon: <img src="/others.svg" alt="Other" className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.accident'), value: 'Accident', icon: <img src="/accident.svg" alt={t('categories.accident')} className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: t('categories.pets'), value: 'Pet', icon: <img src="/pet.svg" alt={t('categories.pets')} className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.lost'), value: 'Lost & Found', icon: <img src="/lost.svg" alt={t('categories.lost')} className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.crime'), value: 'Crime', icon: <img src="/crime.svg" alt={t('categories.crime')} className="w-14 h-14" />, textClass: 'text-red-600' },
+    { label: t('categories.people'), value: 'People', icon: <img src="/people.svg" alt={t('categories.people')} className="w-14 h-14" />, textClass: '' },
+    { label: t('categories.other'), value: 'Other', icon: <img src="/others.svg" alt={t('categories.other')} className="w-14 h-14" />, textClass: '' },
   ];
 
   // Set up the search address function in context
@@ -143,6 +145,21 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     });
     return () => setSetSearchAddressFn(null);
   }, [setSetSearchAddressFn]);
+
+  // Handle searchLocation changes to pre-fill address when drawer opens
+  useEffect(() => {
+    if (isOpen && searchLocation && searchLocation.lat && searchLocation.lng) {
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode(
+        { location: { lat: searchLocation.lat, lng: searchLocation.lng } },
+        (results, status) => {
+          if (status === 'OK' && results[0]) {
+            setAddress(results[0].formatted_address);
+          }
+        }
+      );
+    }
+  }, [isOpen, searchLocation]);
 
   // Fetch category fees and recommended price when drawer opens
   useEffect(() => {
@@ -208,7 +225,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
     // Check total file count
     if (uploads.length + files.length > 10) { // Check total count including existing
-      setFileError('You can upload a maximum of 10 files (images or videos).');
+      setFileError(t('location.errors.maxFiles'));
       e.target.value = null; // Clear the input
       return;
     }
@@ -219,7 +236,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     );
 
     if (supportedFiles.length !== files.length) {
-      setFileError('Some selected files are not supported. Please upload only images or videos.');
+      setFileError(t('location.errors.unsupportedFiles'));
       e.target.value = null; // Clear the input
       return;
     }
@@ -300,11 +317,11 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         },
         (error) => {
           console.error('Error getting location:', error);
-          setAddressError('Unable to get your location. Please enter manually.');
+          setAddressError(t('location.errors.locationError'));
         }
       );
     } else {
-      setAddressError('Geolocation is not supported by this browser.');
+      setAddressError(t('location.errors.geolocationNotSupported'));
     }
   };
 
@@ -323,49 +340,49 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
     // Validate file uploads
     if (uploads.length === 0) {
-      setFileError('Please upload at least one photo or video.');
+      setFileError(t('location.errors.noFiles'));
       isValid = false;
     }
 
     // Validate address
     if (!address.trim()) {
-      setAddressError('Please enter a location.');
+      setAddressError(t('location.errors.noLocation'));
       isValid = false;
     }
 
     // Validate date
     if (!selectedDate) {
-      setDateError('Please select a date.');
+      setDateError(t('location.errors.noDate'));
       isValid = false;
     } else if (selectedDate > new Date()) {
-      setDateError('Date cannot be in the future.');
+      setDateError(t('location.errors.futureDate'));
       isValid = false;
     }
 
     // Validate description
     if (!description.trim()) {
-      setDescriptionError('Please provide a description.');
+      setDescriptionError(t('location.errors.noDescription'));
       isValid = false;
     } else if (description.trim().length < 10) {
-      setDescriptionError('Description must be at least 10 characters long.');
+      setDescriptionError(t('location.errors.shortDescription'));
       isValid = false;
     } else if (description.trim().length > 1000) {
-      setDescriptionError('Description cannot exceed 1000 characters.');
+      setDescriptionError(t('location.errors.longDescription'));
       isValid = false;
     }
 
     // Validate price (only if not free)
     if (!isFree) {
       if (!price || price.trim() === '') {
-        setPriceError('Please enter a price or mark as free.');
+        setPriceError(t('location.errors.noPrice'));
         isValid = false;
       } else {
         const priceNum = parseFloat(price);
         if (isNaN(priceNum) || priceNum < 0) {
-          setPriceError('Please enter a valid price (0 or greater).');
+          setPriceError(t('location.errors.invalidPrice'));
           isValid = false;
         } else if (priceNum > 10000) {
-          setPriceError('Price cannot exceed $10,000.');
+          setPriceError(t('location.errors.highPrice'));
           isValid = false;
         }
       }
@@ -373,7 +390,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
     // Validate contact sharing
     if (!shareEmail && !sharePhone) {
-      setSharingError('Please select at least one contact sharing option.');
+      setSharingError(t('location.errors.noContactSharing'));
       isValid = false;
     }
 
@@ -390,7 +407,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     if (sharePhone) {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
       if (!user.phoneNumber) {
-        toast.error('Please update your profile with a phone number to share it with buyers.');
+        toast.error(t('location.errors.noPhoneNumber'));
         return;
       }
     }
@@ -399,7 +416,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     let loadingToastId = null;
     try {
       setLoading(true);
-      loadingToastId = toast.loading('Creating event...');
+      loadingToastId = toast.loading(t('location.messages.creatingEvent'));
 
       const filesToUploadDetails = uploads.map(file => ({
         fileName: file.name.replace(/\.[^/.]+$/, ''),
@@ -456,7 +473,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       });
 
       if (createEventRes.status === 201 || createEventRes.status === 200) {
-        toast.success('Event uploaded successfully!', { id: loadingToastId });
+        toast.success(t('location.messages.eventSuccess'), { id: loadingToastId });
         onClose();
         setUploads([]);
         setSelectedDate(null);
@@ -476,7 +493,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         if (autocompleteRef.current && typeof autocompleteRef.current.setVal === 'function') {
             autocompleteRef.current.setVal('');
         } else {
-            const input = document.querySelector('input[placeholder="Where"]');
+            const input = document.querySelector(`input[placeholder="${t('location.where')}"]`);
             if(input) input.value = '';
         }
         setSearchLocation(null); // Clear the blue location marker
@@ -485,10 +502,10 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     } catch (err) {
       console.error('Upload process failed:', err);
       if (err.response && err.response.status === 401) {
-        toast.error('Please login.', { id: loadingToastId });
+        toast.error(t('location.messages.loginRequired'), { id: loadingToastId });
         setShowLoginModal(true);
       } else {
-        toast.error('Something went wrong, try again.', { id: loadingToastId });
+        toast.error(t('location.messages.eventError'), { id: loadingToastId });
       }
     } finally {
       setLoading(false);
@@ -515,12 +532,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         boxShadow: isOpen ? '0 0 24px 0 rgba(0,0,0,0.12)' : 'none',
       }}
     >
-      <div className={`${isMobile ? 'pt-8 px-4' : 'pt-12 px-6'} flex justify-between items-center border-b`}>
-        <h2 className="text-lg font-semibold"></h2>
-        <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
+      <div className={`${isMobile ? 'pt-8 px-4 pb-4' : 'pt-6 px-6 pb-4'} flex justify-between items-center border-b border-gray-300`}>
+        <div className="flex-1"></div>
+        <img src="/brandLogoFinal.png" alt="Poing Logo" className={`${isMobile ? 'w-32' : 'w-36'} object-contain`} />
+        <div className="flex-1 flex justify-end">
+          <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
+        </div>
       </div>
-      <div className={`overflow-y-auto h-[calc(100vh-4rem)] ${isMobile ? 'px-4 pb-4' : 'px-6 pb-6'} scrollbar-hide flex flex-col space-y-2`}>
-        <img src="/brandLogoFinal.png" alt="Poing Logo" className={`${isMobile ? 'w-20 mb-2' : 'w-25 mb-4'} object-contain mx-auto`} />
+      <div className={`overflow-y-auto h-[calc(100vh-8rem)] ${isMobile ? 'px-4 pt-5 pb-8' : 'px-6 pt-5 pb-10'} scrollbar-hide flex flex-col space-y-2`}>
 
         <div className={`${isMobile ? 'space-y-3' : 'space-y-4'}`}>
           {/* Preview Grid */}
@@ -540,7 +559,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                         type="button"
                         onClick={(e) => { e.preventDefault(); removeUpload(index); }}
                         className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity z-10"
-                        title="Remove"
+                        title={t('location.remove')}
                       >
                         <Trash2 size={24} className="text-white" />
                       </button>
@@ -549,7 +568,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                       type="button"
                       onClick={e => { e.preventDefault(); setMainMediaIndex(index); }}
                       className={`absolute -top-2 -right-2 bg-white rounded-full p-1 border ${isMainMedia ? 'border-yellow-400' : 'border-gray-300'} shadow transition-all duration-200 z-20`}
-                      title={isMainMedia ? 'Main Media' : 'Set as Main'}
+                      title={isMainMedia ? t('location.mainMedia') : t('location.setAsMain')}
                     >
                       <Star size={18} className={isMainMedia ? 'text-yellow-400 fill-yellow-400' : 'text-gray-400'} fill={isMainMedia ? '#facc15' : 'none'} />
                     </button>
@@ -561,14 +580,14 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
           {/* Dropzones */}
           <div className={`grid grid-cols-2 ${isMobile ? 'gap-2' : 'gap-4'}`}>
-            <label className={`flex flex-col items-center justify-center w-full ${isMobile ? 'h-20 p-1.5' : 'h-24 p-2'} transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400`}>
-              <Camera className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-gray-500`} />
-              <span className={`${isMobile ? 'mt-1 text-xs' : 'mt-2 text-sm'} font-medium text-gray-600`}>Add Photos</span>
+            <label className={`flex flex-col items-center justify-center w-full ${isMobile ? 'h-28 p-3' : 'h-32 p-4'} transition bg-transparent border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50`}>
+              <Camera className={`${isMobile ? 'w-7 h-7' : 'w-9 h-9'} text-gray-500`} />
+              <span className={`${isMobile ? 'mt-2 text-xs' : 'mt-3 text-sm'} font-medium text-gray-600`}>{t('location.addPhotos')}</span>
               <input type="file" accept="image/*" multiple className="hidden" onChange={handleFileChange} />
             </label>
-            <label className={`flex flex-col items-center justify-center w-full ${isMobile ? 'h-20 p-1.5' : 'h-24 p-2'} transition bg-gray-50 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400`}>
-              <Video className={`${isMobile ? 'w-6 h-6' : 'w-8 h-8'} text-gray-500`} />
-              <span className={`${isMobile ? 'mt-1 text-xs' : 'mt-2 text-sm'} font-medium text-gray-600`}>Add Videos</span>
+            <label className={`flex flex-col items-center justify-center w-full ${isMobile ? 'h-28 p-3' : 'h-32 p-4'} transition bg-transparent border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:border-gray-400 hover:bg-gray-50`}>
+              <Video className={`${isMobile ? 'w-7 h-7' : 'w-9 h-9'} text-gray-500`} />
+              <span className={`${isMobile ? 'mt-2 text-xs' : 'mt-3 text-sm'} font-medium text-gray-600`}>{t('location.addVideos')}</span>
               <input type="file" accept="video/*" multiple className="hidden" onChange={handleFileChange} />
             </label>
           </div>
@@ -580,20 +599,20 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         <div className="space-y-2">
           <div className="flex gap-2">
             {isLoaded && (
-              <div className="flex-1 relative">
+              <div className="flex-1 relative mb-3">
                  <Autocomplete 
                    onLoad={ref => (autocompleteRef.current = ref)} 
                    onPlaceChanged={handlePlaceChanged}
                  >
                    <input
                      type="text"
-                     placeholder="Where"
+                     placeholder={t('location.where')}
                      value={address}
                      onChange={(e) => {
                        setAddress(e.target.value);
                        if (addressError) setAddressError('');
                      }}
-                     className={`${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${addressError ? 'border-red-500' : 'border-gray-500'} w-full`}
+                     className={`${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 ${addressError ? 'border-red-500' : 'border-gray-300'} w-full focus:border-blue-500 focus:outline-none transition-colors`}
                    />
                  </Autocomplete>
                  <button
@@ -604,7 +623,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                     <svg className="w-3 h-3 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                       <path fillRule="evenodd" d="M5.05 4.05a7 7 0 119.9 9.9L10 18.9l-4.95-4.95a7 7 0 010-9.9zM10 11a2 2 0 100-4 2 2 0 000 4z" clipRule="evenodd" />
                     </svg>
-                    My Location
+                    {t('location.myLocation')}
                   </button>
                  {addressError && <p className="text-red-500 text-xs mt-1">{addressError}</p>}
                </div>
@@ -616,8 +635,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                   setSelectedDate(date);
                   if (dateError) setDateError('');
                 }}
-                className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${dateError ? 'border-red-500' : 'border-gray-500'}`}
-                placeholderText="When"
+                className={`w-full ${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 ${dateError ? 'border-red-500' : 'border-gray-300'} focus:border-blue-500 focus:outline-none transition-colors`}
+                placeholderText={t('location.when')}
                 maxDate={new Date()}
               />
               {dateError && <p className="text-red-500 text-xs mt-1">{dateError}</p>}
@@ -627,7 +646,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
         {/* Category Selection - Now a Grid */}
         <div>
-          <label className={`block text-gray-800 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>Select Category</label>
+          <label className={`block text-gray-800 font-semibold ${isMobile ? 'mb-1 text-sm' : 'mb-2'}`}>{t('location.selectCategory')}</label>
           <div className={`grid grid-cols-3 ${isMobile ? 'gap-2' : 'gap-4'}`}>
             {categoryOptions.map((item) => {
               const isSelected = selectedEventType === item.label.replace(' & ','');
@@ -658,13 +677,13 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
         <div>
           <textarea
-            placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : 'Description'}
+            placeholder={selectedEventType && selectedEventType !== 'Select cateogry' ? categoryPlaceholders[selectedEventType] : t('location.description')}
             value={description}
             onChange={(e) => {
               setDescription(e.target.value);
               if (descriptionError) setDescriptionError('');
             }}
-            className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${descriptionError ? 'border-red-500' : 'border-gray-500'} custom-scrollbar ${isMobile ? 'min-h-[120px]' : 'min-h-[140px]'}`}
+            className={`w-full ${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 ${descriptionError ? 'border-red-500' : 'border-gray-300'} custom-scrollbar ${isMobile ? 'min-h-[120px]' : 'min-h-[140px]'} focus:border-blue-500 focus:outline-none transition-colors resize-none`}
             rows={isMobile ? 3 : 4}
           />
           {descriptionError && <p className="text-red-500 text-xs mt-1">{descriptionError}</p>}
@@ -686,8 +705,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                 if (priceError) setPriceError('');
               }}
               onWheel={(e) => e.target.blur()}
-              placeholder="Price"
-              className={`pl-10 w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 ${priceError ? 'border-red-500' : 'border-gray-500'} custom-number-input ${isFree ? 'bg-gray-100' : ''}`}
+              placeholder={t('location.price')}
+              className={`pl-10 w-full ${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 ${priceError ? 'border-red-500' : 'border-gray-300'} custom-number-input focus:border-blue-500 focus:outline-none transition-colors ${isFree ? 'opacity-50' : ''}`}
               disabled={isFree}
             />
           </div>
@@ -704,10 +723,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         {currentCategoryFee && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
             <p className="text-blue-800 text-sm font-medium">
-              {isFree 
-                ? `Poing charges ${currentCategoryFee.flatFee} USD on free ${currentCategoryFee.category} events.`
-                : `Poing charges ${currentCategoryFee.platformFee}% on ${currentCategoryFee.category} events.`
-              }
+              Poing charges {currentCategoryFee.platformFee}% on {currentCategoryFee.category} events.
             </p>
           </div>
         )}
@@ -727,7 +743,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             disabled={isExclusive}
             className={`${isExclusive ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          <span className={`text-black ${isExclusive ? 'opacity-50' : ''}`}>Make it Free</span>
+          <span className={`text-black ${isExclusive ? 'opacity-50' : ''}`}>{t('location.makeItFree')}</span>
         </label>
 
         <label className="flex items-center gap-2 relative">
@@ -743,7 +759,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             disabled={isFree}
             className={`${isFree ? 'opacity-50 cursor-not-allowed' : ''}`}
           />
-          <span className={`text-black ${isFree ? 'opacity-50' : ''}`}>Make it Exclusive</span>
+          <span className={`text-black ${isFree ? 'opacity-50' : ''}`}>{t('location.makeItExclusive')}</span>
           <div className="relative">
             <Info 
               size={16} 
@@ -754,7 +770,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
             {showExclusiveTooltip && (
               <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 w-80 p-3 bg-gray-800 text-white text-sm rounded-lg shadow-lg z-50">
                 <div className="relative">
-                  By selecting this option you agree to the terms and conditions and surrender the rights of ownership, publishing or selling this media to the new owner. After purchase the media will be erased from your Que. This contract is between you and the buyer.
+                  {t('location.exclusiveTooltip')}
                   <div className="absolute top-full left-1/2 transform -translate-x-1/2 w-0 h-0 border-l-4 border-r-4 border-t-4 border-transparent border-t-gray-800"></div>
                 </div>
               </div>
@@ -764,12 +780,12 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
 
         {/* Contact Sharing Preferences */}
         <div className="space-y-2">
-          <label className="block text-gray-800 font-semibold text-sm">Share Contact Information</label>
+          <label className="block text-gray-800 font-semibold text-sm">{t('location.shareContactInfo')}</label>
           <div className="relative" ref={sharingDropdownRef}>
             <button
               type="button"
               onClick={() => setShowSharingDropdown(!showSharingDropdown)}
-              className={`w-full ${isMobile ? 'p-2 text-sm' : 'p-2'} rounded-xl bg-gray-200 text-gray-800 border-dotted border-1 border-gray-500 flex items-center justify-between hover:bg-gray-300 transition-all duration-200`}
+              className={`w-full ${isMobile ? 'p-3 text-sm' : 'p-4'} rounded-xl bg-transparent text-gray-800 border-2 border-gray-300 flex items-center justify-between hover:border-gray-400 focus:border-blue-500 focus:outline-none transition-colors`}
             >
               <div className="flex items-center gap-2">
                 <div className="flex gap-1">
@@ -777,17 +793,17 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                   {sharePhone && <Phone size={16} className="text-gray-600" />}
                 </div>
                 <span className="text-gray-700 text-sm">
-                  {!shareEmail && !sharePhone ? 'Select contact options' : 
-                   shareEmail && sharePhone ? 'Email & Phone' :
-                   shareEmail ? 'Email only' : 'Phone only'}
+                  {!shareEmail && !sharePhone ? t('location.selectContactOptions') : 
+                   shareEmail && sharePhone ? t('location.emailAndPhone') :
+                   shareEmail ? t('location.emailOnly') : t('location.phoneOnly')}
                 </span>
               </div>
               <ChevronDown size={16} className={`text-gray-500 transition-transform duration-200 ${showSharingDropdown ? 'rotate-180' : ''}`} />
             </button>
             
             {showSharingDropdown && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white border-dotted border-1 border-gray-500 rounded-xl shadow-lg z-50">
-                <div className="p-2 space-y-1">
+              <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-gray-300 rounded-xl shadow-lg z-50">
+                <div className="p-3 space-y-2">
                   <label className="flex items-center gap-3 p-2 rounded transition-colors opacity-75">
                     <input
                       type="checkbox"
@@ -796,7 +812,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                       className="w-4 h-4 text-gray-600 rounded focus:ring-gray-500 cursor-not-allowed"
                     />
                     <Mail size={16} className="text-gray-600" />
-                    <span className="text-sm text-gray-700">Share Email Address (Required)</span>
+                    <span className="text-sm text-gray-700">{t('location.shareEmailRequired')}</span>
                   </label>
                   <label className="flex items-center gap-3 p-2 hover:bg-gray-100 rounded cursor-pointer transition-colors">
                     <input
@@ -806,7 +822,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
                       className="w-4 h-4 text-gray-600 rounded focus:ring-gray-500"
                     />
                     <Phone size={16} className="text-gray-600" />
-                    <span className="text-sm text-gray-700">Share Phone Number</span>
+                    <span className="text-sm text-gray-700">{t('location.sharePhoneNumber')}</span>
                   </label>
                 </div>
               </div>
@@ -817,7 +833,8 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           )}
         </div>
 
-        <button onClick={handleSubmit} className={`${isMobile ? 'w-1/2 py-2 text-sm' : 'w-1/3 py-2'} hover:bg-gray-300 rounded-xl bg-gray-200 text-gray-800 border-dotted border border-gray-500 cursor-pointer flex items-center justify-center space-x-2 mx-auto`} disabled={loading}>
+        <button onClick={handleSubmit} className={`${isMobile ? 'w-full py-1 text-sm' : 'w-full py-1'} rounded-xl bg-transparent hover:bg-blue-50 hover:border-blue-100 text-gray-800 border-2 border-gray-300 cursor-pointer flex items-center justify-center space-x-2 mx-auto focus:border-blue-500 focus:outline-none transition-colors font-medium`} disabled={loading}>
+          {/* <span className="text-white text-2xl font-bold"><span>P</span>oing <i>It</i></span> */}
           <img src="/brandLogoFinal.png" alt="Map Marker" className="w-24 h-12 text-blue-600" />
           {loading && (
             <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

@@ -22,15 +22,19 @@ import { Toaster } from 'react-hot-toast';
 import { ModalProvider } from './contexts/ModalContext';
 import MyEvents from './pages/MyEvents/MyEvents';
 import { NotificationProvider } from './contexts/NotificationContext';
+import { LanguageProvider } from './contexts/LanguageContext';
+import InAppPayment from './components/InAppPayment';
+import StripeProvider from './components/StripeProvider';
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <BrowserRouter>
-      <MapProvider>
-        <Toaster />
-        <LoginModalProvider>
-          <NotificationProvider>
-            <ModalProvider>
+      <LanguageProvider>
+        <MapProvider>
+          <Toaster />
+          <LoginModalProvider>
+            <NotificationProvider>
+              <ModalProvider>
             <Routes>
             {/* Layout Route */}
             <Route path="/" element={<Layout />}>
@@ -49,13 +53,15 @@ ReactDOM.createRoot(document.getElementById('root')).render(
               <Route path="/wallet/withdraw-request" element={<WithdrawRequest />} />
               <Route path="/contact-us" element={<ContactUs />} />
               <Route path="/my-events" element={<MyEvents />} />
+              <Route path="/buy-now" element={<StripeProvider><InAppPayment /></StripeProvider>} />
 
             </Route>
             </Routes>
-            </ModalProvider>
-          </NotificationProvider>
-        </LoginModalProvider>
-      </MapProvider>
+              </ModalProvider>
+            </NotificationProvider>
+          </LoginModalProvider>
+        </MapProvider>
+      </LanguageProvider>
     </BrowserRouter>
   </React.StrictMode>
 );

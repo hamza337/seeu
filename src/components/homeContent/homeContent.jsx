@@ -6,7 +6,7 @@ import {
 } from '@react-google-maps/api';
 import axios from 'axios';
 import {
-  MapPin, AlertCircle, Camera, Car, PawPrint, Lock
+  MapPin, AlertCircle, Camera, Car, PawPrint, Lock, Search
 } from 'lucide-react';
 import { renderToString } from 'react-dom/server';
 import { MarkerClusterer } from '@googlemaps/markerclusterer';
@@ -15,6 +15,7 @@ import moment from 'moment'; // Import moment for date formatting
 import { useNavigate } from 'react-router-dom'; // Import useNavigate
 // import MediaDetail from '../mediaContent/mediaDetail/MediaDetail'; // Import MediaDetail component
 import { useModal } from '../../contexts/ModalContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import toast from 'react-hot-toast';
 const containerStyle = {
   width: '100%',
@@ -167,10 +168,10 @@ const createClusterIcon = async (count, markers) => {
 };
 
 // Helper function to format date
-const formatCreationDate = (dateString) => {
-  if (!dateString) return 'N/A';
+const formatCreationDate = (dateString, t) => {
+  if (!dateString) return t('common.notAvailable');
   const date = moment(dateString);
-  return date.isValid() ? date.format('YYYY-MM-DD HH:mm') : 'Invalid Date';
+  return date.isValid() ? date.format('YYYY-MM-DD HH:mm') : t('common.invalidDate');
 };
 
 // Helper function to parse media JSON and count types
@@ -191,6 +192,7 @@ const parseMediaAndCount = (mediaJson) => {
 };
 
 const HomeContent = () => {
+  const { t } = useLanguage();
   const [center, setCenter] = useState(defaultCenter);
   const [events, setEvents] = useState([]);
   const [searchMarkers, setSearchMarkers] = useState([]);
@@ -206,6 +208,9 @@ const HomeContent = () => {
   const tooltipRef = useRef(null); // Ref for the tooltip div
   const mouseOutTimerRef = useRef(null); // Ref for the mouseout timer
   const [showTooltip, setShowTooltip] = useState(false);
+  const [placeClickInfo, setPlaceClickInfo] = useState(null);
+  const [showPlaceButtons, setShowPlaceButtons] = useState(false);
+  const placesServiceRef = useRef(null);
   const { animatedMarkerId, setAnimatedMarkerId } = useMap();
   const { modalEventId, setModalEventId, openReportModal } = useModal();
 
@@ -214,7 +219,7 @@ const HomeContent = () => {
     libraries
   });
 
-  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents, hoveredEventId, setHoveredEventId, setGetUserLocationFn } = useMap();
+  const { mapFocusLocation, setMapFocusLocation, setFocusMapFn, searchLocation, setSearchAddressFn, categorizedSearchResults, setCategorizedSearchResults, refreshEvents, hoveredEventId, setHoveredEventId, setGetUserLocationFn, setActiveDrawer, setSearchLocation, setIsSidebarExpanded } = useMap();
   const navigate = useNavigate(); // Initialize navigate hook
 
   console.log('HomeContent rendering. mapFocusLocation:', mapFocusLocation, 'searchLocation:', searchLocation, 'refreshEvents:', refreshEvents);
@@ -370,10 +375,21 @@ const HomeContent = () => {
     const bounds = map.getBounds();
     if (bounds) fetchEvents(bounds);
 
-    // Add a click listener to the map to hide tooltip when clicking elsewhere
-    map.addListener('click', () => {
+    // Initialize Places service
+    placesServiceRef.current = new window.google.maps.places.PlacesService(map);
+
+    // Add a click listener to the map to handle place clicks and hide tooltips
+    map.addListener('click', (event) => {
+       // Hide existing tooltips and place buttons
        setHoveredEvent(null);
-       setTooltipPosition({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 }); // Hide tooltip immediately on map click
+       setTooltipPosition({ x: -1000, y: -1000, anchor: 'left-center', markerX: 0, markerY: 0 });
+       setShowPlaceButtons(false);
+       
+       // Check if click was on a place
+       if (event.placeId) {
+         event.stop(); // Prevent default info window
+         handlePlaceClick(event, map);
+       }
     });
 
   }, []);
@@ -397,6 +413,80 @@ const HomeContent = () => {
     }
   };
 
+  // Function to handle place clicks
+  const handlePlaceClick = useCallback((event, map) => {
+    if (!placesServiceRef.current) return;
+    
+    const request = {
+      placeId: event.placeId,
+      fields: ['name', 'formatted_address', 'geometry']
+    };
+    
+    placesServiceRef.current.getDetails(request, (place, status) => {
+      if (status === window.google.maps.places.PlacesServiceStatus.OK && place) {
+        const lat = place.geometry.location.lat();
+        const lng = place.geometry.location.lng();
+        
+        // Get screen coordinates for the actual clicked location (event.latLng)
+        const projection = map.getProjection();
+        if (projection && event.latLng) {
+          const mapDiv = map.getDiv();
+          const mapRect = mapDiv.getBoundingClientRect();
+          // Use the actual click position instead of place geometry location
+          const pixelPosition = projection.fromLatLngToPoint(event.latLng);
+          const scale = Math.pow(2, map.getZoom());
+          
+          const screenX = pixelPosition.x * scale;
+          const screenY = pixelPosition.y * scale;
+          
+          // Convert to actual screen coordinates
+          const mapCenter = map.getCenter();
+          const mapCenterPixel = projection.fromLatLngToPoint(mapCenter);
+          const mapCenterX = mapCenterPixel.x * scale;
+          const mapCenterY = mapCenterPixel.y * scale;
+          
+          const offsetX = screenX - mapCenterX;
+          const offsetY = screenY - mapCenterY;
+          
+          const finalX = mapRect.width / 2 + offsetX;
+          const finalY = mapRect.height / 2 + offsetY;
+          
+          setPlaceClickInfo({
+            name: place.name,
+            address: place.formatted_address,
+            lat,
+            lng,
+            x: finalX,
+            y: finalY
+          });
+          setShowPlaceButtons(true);
+        }
+      }
+    });
+  }, []);
+  
+  // Function to handle "Poing it" button click
+  const handlePoingItClick = useCallback(() => {
+    if (placeClickInfo && setSearchAddressFn) {
+      // Set both the address and the search location for the blue marker
+      setSearchAddressFn(placeClickInfo.address, placeClickInfo.lat, placeClickInfo.lng);
+      setSearchLocation({ lat: placeClickInfo.lat, lng: placeClickInfo.lng });
+      setActiveDrawer('location');
+      setIsSidebarExpanded(false);
+      setShowPlaceButtons(false);
+    }
+  }, [placeClickInfo, setSearchAddressFn, setSearchLocation, setActiveDrawer, setIsSidebarExpanded]);
+  
+  // Function to handle "Search" button click
+  const handleSearchClick = useCallback(() => {
+    if (placeClickInfo) {
+      setSearchLocation({ lat: placeClickInfo.lat, lng: placeClickInfo.lng });
+      setActiveDrawer('search');
+      setIsSidebarExpanded(false);
+      setShowPlaceButtons(false);
+    }
+  }, [placeClickInfo, setSearchLocation, setActiveDrawer, setIsSidebarExpanded]);
+
   // Function to geocode coordinates and update search address in Drawer
   const geocodeLatLng = useCallback((lat, lng) => {
     if (geocoderRef.current && setSearchAddressFn) {
@@ -408,11 +498,11 @@ const HomeContent = () => {
             setSearchAddressFn(results[0].formatted_address, lat, lng);
           } else {
             console.log('No results found during geocoding.');
-            setSearchAddressFn('Unknown location', lat, lng); // Update with unknown if no address found
+            setSearchAddressFn(t('map.unknownLocation'), lat, lng); // Update with unknown if no address found
           }
         } else {
           console.error('Geocoder failed due to:', status);
-          setSearchAddressFn('Geocoding failed', lat, lng); // Indicate geocoding failure
+          setSearchAddressFn(t('map.geocodingFailed'), lat, lng); // Indicate geocoding failure
         }
       });
     }
@@ -649,8 +739,8 @@ const HomeContent = () => {
             scaledSize: new window.google.maps.Size(32, 32)
           },
           title: item.type === 'event' 
-            ? `This is a${(('AEIOUaeiou'.indexOf(item.category?.[0]) !== -1) || (!item.category)) ? 'n' : ''} ${item.category || 'Unknown'} Event`
-            : `Someone is searching for ${item.label} events`,
+            ? t('map.eventMarkerTitle', { category: item.category || t('common.unknown') })
+            : t('map.searchMarkerTitle', { label: item.label }),
           draggable: false,
         });
 
@@ -863,7 +953,7 @@ const HomeContent = () => {
     <div className="w-full h-full pt-6 sm:pt-11 pl-0 pr-4 sm:px-4 md:px-8 lg:px-12 overflow-x-hidden">
       <div className="w-full mb-8 px-2">
         <p className="text-gray-600 text-sm sm:text-base md:text-lg lg:text-xl mb-4 text-center leading-relaxed">
-          The only search tool by <span className="font-semibold">TI<span style={{ color: 'red' }}>:</span>ME</span> and  <span className="font-semibold"><span style={{ color: '#0868a8' }}>P</span>LACE</span> to find or post lost items, pets, people, witnesses and events.
+          {t('home.description')}
         </p>
       </div>
 
@@ -900,7 +990,7 @@ const HomeContent = () => {
                     scaledSize: new window.google.maps.Size(50, 50),
                     anchor: new window.google.maps.Point(25, 25)
                   }}
-                  title="Drag to select location"
+                  title={t('map.dragToSelectLocation')}
                 />
               )}
 
@@ -911,7 +1001,7 @@ const HomeContent = () => {
             </GoogleMap>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-2xl text-blue-700 font-bold">
-              Loading Map...
+              {t('map.loadingMap')}
             </div>
           )}
 
@@ -1028,10 +1118,10 @@ const HomeContent = () => {
               />
             </div>
             <div className="mb-3">
-              <h3 className="font-bold text-lg mb-2 text-gray-900">{hoveredEvent?.category === 'LostFound' ? 'Lost & Found' : hoveredEvent?.category || 'Unknown Category'}</h3>
-              <p className="text-sm text-gray-600 mb-1">{hoveredEvent?.address || 'No address'}</p>
+              <h3 className="font-bold text-lg mb-2 text-gray-900">{hoveredEvent?.category === 'LostFound' ? t('categories.lost') : t(`categories.${hoveredEvent?.category?.toLowerCase()}`) || t('common.unknownCategory')}</h3>
+              <p className="text-sm text-gray-600 mb-1">{hoveredEvent?.address || t('common.noAddress')}</p>
               <p className="text-sm text-red-500 font-medium">
-                {hoveredEvent?.date ? moment(hoveredEvent.date).format('MMM DD, YYYY') : 'N/A'}
+                {hoveredEvent?.date ? moment(hoveredEvent.date).format('MMM DD, YYYY') : t('common.notAvailable')}
               </p>
             </div>
             {/* Media Info Row */}
@@ -1042,7 +1132,7 @@ const HomeContent = () => {
               >
                 <div className="text-center font-medium">
                   {parseMediaAndCount(hoveredEvent?.media).videoCount > 0 &&
-                    `${parseMediaAndCount(hoveredEvent?.media).videoCount} video(s)`}
+                    t('common.videoCount', { count: parseMediaAndCount(hoveredEvent?.media).videoCount })}
                 </div>
                 <div className="text-center font-medium">
                   {parseMediaAndCount(hoveredEvent?.media).imageCount > 0 &&
@@ -1095,7 +1185,7 @@ const HomeContent = () => {
                       />
                     );
                   } else {
-                    return <span className="text-gray-500 text-xs">No Media</span>;
+                    return <span className="text-gray-500 text-xs">{t('common.noMedia')}</span>;
                   }
                 })()}
               </div>
@@ -1107,7 +1197,7 @@ const HomeContent = () => {
                 ? hoveredEvent.description.length > 120
                   ? `${hoveredEvent.description.substring(0, 120)}...`
                   : hoveredEvent.description
-                : 'No description available'}
+                : t('common.noDescription')}
             </p>
 
             {/* Action Buttons - Only show claim button if user is not the event owner */}
@@ -1124,7 +1214,7 @@ const HomeContent = () => {
                       navigate(`/event/${hoveredEvent?.id}`);
                     }}
                   >
-                    Claim
+                    {t('common.claim')}
                   </button>
                 </div>
               ) : null;
@@ -1132,14 +1222,14 @@ const HomeContent = () => {
 
             {/* Listing ID and Posted Date */}
             <div className="text-xs text-gray-500 pt-2 border-t border-gray-200 space-y-1">
-              <div className="font-medium">ID: {hoveredEvent?.eventCode || 'N/A'}</div>
+              <div className="font-medium">{t('common.id')}: {hoveredEvent?.eventCode || t('common.notAvailable')}</div>
               <div className="font-medium">
-                Posted: {hoveredEvent?.createdAt ? 
+                {t('common.posted')}: {hoveredEvent?.createdAt ? 
                   new Date(hoveredEvent.createdAt).toLocaleDateString('en-US', {
                     month: '2-digit',
                     day: '2-digit', 
                     year: 'numeric'
-                  }) : 'N/A'
+                  }) : t('common.notAvailable')
                 }
               </div>
               
@@ -1160,13 +1250,74 @@ const HomeContent = () => {
                       <div className="w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
                         <span className="text-white text-xs font-bold">!</span>
                       </div>
-                      Report
+                      {t('common.report')}
                     </button>
                   </div>
                 ) : null;
               })()}
             </div>
           </div>
+
+          {/* Place Click Buttons */}
+          {showPlaceButtons && placeClickInfo && (
+            <div
+              className="absolute z-30 bg-white rounded-xl shadow-2xl border border-gray-100 p-4 backdrop-blur-sm"
+              style={{
+                top: placeClickInfo.y - 150,
+                left: placeClickInfo.x,
+                minWidth: '240px',
+                boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
+                transform: 'translateX(-50%)'
+              }}
+            >
+              {/* Location Icon and Name */}
+              <div className="flex items-center mb-3">
+                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <MapPin className="w-4 h-4 text-[#0868A8]" />
+                </div>
+                <div className="flex-1">
+                  <div className="text-sm font-semibold text-gray-900 leading-tight">
+                    {placeClickInfo.name}
+                  </div>
+                  {placeClickInfo.address && (
+                    <div className="text-xs text-gray-500 mt-1 truncate">
+                      {placeClickInfo.address.length > 30 
+                        ? placeClickInfo.address.substring(0, 30) + '...' 
+                        : placeClickInfo.address
+                      }
+                    </div>
+                  )}
+                </div>
+              </div>
+              
+              {/* Action Buttons */}
+              <div className="flex gap-2">
+                <button
+                  onClick={handlePoingItClick}
+                  className="flex-1 bg-[#0868A8] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <Camera className="w-4 h-4" />
+                  {t('common.poingIt')}
+                </button>
+                <button
+                  onClick={handleSearchClick}
+                  className="flex-1 bg-gradient-to-r bg-[#CE69FF] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
+                >
+                  <Search className="w-4 h-4" />
+                  {t('common.search')}
+                </button>
+              </div>
+              
+              {/* Small arrow pointing down */}
+              <div 
+                className="absolute -bottom-2 left-1/2 transform -translate-x-1/2 w-4 h-4 bg-white border-r border-b border-gray-100 rotate-45"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)'
+                }}
+              ></div>
+            </div>
+          )}
         </div>
       </div>
     </div>

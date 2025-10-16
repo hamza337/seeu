@@ -9,6 +9,7 @@ import { useMap } from '../../contexts/MapContext';
 import { useModal } from '../../contexts/ModalContext';
 import { toast } from 'react-hot-toast';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 // Social Media Sharing Functions
 const shareToTwitter = (event) => {
@@ -22,8 +23,8 @@ const shareToTwitter = (event) => {
 };
 
 const shareToFacebook = (event) => {
-  const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-  const url = `${baseUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
+  const appUrl = import.meta.env.VITE_APP_URL || window.location.origin;
+  const url = `${appUrl}?eventId=${event.id}&lat=${event.latitude}&lng=${event.longitude}`;
   const quote = `Check out this ${event.category === 'LostFound' ? 'Lost & Found' : event.category} event: ${event.description.substring(0, 200)}${event.description.length > 200 ? '...' : ''}`;
   
   const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}&quote=${encodeURIComponent(quote)}`;
@@ -108,7 +109,7 @@ const MediaGallery = ({ media, isOpen, onClose }) => {
       <div className="relative max-w-4xl max-h-[80vh] mx-16">
         {isLoading && (
           <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
-            <div className="text-white">Loading...</div>
+            <div className="text-white">{t('common.loading')}</div>
           </div>
         )}
         
@@ -154,6 +155,7 @@ const MediaGallery = ({ media, isOpen, onClose }) => {
 };
 
 const MyEvents = () => {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState('claimed');
   const [claimedEvents, setClaimedEvents] = useState([]);
   const [createdEvents, setCreatedEvents] = useState([]);
@@ -198,15 +200,15 @@ const MyEvents = () => {
   };
 
   const tabs = [
-    { id: 'claimed', label: 'Claimed', icon: <ShoppingBag size={18} /> },
-    { id: 'created', label: 'Created', icon: <Plus size={18} /> },
-    { id: 'alerts', label: 'Notification Alerts', icon: <Bell size={18} /> }
+    { id: 'claimed', label: t('events.claimed'), icon: <ShoppingBag size={18} /> },
+    { id: 'created', label: t('events.created'), icon: <Plus size={18} /> },
+    { id: 'alerts', label: t('events.notificationAlerts'), icon: <Bell size={18} /> }
   ];
 
   const fetchClaimedEvents = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      setError(prev => ({ ...prev, claimed: 'Please log in to view your purchased events.' }));
+      setError(prev => ({ ...prev, claimed: t('events.loginRequired') }));
       return;
     }
 
@@ -229,7 +231,7 @@ const MyEvents = () => {
       setError(prev => ({ ...prev, claimed: null }));
     } catch (err) {
       console.error('Error fetching claimed events:', err);
-      setError(prev => ({ ...prev, claimed: err.response?.data?.message || 'Failed to fetch claimed events.' }));
+      setError(prev => ({ ...prev, claimed: err.response?.data?.message || t('events.errors.fetchClaimedFailed') }));
     } finally {
       setLoading(prev => ({ ...prev, claimed: false }));
     }
@@ -238,7 +240,7 @@ const MyEvents = () => {
   const fetchCreatedEvents = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      setError(prev => ({ ...prev, created: 'Please log in to view your created events.' }));
+      setError(prev => ({ ...prev, created: t('events.loginRequiredCreated') }));
       return;
     }
 
@@ -254,7 +256,7 @@ const MyEvents = () => {
       setError(prev => ({ ...prev, created: null }));
     } catch (err) {
       console.error('Error fetching created events:', err);
-      setError(prev => ({ ...prev, created: err.response?.data?.message || 'Failed to fetch created events.' }));
+      setError(prev => ({ ...prev, created: err.response?.data?.message || t('events.errors.fetchCreatedFailed') }));
     } finally {
       setLoading(prev => ({ ...prev, created: false }));
     }
@@ -263,7 +265,7 @@ const MyEvents = () => {
   const fetchNotificationAlerts = async () => {
     const token = localStorage.getItem('token');
     if (!token) {
-      setError(prev => ({ ...prev, alerts: 'Please log in to view your notification alerts.' }));
+      setError(prev => ({ ...prev, alerts: t('events.loginRequiredAlerts') }));
       return;
     }
 
@@ -279,7 +281,7 @@ const MyEvents = () => {
       setError(prev => ({ ...prev, alerts: null }));
     } catch (err) {
       console.error('Error fetching notification alerts:', err);
-      setError(prev => ({ ...prev, alerts: err.response?.data?.message || 'Failed to fetch notification alerts.' }));
+      setError(prev => ({ ...prev, alerts: err.response?.data?.message || t('events.errors.fetchAlertsFailed') }));
     } finally {
       setLoading(prev => ({ ...prev, alerts: false }));
     }
@@ -290,7 +292,7 @@ const MyEvents = () => {
   const deleteEvent = (eventId) => {
     const token = localStorage.getItem('token');
     if (!token) {
-      toast.error('Please log in to delete events.');
+      toast.error(t('events.loginRequiredDelete'));
       return;
     }
 
@@ -307,7 +309,7 @@ const MyEvents = () => {
     
     let loadingToastId = null;
     try {
-      loadingToastId = toast.loading('Deleting event...');
+      loadingToastId = toast.loading(t('events.deletingEvent'));
       
       await axios.delete(`${baseUrl}events/event/${eventId}`, {
         headers: {
@@ -317,10 +319,10 @@ const MyEvents = () => {
       
       // Remove the deleted event from the state
       setCreatedEvents(prev => prev.filter(event => event.id !== eventId));
-      toast.success('Event deleted successfully!', { id: loadingToastId });
+      toast.success(t('events.deleteSuccess'), { id: loadingToastId });
     } catch (err) {
       console.error('Error deleting event:', err);
-      toast.error(err.response?.data?.message || 'Failed to delete event.', { id: loadingToastId });
+      toast.error(err.response?.data?.message || t('events.errors.deleteFailed'), { id: loadingToastId });
     }
   };
 
@@ -401,12 +403,12 @@ const MyEvents = () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return 'Invalid Date';
+        return t('common.invalidDate');
       }
       return date.toLocaleDateString();
     } catch (error) {
       console.error('Error formatting date:', error);
-      return 'Invalid Date';
+      return t('common.invalidDate');
     }
   };
 
@@ -414,12 +416,12 @@ const MyEvents = () => {
     try {
       const date = new Date(dateString);
       if (isNaN(date.getTime())) {
-        return 'Invalid Date';
+        return t('common.invalidDate');
       }
       return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
     } catch (error) {
       console.error('Error formatting date:', error);
-      return 'Invalid Date';
+      return t('common.invalidDate');
     }
   };
 
@@ -549,23 +551,23 @@ const MyEvents = () => {
                   {type === 'claimed' ? (
                     event.price !== undefined && (
                       <span className='inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium'>
-                        {event.isFree ? 'Free' : `$${event.price}`}
+                        {event.isFree ? t('common.free') : `$${event.price}`}
                       </span>
                     )
                   ) : (
                     <>
                       <span className='inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium mr-2'>
-                        {event.isFree ? 'Free' : `$${event.price}`}
+                        {event.isFree ? t('common.free') : `$${event.price}`}
                       </span>
                       {event.isExclusive && (
                         <span className='inline-block px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium mr-2'>
                           <Lock size={12} className='inline mr-1' />
-                          Exclusive
+                          {t('events.exclusive')}
                         </span>
                       )}
                       {event.isSold && (
                         <span className='inline-block px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm font-medium'>
-                          Sold
+                          {t('events.sold')}
                         </span>
                       )}
                     </>
@@ -639,14 +641,14 @@ const MyEvents = () => {
                 <div className='flex gap-3'>
                   <button
                     onClick={() => shareToTwitter(event)}
-                    className='flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors'
+                    className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
                   >
                     <Twitter size={16} />
                     Twitter
                   </button>
                   <button
                     onClick={() => shareToFacebook(event)}
-                    className='flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors'
+                    className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
                   >
                     <Facebook size={16} />
                     Facebook
@@ -767,7 +769,7 @@ const MyEvents = () => {
                  <MapPin size={16} className='text-gray-400' />
                  <div className='flex-1'>
                    {isLoadingAddress ? (
-                     <span className='text-gray-500'>Loading address...</span>
+                     <span className='text-gray-500'>{t('common.loadingAddress')}</span>
                    ) : address ? (
                      <span>{address}</span>
                    ) : (
@@ -866,7 +868,7 @@ const MyEvents = () => {
               <div className='flex items-center gap-4 mb-3'>
                 {event.price !== undefined && (
                   <span className='text-lg font-semibold text-green-600'>
-                    {event.isFree ? 'Free' : `$${event.price}`}
+                    {event.isFree ? t('common.free') : `$${event.price}`}
                   </span>
                 )}
               </div>
@@ -878,12 +880,12 @@ const MyEvents = () => {
                 {event.isExclusive && (
                   <span className='flex items-center gap-1 text-sm text-purple-600 bg-purple-50 px-2 py-1 rounded-full'>
                     <Lock size={12} />
-                    Exclusive
+                    {t('events.exclusive')}
                   </span>
                 )}
                 {event.isSold && (
                   <span className='text-sm text-red-600 bg-red-50 px-2 py-1 rounded-full font-medium'>
-                    Sold
+                    {t('events.sold')}
                   </span>
                 )}
               </div>
@@ -938,7 +940,7 @@ const MyEvents = () => {
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading claimed events...</p>
+                <p className="text-gray-600">{t('events.loadingClaimed')}</p>
               </div>
             </div>
           );
@@ -958,8 +960,8 @@ const MyEvents = () => {
           return (
             <div className="text-center py-16">
               <ShoppingBag size={48} className="text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No claimed events yet</h3>
-              <p className="text-gray-600">Events you purchase will appear here.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.noClaimedEvents')}</h3>
+              <p className="text-gray-600">{t('events.claimedEventsDescription')}</p>
             </div>
           );
         }
@@ -978,7 +980,7 @@ const MyEvents = () => {
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading created events...</p>
+                <p className="text-gray-600">{t('events.loadingCreated')}</p>
               </div>
             </div>
           );
@@ -998,8 +1000,8 @@ const MyEvents = () => {
           return (
             <div className="text-center py-16">
               <Plus size={48} className="text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">No created events yet</h3>
-              <p className="text-gray-600">Events you create will appear here.</p>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.noCreatedEvents')}</h3>
+              <p className="text-gray-600">{t('events.createdEventsDescription')}</p>
             </div>
           );
         }
@@ -1018,7 +1020,7 @@ const MyEvents = () => {
             <div className="flex items-center justify-center py-16">
               <div className="text-center">
                 <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading notification alerts...</p>
+                <p className="text-gray-600">{t('events.loadingAlerts')}</p>
               </div>
             </div>
           );
@@ -1038,8 +1040,8 @@ const MyEvents = () => {
            return (
              <div className="text-center py-16">
                <Bell size={48} className="text-gray-300 mx-auto mb-4" />
-               <h3 className="text-lg font-medium text-gray-900 mb-2">No notification alerts yet</h3>
-               <p className="text-gray-600">Your notification alerts and new event matches will appear here.</p>
+               <h3 className="text-lg font-medium text-gray-900 mb-2">{t('events.noAlerts')}</h3>
+               <p className="text-gray-600">{t('events.alertsDescription')}</p>
              </div>
            );
          }
@@ -1051,7 +1053,7 @@ const MyEvents = () => {
               <div>
                 <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
                   <Bell size={20} className='text-green-600' />
-                  New Event Matches
+                  {t('events.newEventMatches')}
                   <span className='bg-red-500 text-white text-xs px-2 py-1 rounded-full'>
                     {newEventNotifications.length}
                   </span>
@@ -1074,7 +1076,7 @@ const MyEvents = () => {
               <div>
                 <h3 className='text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2'>
                   <Bell size={20} className='text-blue-600' />
-                  Active Notification Alerts
+                  {t('events.activeAlerts')}
                 </h3>
                 <div className='space-y-4'>
                   {notificationAlerts.map((alert) => (
@@ -1093,7 +1095,7 @@ const MyEvents = () => {
 
   return (
     <div className='py-4 px-4 md:px-16 text-black min-h-screen bg-gray-50'>
-      <BackButton heading='My Events' />
+      <BackButton heading={t('events.myEvents')} />
       
       {/* Tab Navigation */}
       <div className="mt-6 mb-8">

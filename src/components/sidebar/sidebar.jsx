@@ -6,6 +6,7 @@ import LocationDrawer from './drawers/LocationDrawer';
 import ResultsDrawer from './drawers/ResultsDrawer';
 import { useMap } from '../../contexts/MapContext';
 import { useModal } from '../../contexts/ModalContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 
 export default function Sidebar() {
   // const [activeDrawer, setActiveDrawer] = useState(null);
@@ -15,6 +16,7 @@ export default function Sidebar() {
   const location = useLocation();
   const navigate = useNavigate();
   const { setModalEventId } = useModal();
+  const { t } = useLanguage();
 
   // Handle sidebar state based on page navigation and screen size
   useEffect(() => {
@@ -128,33 +130,33 @@ export default function Sidebar() {
           className={`flex items-center mb-36`}
         >
           <span className={``}>
-            <Home className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="Go to Home" />
+            <Home className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title={t('nav.goToHome')} />
           </span>
-          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">HOME</span>}
+          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">{t('nav.home')}</span>}
         </button>
 
         {/* Search Button */}
         <button 
           onClick={() => toggleDrawer('search')} 
-          title="Search for Events" 
+          title={t('nav.searchForEvents')} 
           className={`flex items-center mb-36 cursor-pointer`}
         >
           <span className={activeDrawer === 'search' ? iconHighlight : ''}>
             <Search className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'} rotate-90`} />
           </span>
-          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">Search</span>}
+          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">{t('nav.search')}</span>}
         </button>
 
         {/* Post Event Button */}
         <button 
           onClick={() => toggleDrawer('location')} 
-          title="Post an Event" 
+          title={t('nav.postAnEvent')} 
           className={`flex items-center mb-36 cursor-pointer`}
         >
           <span className={activeDrawer === 'location' ? iconHighlight : ''}>
-            <img src="/Ppoing.png" alt="Poing App Icon" className={`w-10`} />
+            <img src="/Ppoing.png" alt={t('nav.poingAppIcon')} className={`w-10`} />
           </span>
-          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">Poing It</span>}
+          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">{t('nav.poingIt')}</span>}
         </button>
 
         {/* List Button (no navigation) */}
@@ -175,9 +177,9 @@ export default function Sidebar() {
           }}
         >
           <span className={activeDrawer === 'results' ? iconHighlight : ''}>
-            <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title="List" />
+            <List className={`text-black ${isSidebarExpanded ? 'mr-4' : 'mr-0'}`} title={t('nav.list')} />
           </span>
-          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">List</span>}
+          {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">{t('nav.list')}</span>}
         </button>
       </div>
 

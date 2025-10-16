@@ -6,21 +6,13 @@ import { useMap } from '../../contexts/MapContext';
 import { useLoginModal } from '../../contexts/LoginModalContext';
 import toast from 'react-hot-toast';
 import { useNotification } from '../../contexts/NotificationContext';
+import { useLanguage } from '../../contexts/LanguageContext';
 import LoginModal from "../modals/LoginModal"
 
-// Language options
-const LANGUAGE_OPTIONS = [
-  { code: 'en', name: 'English', nativeName: 'English' },
-  { code: 'fr', name: 'French', nativeName: 'Français' },
-  { code: 'zh', name: 'Chinese', nativeName: '中文' },
-  { code: 'hi', name: 'Hindi', nativeName: 'हिन्दी' },
-  { code: 'ja', name: 'Japanese', nativeName: '日本語' },
-  { code: 'ru', name: 'Russian', nativeName: 'Русский' },
-  { code: 'es', name: 'Spanish', nativeName: 'Español' },
-];
+// Language options will be imported from LanguageContext
 
 // Component to render profile image or initial
-const ProfileImage = ({ src, alt, className, onClick }) => {
+const ProfileImage = ({ src, alt, className, onClick, showArrow = false }) => {
   const [imageError, setImageError] = useState(false);
   
   // Reset imageError when src changes
@@ -34,23 +26,39 @@ const ProfileImage = ({ src, alt, className, onClick }) => {
   
   if (!src || src === '/icons8-male-user-48.png' || imageError) {
     return (
-      <div 
-        className={`${className} bg-blue-500 text-white flex items-center justify-center font-semibold text-lg cursor-pointer`}
-        onClick={onClick}
-      >
-        U
+      <div className={showArrow ? "relative" : ""} onClick={onClick}>
+        <div 
+          className={`${className} bg-[#0868A8] text-white flex items-center justify-center font-semibold text-lg cursor-pointer`}
+        >
+          U
+        </div>
+        {showArrow && (
+          <div className="absolute -bottom-0 -right-1 bg-white rounded-full p-1 shadow-sm">
+            <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+              <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
+          </div>
+        )}
       </div>
     );
   }
   
   return (
-    <img
-      src={src}
-      alt={alt}
-      className={className}
-      onClick={onClick}
-      onError={handleImageError}
-    />
+    <div className={showArrow ? "relative" : ""} onClick={onClick}>
+      <img
+        src={src}
+        alt={alt}
+        className={`${className} cursor-pointer`}
+        onError={handleImageError}
+      />
+      {showArrow && (
+        <div className="absolute -bottom-0 -right-1 bg-white rounded-full p-1 shadow-sm">
+          <svg className="w-3 h-3 text-gray-600" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </div>
+      )}
+    </div>
   );
 };
 
@@ -87,6 +95,7 @@ export default function Topbar() {
   const { setShowLoginModal, setIsAuthenticated, isAuthenticated } = useMap();
   const { user, selectedAvatar, handleLogout, handleAvatarSelect } = useLoginModal();
   const { hasUnreadNotifications, unreadCount } = useNotification();
+  const { t, currentLanguage, changeLanguage, supportedLanguages } = useLanguage();
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -121,7 +130,7 @@ export default function Topbar() {
     setSearchLanguage('');
   };
 
-  const filteredLanguages = LANGUAGE_OPTIONS.filter(lang =>
+  const filteredLanguages = supportedLanguages.filter(lang =>
     lang.name.toLowerCase().includes(searchLanguage.toLowerCase()) ||
     lang.nativeName.toLowerCase().includes(searchLanguage.toLowerCase())
   );
@@ -312,7 +321,7 @@ export default function Topbar() {
         {/* Brand Logo Overlapping - only on home route */}
         {location.pathname === '/' && (
           <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[90] pointer-events-none">
-            <img src="/brandLogoFinal.png" alt="Poing Logo" className="w-28 sm:w-32 md:w-36 lg:w-40 object-contain" />
+            <img src="/brandLogoFinal.png" alt={t('common.logo')} className="w-28 sm:w-32 md:w-36 lg:w-40 object-contain" />
           </div>
         )}
         {/* Help Icon */}
@@ -322,25 +331,25 @@ export default function Topbar() {
           onMouseLeave={() => setShowHelp(false)}
         >
           <div className="p-2 rounded-full bg-gray-300">
-            <IoHelpOutline className="text-[#0b4bb2] w-5 h-5 cursor-pointer" />
+            <IoHelpOutline className="text-[#0b4bb2] w-6 h-6 cursor-pointer" />
           </div>
           {showHelp && (
             <div className={`absolute right-0 top-10 ${isMobile ? 'w-64' : 'w-130'} p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-100`}>
-              <p className="text-lg font-semibold mb-2">About Poing</p>
+              <p className="text-lg font-semibold mb-2">{t('about.aboutPoing')}</p>
               <p className="mb-2">
-                Poing is a smarter, more effective tool for posting and locating lost items, witnesses to events (such as thefts, accidents, or unique moments), as well as lost pets and people — all based on location and time!
+                {t('about.description')}
               </p>
               <p className="mb-2">
-                Our platform connects the entire world through a single map and local time system, eliminating the need to join multiple communities, browse endless boards, or sort through thousands of unrelated posts.
+                {t('about.platformDescription')}
               </p>
               <p className="mb-2">
-                Posting is easy: simply upload or record a photo or video via your mobile device or web browser, mark the location and time, and choose whether to offer the media for free, request a fee, or make it available exclusively to one recipient.
+                {t('about.postingDescription')}
               </p>
               <p className="mb-2">
-                Searching is just as simple: enter a location, radius, and timeframe to find the item, event, or person you're looking for. If no matching posts are available, you can set a notification alert so others know you're searching — and you'll be notified instantly if a relevant post is created.
+                {t('about.searchingDescription')}
               </p>
               <p className="font-semibold">
-                Go ahead - Just Poing It!
+                {t('about.tagline')}
               </p>
             </div>
           )}
@@ -348,20 +357,21 @@ export default function Topbar() {
 
         <div className="flex items-center gap-6 ml-4">
           {!user ? (
-            <button onClick={() => setShowLoginModal(true)} className="text-black font-normal hover:underline">Login</button>
+            <button onClick={() => setShowLoginModal(true)} className="text-black font-normal hover:underline">{t('common.login')}</button>
           ) : (
             <div className="relative">
               <ProfileImage
                 src={selectedAvatar}
-                alt="Profile"
-                className="h-11 w-11 rounded-full object-cover cursor-pointer profile-image"
+                alt={t('profile.profile')}
+                className="h-10 w-10 rounded-full object-cover cursor-pointer profile-image"
+                showArrow={true}
                 onClick={() => {
                   if (!dropdownOpen) {
                     resetDropdown();
                   }
                   setDropdownOpen(prev => !prev);
                 }}
-              />
+               />
               {/* Red dot indicator for unread notifications */}
               {hasUnreadNotifications && (
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 rounded-full flex items-center justify-center">
@@ -379,12 +389,12 @@ export default function Topbar() {
                         <div className="flex items-center space-x-3">
                           <ProfileImage
                             src={selectedAvatar}
-                            alt="Profile"
+                            alt={t('profile.profile')}
                             className="h-10 w-10 rounded-full object-cover"
                           />
                           <div>
                             <div className="font-medium text-gray-900">{userName}</div>
-                            <div className="text-sm text-gray-500">See your profile</div>
+                            <div className="text-sm text-gray-500">{t('profile.seeYourProfile')}</div>
                           </div>
                         </div>
                       </div>
@@ -405,7 +415,7 @@ export default function Topbar() {
                                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full"></div>
                               )}
                             </div>
-                            <span>My Events</span>
+                            <span>{t('nav.myEvents')}</span>
                           </div>
                           {hasUnreadNotifications && (
                             <div className="w-5 h-5 bg-red-500 rounded-full flex items-center justify-center">
@@ -426,7 +436,7 @@ export default function Topbar() {
                                 <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
                               </svg>
                             </div>
-                            <span>User Profile</span>
+                            <span>{t('profile.userProfile')}</span>
                           </div>
                           <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -443,7 +453,7 @@ export default function Topbar() {
                                 <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                               </svg>
                             </div>
-                            <span>Settings</span>
+                            <span>{t('nav.settings')}</span>
                           </div>
                           <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -461,7 +471,7 @@ export default function Topbar() {
                                   <path fillRule="evenodd" d="M3 3a1 1 0 00-1 1v12a1 1 0 102 0V4a1 1 0 00-1-1zm10.293 9.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L14.586 9H7a1 1 0 100 2h7.586l-1.293 1.293z" clipRule="evenodd" />
                                 </svg>
                               </div>
-                              <span>Logout</span>
+                              <span>{t('common.logout')}</span>
                             </div>
                           </button>
                         </div>
@@ -481,7 +491,7 @@ export default function Topbar() {
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
-                        <h3 className="text-lg font-medium">Edit Profile</h3>
+                        <h3 className="text-lg font-medium">{t('profile.editProfile')}</h3>
                       </div>
                       
                       <div className="p-6 max-h-96 overflow-y-auto">
@@ -491,7 +501,7 @@ export default function Topbar() {
                             <div className="relative mb-4">
                               <ProfileImage
                                 src={selectedAvatar}
-                                alt="Profile Picture"
+                                alt={t('profile.profilePicture')}
                                 className="w-20 h-20 rounded-full object-cover border-4 border-gray-200 shadow-lg"
                               />
                             </div>
@@ -501,7 +511,7 @@ export default function Topbar() {
                               disabled={uploadingAvatar === 'custom'}
                               className="text-sm text-blue-600 hover:text-blue-800 font-medium disabled:text-blue-300"
                             >
-                              {uploadingAvatar === 'custom' ? 'Uploading...' : 'Change Picture'}
+                              {uploadingAvatar === 'custom' ? t('common.uploading') : t('profile.changePicture')}
                             </button>
                           </div>
 
@@ -509,66 +519,66 @@ export default function Topbar() {
                           <div className="grid grid-cols-2 gap-4">
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                First Name
-                              </label>
+                              {t('profile.firstName')}
+                            </label>
                               <input
                                 type="text"
                                 value={profileData.firstName}
                                 onChange={(e) => handleProfileInputChange('firstName', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Enter first name"
+                                placeholder={t('profile.firstName')}
                               />
                             </div>
                             <div>
                               <label className="block text-sm font-medium text-gray-700 mb-1">
-                                Last Name
-                              </label>
+                              {t('profile.lastName')}
+                            </label>
                               <input
                                 type="text"
                                 value={profileData.lastName}
                                 onChange={(e) => handleProfileInputChange('lastName', e.target.value)}
                                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                                placeholder="Enter last name"
+                                placeholder={t('profile.lastName')}
                               />
                             </div>
                           </div>
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Phone Number
+                              {t('profile.phoneNumber')}
                             </label>
                             <input
                               type="tel"
                               value={profileData.phoneNumber}
                               onChange={(e) => handleProfileInputChange('phoneNumber', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Enter phone number"
+                              placeholder={t('profile.phoneNumber')}
                             />
                           </div>
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Country
+                              {t('profile.country')}
                             </label>
                             <input
                               type="text"
                               value={profileData.country}
                               onChange={(e) => handleProfileInputChange('country', e.target.value)}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                              placeholder="Enter country"
+                              placeholder={t('profile.country')}
                             />
                           </div>
 
                           <div>
                             <label className="block text-sm font-medium text-gray-700 mb-1">
-                              Address
+                              {t('profile.address')}
                             </label>
                             <textarea
                               value={profileData.address}
                               onChange={(e) => handleProfileInputChange('address', e.target.value)}
                               rows={3}
                               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-                              placeholder="Enter address"
+                              placeholder={t('profile.address')}
                             />
                           </div>
 
@@ -579,14 +589,14 @@ export default function Topbar() {
                               onClick={() => setDropdownView('main')}
                               className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
                             >
-                              Cancel
+                              {t('common.cancel')}
                             </button>
                             <button
                               type="submit"
                               disabled={isUpdatingProfile}
-                              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 rounded-lg transition-colors"
+                              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#0868A8] hover:bg-[#0868A8] disabled:bg-blue-300 rounded-lg transition-colors"
                             >
-                              {isUpdatingProfile ? 'Saving...' : 'Save Changes'}
+                              {isUpdatingProfile ? t('common.saving') : t('common.saveChanges')}
                             </button>
                           </div>
                         </form>
@@ -606,7 +616,7 @@ export default function Topbar() {
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
-                        <h3 className="text-lg font-medium">Settings</h3>
+                        <h3 className="text-lg font-medium">{t('profile.settings')}</h3>
                       </div>
                       
                       <div className="py-2">
@@ -620,7 +630,7 @@ export default function Topbar() {
                                 <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clipRule="evenodd" />
                               </svg>
                             </div>
-                            <span>Language</span>
+                            <span>{t('language.language')}</span>
                           </div>
                           <svg className="w-4 h-4 text-gray-500" fill="currentColor" viewBox="0 0 20 20">
                             <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
@@ -641,7 +651,7 @@ export default function Topbar() {
                                 <path fillRule="evenodd" d="M18 9H2v5a2 2 0 002 2h12a2 2 0 002-2V9zM4 13a1 1 0 011-1h1a1 1 0 110 2H5a1 1 0 01-1-1zm5-1a1 1 0 100 2h1a1 1 0 100-2H9z" clipRule="evenodd" />
                               </svg>
                             </div>
-                            <span>Wallet</span>
+                            <span>{t('nav.wallet')}</span>
                           </div>
                         </button>
                       </div>
@@ -660,14 +670,14 @@ export default function Topbar() {
                             <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                           </svg>
                         </button>
-                        <h3 className="text-lg font-medium">Language</h3>
+                        <h3 className="text-lg font-medium">{t('language.language')}</h3>
                       </div>
                       
                       <div className="p-4">
                         <div className="relative mb-4">
                           <input
                             type="text"
-                            placeholder="Search languages"
+                            placeholder={t('language.searchLanguages')}
                             value={searchLanguage}
                             onChange={(e) => setSearchLanguage(e.target.value)}
                             className="w-full px-4 py-2 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-500 focus:outline-none focus:border-blue-500"
@@ -682,13 +692,18 @@ export default function Topbar() {
                             <button
                               key={language.code}
                               className="flex items-center justify-between w-full px-3 py-3 text-left hover:bg-gray-100 rounded-lg transition-colors mb-1"
-                              onClick={() => {/* Handle language selection */}}
+                              onClick={() => {
+                                changeLanguage(language.code);
+                                toast.success(t('language.languageChanged'));
+                                setDropdownView('main');
+                                setDropdownOpen(false);
+                              }}
                             >
                               <div>
                                 <div className="font-medium">{language.name}</div>
                                 <div className="text-sm text-gray-500">{language.nativeName}</div>
                               </div>
-                              {language.code === 'en' && (
+                              {language.code === currentLanguage && (
                                 <svg className="w-4 h-4 text-blue-500" fill="currentColor" viewBox="0 0 20 20">
                                   <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
                                 </svg>

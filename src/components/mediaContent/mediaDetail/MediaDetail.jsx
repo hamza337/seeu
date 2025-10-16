@@ -176,23 +176,24 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
               
               if (categoryFee && categoryFee.flatFee > 0) {
                   // Category has flat fee, use flat-fee-checkout API
-                  const flatFeeResponse = await axios.post(`${baseUrl}stripe/flat-fee-checkout`, {
-                      eventId: event.id,
-                      buyerId: user.id
-                  }, {
-                      headers: {
-                          'Authorization': `Bearer ${token}`
-                      }
-                  });
+                  // const flatFeeResponse = await axios.post(`${baseUrl}stripe/flat-fee-checkout`, {
+                  //     eventId: event.id,
+                  //     buyerId: user.id
+                  // }, {
+                  //     headers: {
+                  //         'Authorization': `Bearer ${token}`
+                  //     }
+                  // });
                   
-                  console.log('Flat fee checkout response:', flatFeeResponse.data);
+                  // console.log('Flat fee checkout response:', flatFeeResponse.data);
                   
-                  // Redirect to Stripe checkout for flat fee payment
-                  if (flatFeeResponse.data) {
-                      window.location.href = flatFeeResponse.data;
-                  } else {
-                      toast.error('Failed to get Stripe checkout URL for flat fee.');
-                  }
+                  // // Redirect to Stripe checkout for flat fee payment
+                  // if (flatFeeResponse.data) {
+                  //     window.location.href = flatFeeResponse.data;
+                  // } else {
+                  //     toast.error('Failed to get Stripe checkout URL for flat fee.');
+                  // }
+                  navigate('/buy-now', { state: { eventId: event.id, category: event.category, isFree: event.isFree } });
               } else {
                   // No flat fee, use original free purchase API
                   const response = await axios.post(`${baseUrl}stripe/purchase/free/${event.id}`, {}, {
@@ -207,20 +208,21 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
               }
           } else {
               // For paid events, use regular purchase API
-              const response = await axios.post(`${baseUrl}stripe/purchase/${event.id}`, {}, {
-                  headers: {
-                      'Authorization': `Bearer ${token}`
-                  }
-              });
+            //   const response = await axios.post(`${baseUrl}stripe/purchase/${event.id}`, {}, {
+            //       headers: {
+            //           'Authorization': `Bearer ${token}`
+            //       }
+            //   });
               
-              console.log('Paid purchase API response:', response.data);
+            //   console.log('Paid purchase API response:', response.data);
               
-              // Redirect to Stripe checkout for paid events
-              if (response.data && response.data.url) {
-                  window.location.href = response.data.url;
-              } else {
-                  toast.error('Failed to get Stripe checkout URL from API.');
-              }
+            //   // Redirect to Stripe checkout for paid events
+            //   if (response.data && response.data.url) {
+            //       window.location.href = response.data.url;
+            //   } else {
+            //       toast.error('Failed to get Stripe checkout URL from API.');
+            //   }
+            navigate('/buy-now', { state: { eventId: event.id, category: event.category, isFree: event.isFree } });
           }
 
       } catch (error) {
@@ -373,8 +375,8 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
           <p className="mt-6 text-black">{event.description || 'No description'}</p>
           <div className="flex gap-3">
             <button
-               onClick={handleBuyNow}
-               className=" flex-1 bg-blue-600 text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-blue-700 transition"
+               onClick={() => handleBuyNow() && handleClose()}
+               className=" flex-1 bg-[#0868A8] text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-[#0868A8] transition"
             >
                Claim
             </button>
@@ -508,14 +510,14 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
             <div className='flex gap-3'>
               <button
                 onClick={() => shareToTwitter(event)}
-                className='flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white rounded-lg transition-colors'
+                className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
               >
                 <Twitter size={16} />
                 Twitter
               </button>
               <button
                 onClick={() => shareToFacebook(event)}
-                className='flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-lg transition-colors'
+                className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
               >
                 <Facebook size={16} />
                 Facebook
@@ -529,7 +531,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
           <div className="flex gap-3 mt-6">
             <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-blue-600 text-white rounded-lg py-3 text-xl font-semibold hover:bg-blue-700 transition"
+                className="flex-1 bg-[#0868A8] text-white rounded-lg py-3 text-xl font-semibold hover:bg-[#0868A8] transition"
             >
                 Claim
             </button>
