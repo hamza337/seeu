@@ -534,7 +534,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
     >
       <div className={`${isMobile ? 'pt-8 px-4 pb-4' : 'pt-6 px-6 pb-4'} flex justify-between items-center border-b border-gray-300`}>
         <div className="flex-1"></div>
-        <img src="/brandLogoFinal.png" alt="Poing Logo" className={`${isMobile ? 'w-32' : 'w-36'} object-contain`} />
+        <img src="/brandLog.png" alt="Poing Logo" className={`${isMobile ? 'w-32' : 'w-36'} object-contain`} />
         <div className="flex-1 flex justify-end">
           <X onClick={onClose} className="text-gray-600 hover:text-black cursor-pointer" />
         </div>
@@ -833,9 +833,9 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
           )}
         </div>
 
-        <button onClick={handleSubmit} className={`${isMobile ? 'w-full py-1 text-sm' : 'w-full py-1'} rounded-xl bg-transparent hover:bg-blue-50 hover:border-blue-100 text-gray-800 border-2 border-gray-300 cursor-pointer flex items-center justify-center space-x-2 mx-auto focus:border-blue-500 focus:outline-none transition-colors font-medium`} disabled={loading}>
+        <button onClick={handleSubmit} className={`${isMobile ? 'w-full py-1 text-sm' : 'w-full py-1'} rounded-xl bg-blue-50 hover:border-blue-100 text-gray-800 border-2 border-gray-300 cursor-pointer flex items-center justify-center space-x-2 mx-auto focus:border-blue-500 focus:outline-none transition-colors font-medium`} disabled={loading}>
           {/* <span className="text-white text-2xl font-bold"><span>P</span>oing <i>It</i></span> */}
-          <img src="/brandLogoFinal.png" alt="Map Marker" className="w-24 h-12 text-blue-600" />
+          <img src="/brandLog.png" alt="Map Marker" className="w-24 h-12 text-blue-600" />
           {loading && (
             <svg className="animate-spin h-5 w-5 text-gray-600" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>

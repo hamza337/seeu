@@ -154,7 +154,7 @@ export default function Sidebar() {
           className={`flex items-center mb-36 cursor-pointer`}
         >
           <span className={activeDrawer === 'location' ? iconHighlight : ''}>
-            <img src="/Ppoing.png" alt={t('nav.poingAppIcon')} className={`w-10`} />
+            <img src="/PoingMarker.png" alt={t('nav.poingAppIcon')} className={`w-6`} />
           </span>
           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">{t('nav.poingIt')}</span>}
         </button>

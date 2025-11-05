@@ -282,6 +282,34 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
       setCurrentMediaIndex((prevIndex) => (prevIndex - 1 + media.length) % media.length);
     }
   };
+  const handleCopyShareLink = async () => {
+    try {
+      const base = import.meta.env.VITE_APP_URL || window.location.origin;
+      const latRaw = event?.latitude ?? event?.lat;
+      const lngRaw = event?.longitude ?? event?.lng;
+      const lat = typeof latRaw === 'string' ? parseFloat(latRaw) : latRaw;
+      const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : lngRaw;
+      const shareLink = `${base}?lat=${lat}&lng=${lng}&eventId=${event?.id}`;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareLink);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = shareLink;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      toast.success('Link copied to clipboard');
+    } catch (e) {
+      console.error('Share link copy failed:', e);
+      toast.error('Failed to copy link');
+    }
+  };
 
   if (isModal) {
     return (
@@ -335,6 +363,16 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
                 <span className="text-gray-500">No media available</span>
              </div>
           )}
+          <div className="mt-4 flex items-center justify-between">
+            <h3 className="font-bold text-lg text-black">{event.category === 'LostFound' ? 'Lost & Found' : event.category || 'Unknown'}</h3>
+            <button
+              onClick={handleCopyShareLink}
+              className="w-6 h-6 rounded hover:opacity-80 focus:outline-none"
+              title="Share"
+            >
+              <img src="/share.png" alt="Share" className="w-6 h-6" />
+            </button>
+          </div>
           <div className="mt-4 flex flex-col gap-3 text-black">
              <div className="text-gray-600 text-sm">
                 Listings ID: {event.eventCode}
@@ -376,7 +414,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
           <div className="flex gap-3">
             <button
                onClick={() => handleBuyNow() && handleClose()}
-               className=" flex-1 bg-[#0868A8] text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-[#0868A8] transition"
+               className=" flex-1 bg-[#0a9bf7] text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-[#0a9bf7] transition"
             >
                Claim
             </button>
@@ -444,13 +482,22 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
         )}
 
         {/* Title */}
-        <div className="flex items-center gap-3 mt-6">
+        <div className="flex items-center justify-between mt-6">
+          <div className="flex items-center gap-3">
           <h2 className="text-3xl font-bold text-black">{event.category === 'LostFound' ? 'Lost & Found' : event.category || ''}</h2>
           {userOwnsEvent && (
             <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full border border-blue-200">
               Creator
             </span>
           )}
+          </div>
+          <button
+            onClick={handleCopyShareLink}
+            className="w-6 h-6 rounded hover:opacity-80 focus:outline-none"
+            title="Share"
+          >
+            <img src="/share.png" alt="Share" className="w-6 h-6" />
+          </button>
         </div>
 
         {/* Info Rows */}
@@ -510,14 +557,14 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
             <div className='flex gap-3'>
               <button
                 onClick={() => shareToTwitter(event)}
-                className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
+                className='flex items-center gap-2 px-4 py-2 bg-[#0a9bf7] hover:bg-[#0a9bf7] text-white rounded-lg transition-colors'
               >
                 <Twitter size={16} />
                 Twitter
               </button>
               <button
                 onClick={() => shareToFacebook(event)}
-                className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
+                className='flex items-center gap-2 px-4 py-2 bg-[#0a9bf7] hover:bg-[#0a9bf7] text-white rounded-lg transition-colors'
               >
                 <Facebook size={16} />
                 Facebook
@@ -531,7 +578,7 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
           <div className="flex gap-3 mt-6">
             <button
                 onClick={handleBuyNow}
-                className="flex-1 bg-[#0868A8] text-white rounded-lg py-3 text-xl font-semibold hover:bg-[#0868A8] transition"
+                className="flex-1 bg-[#0a9bf7] text-white rounded-lg py-3 text-xl font-semibold hover:bg-[#0a9bf7] transition"
             >
                 Claim
             </button>

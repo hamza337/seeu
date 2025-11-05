@@ -273,6 +273,7 @@ export default {
     lost: '失物招领',
     people: '人员',
     pets: '宠物',
+    pet: '宠物',
     crime: '犯罪',
     accident: '事故',
     other: '其他'

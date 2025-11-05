@@ -886,7 +886,7 @@ const EditEventModal = ({ isOpen, onClose, event, onSave }) => {
             </button>
             <button
               onClick={handleSave}
-              className={`px-6 py-2 bg-[#0868A8] text-white rounded-lg transition-colors flex items-center justify-center ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#0868A8]'}`}
+              className={`px-6 py-2 bg-[#0a9bf7] text-white rounded-lg transition-colors flex items-center justify-center ${isLoading ? 'opacity-70 cursor-not-allowed' : 'hover:bg-[#0a9bf7]'}`}
               disabled={isLoading}
             >
               {isLoading ? (

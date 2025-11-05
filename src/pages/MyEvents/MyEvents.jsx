@@ -425,6 +425,36 @@ const MyEvents = () => {
     }
   };
 
+  // Copy share link to clipboard for an event
+  const handleCopyShareLink = async (event) => {
+    try {
+      const base = import.meta.env.VITE_APP_URL || window.location.origin;
+      const latRaw = event?.latitude ?? event?.lat;
+      const lngRaw = event?.longitude ?? event?.lng;
+      const lat = typeof latRaw === 'string' ? parseFloat(latRaw) : latRaw;
+      const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : lngRaw;
+      const shareLink = `${base}?lat=${lat}&lng=${lng}&eventId=${event?.id}`;
+
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(shareLink);
+      } else {
+        const ta = document.createElement('textarea');
+        ta.value = shareLink;
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        document.body.appendChild(ta);
+        ta.focus();
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+      }
+      toast.success('Link copied to clipboard');
+    } catch (e) {
+      console.error('Share link copy failed:', e);
+      toast.error(t('common.copyFailed') || 'Failed to copy link');
+    }
+  };
+
   // Event Detail Modal Component
   const EventDetailModal = ({ event, type, isOpen, onClose }) => {
     if (!isOpen || !event) return null;
@@ -524,14 +554,25 @@ const MyEvents = () => {
             )}
 
             {/* Category and Event Information - Second */}
-            <div className='flex items-center gap-3 mb-4'>
-              <div className='p-3 bg-gray-50 rounded-lg'>
-                {categoryIcons[event.category] || <SquareActivity className="w-6 h-6 text-gray-600" />}
+            <div className='flex items-center justify-between mb-4'>
+              <div className='flex items-center gap-3'>
+                <div className='p-3 bg-gray-50 rounded-lg'>
+                  {categoryIcons[event.category] || <SquareActivity className="w-6 h-6 text-gray-600" />}
+                </div>
+                <div>
+                  <h3 className='text-lg font-semibold text-gray-900'>{event.category === 'LostFound' ? 'Lost & Found' : event.category}</h3>
+                  <span className='text-sm text-gray-500'>Listings ID: {event.eventCode}</span>
+                </div>
               </div>
-              <div>
-                <h3 className='text-lg font-semibold text-gray-900'>{event.category === 'LostFound' ? 'Lost & Found' : event.category}</h3>
-                <span className='text-sm text-gray-500'>Listings ID: {event.eventCode}</span>
-              </div>
+              {type === 'created' && (
+                <button
+                  onClick={() => handleCopyShareLink(event)}
+                  className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+                  title={'Copy link'}
+                >
+                  <img src="/share.png" alt={'Share'} className="w-5 h-5" />
+                </button>
+              )}
             </div>
 
             {/* Address */}
@@ -641,14 +682,14 @@ const MyEvents = () => {
                 <div className='flex gap-3'>
                   <button
                     onClick={() => shareToTwitter(event)}
-                    className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
+                    className='flex items-center gap-2 px-4 py-2 bg-[#0a9bf7] hover:bg-[#0a9bf7] text-white rounded-lg transition-colors'
                   >
                     <Twitter size={16} />
                     Twitter
                   </button>
                   <button
                     onClick={() => shareToFacebook(event)}
-                    className='flex items-center gap-2 px-4 py-2 bg-[#0868A8] hover:bg-[#0868A8] text-white rounded-lg transition-colors'
+                    className='flex items-center gap-2 px-4 py-2 bg-[#0a9bf7] hover:bg-[#0a9bf7] text-white rounded-lg transition-colors'
                   >
                     <Facebook size={16} />
                     Facebook

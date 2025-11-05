@@ -986,9 +986,9 @@ const HomeContent = () => {
                     geocodeLatLng(newLat, newLng);
                   }}
                   icon={{
-                    url: '/Ppoing.png',
-                    scaledSize: new window.google.maps.Size(50, 50),
-                    anchor: new window.google.maps.Point(25, 25)
+                    url: '/PoingMarker.png',
+                    scaledSize: new window.google.maps.Size(36, 40),
+                    anchor: new window.google.maps.Point(20, 40)
                   }}
                   title={t('map.dragToSelectLocation')}
                 />
@@ -1118,7 +1118,51 @@ const HomeContent = () => {
               />
             </div>
             <div className="mb-3">
-              <h3 className="font-bold text-lg mb-2 text-gray-900">{hoveredEvent?.category === 'LostFound' ? t('categories.lost') : t(`categories.${hoveredEvent?.category?.toLowerCase()}`) || t('common.unknownCategory')}</h3>
+              <div className="flex items-center justify-between mb-2">
+                <h3 className="font-bold text-lg text-gray-900">{hoveredEvent?.category === 'LostFound' ? t('categories.lost') : t(`categories.${hoveredEvent?.category?.toLowerCase()}`) || t('common.unknownCategory')}</h3>
+                <button
+                  className="w-6 h-6 rounded hover:opacity-80 focus:outline-none"
+                  title={'Copy Link'}
+                  onClick={() => {
+                    try {
+                      const base = import.meta.env.VITE_APP_URL || window.location.origin;
+                      const latRaw = hoveredEvent?.latitude ?? hoveredEvent?.lat;
+                      const lngRaw = hoveredEvent?.longitude ?? hoveredEvent?.lng;
+                      const lat = typeof latRaw === 'string' ? parseFloat(latRaw) : latRaw;
+                      const lng = typeof lngRaw === 'string' ? parseFloat(lngRaw) : lngRaw;
+                      const eventId = hoveredEvent?.id;
+                      const shareLink = `${base}?lat=${lat}&lng=${lng}&eventId=${eventId}`;
+
+                      const copy = async () => {
+                        if (navigator.clipboard && window.isSecureContext) {
+                          await navigator.clipboard.writeText(shareLink);
+                        } else {
+                          const ta = document.createElement('textarea');
+                          ta.value = shareLink;
+                          ta.style.position = 'fixed';
+                          ta.style.left = '-9999px';
+                          document.body.appendChild(ta);
+                          ta.focus();
+                          ta.select();
+                          document.execCommand('copy');
+                          document.body.removeChild(ta);
+                        }
+                      };
+
+                      copy().then(() => {
+                        toast.success('Link copied to clipboard');
+                      }).catch(() => {
+                        toast.error('Failed to copy link');
+                      });
+                    } catch (e) {
+                      console.error('Share link copy failed:', e);
+                      toast.error('Failed to copy link');
+                    }
+                  }}
+                >
+                  <img src="/share.png" alt={'copy link'} className="w-6 h-6" />
+                </button>
+              </div>
               <p className="text-sm text-gray-600 mb-1">{hoveredEvent?.address || t('common.noAddress')}</p>
               <p className="text-sm text-red-500 font-medium">
                 {hoveredEvent?.date ? moment(hoveredEvent.date).format('MMM DD, YYYY') : t('common.notAvailable')}
@@ -1207,7 +1251,7 @@ const HomeContent = () => {
               const isOwner = hoveredEvent?.sellerId === currentUserId;
               
               return !isOwner ? (
-                <div className="flex gap-3 mb-3">
+                <div className="flex flex-col gap-3 mb-3">
                   <button
                     className="flex-1 bg-blue-500 text-white text-sm px-4 py-2 rounded-lg hover:bg-blue-600 transition-colors font-medium"
                     onClick={() => {
@@ -1216,6 +1260,7 @@ const HomeContent = () => {
                   >
                     {t('common.claim')}
                   </button>
+                  <p className='text-xs text-gray-500'>Contact information will be released after payment. </p>
                 </div>
               ) : null;
             })()}
@@ -1274,7 +1319,7 @@ const HomeContent = () => {
               {/* Location Icon and Name */}
               <div className="flex items-center mb-3">
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <MapPin className="w-4 h-4 text-[#0868A8]" />
+                  <MapPin className="w-4 h-4 text-[#0a9bf7]" />
                 </div>
                 <div className="flex-1">
                   <div className="text-sm font-semibold text-gray-900 leading-tight">
@@ -1295,7 +1340,7 @@ const HomeContent = () => {
               <div className="flex gap-2">
                 <button
                   onClick={handlePoingItClick}
-                  className="flex-1 bg-[#0868A8] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
+                  className="flex-1 bg-[#0a9bf7] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
                 >
                   <Camera className="w-4 h-4" />
                   {t('common.poingIt')}

@@ -558,7 +558,7 @@ export default function SearchDrawer({ isOpen, onClose, onEventClick }) {
         </div>
         <button
           onClick={handleSearch}
-          className={`w-full bg-[#0868a8] text-white ${isMobile ? 'py-3 text-sm' : 'py-4'} rounded-xl hover:cursor-pointer transition-colors hover:bg-[#0756a0] font-medium border-2 border-[#0868a8] hover:border-[#0756a0]`}
+          className={`w-full bg-[#0a9bf7] text-white ${isMobile ? 'py-3 text-sm' : 'py-4'} rounded-xl hover:cursor-pointer transition-colors font-medium border-2 border-[#0a9bf7] hover:border-[#0756a0]`}
         >
           {t('search.search')}
         </button>

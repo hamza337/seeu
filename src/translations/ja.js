@@ -273,6 +273,7 @@ export default {
     lost: '紛失・発見',
     people: '人',
     pets: 'ペット',
+    pet: 'ペット',
     crime: '犯罪',
     accident: '事故',
     other: 'その他'

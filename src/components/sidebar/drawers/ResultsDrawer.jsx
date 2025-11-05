@@ -168,16 +168,16 @@ export default function ResultsDrawer({
         {activeSearchQuery && (
           <div className={`${isMobile ? 'pt-3 pb-3 mb-3' : 'pt-4 pb-4 mb-4'} border-b`}>
             <div className={`flex items-center gap-2 mb-2 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
-              <span className="font-semibold">{t('results.categories')}:</span>
+              <span className="font-semibold">{t('results.categories')}</span>
               <span>{activeSearchQuery.categories.map(cat => cat === 'LostFound' ? t('categories.lost') : t(`categories.${cat.toLowerCase()}`)).join(', ') || t('results.any')}</span>
             </div>
             <div className={`flex items-center gap-2 mb-2 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
-              <span className="font-semibold">{t('results.where')}:</span>
+              <span className="font-semibold">{t('results.where')}</span>
               <span className="truncate">{activeSearchQuery.address || t('results.anywhere')}</span>
             </div>
             {activeSearchQuery.dateFrom && (
               <div className={`flex items-center gap-2 ${isMobile ? 'text-xs' : 'text-sm'} text-gray-700`}>
-                <span className="font-semibold">{t('results.when')}:</span>
+                <span className="font-semibold">{t('results.when')}</span>
                 <span>
                   {activeSearchQuery.dateFrom.toLocaleDateString()} - {activeSearchQuery.dateTo ? activeSearchQuery.dateTo.toLocaleDateString() : t('results.present')}
                 </span>
@@ -191,7 +191,7 @@ export default function ResultsDrawer({
             <p className={`${isMobile ? 'text-sm' : 'text-lg'} font-semibold ${isMobile ? 'mb-1' : 'mb-2'}`}>{t('results.notifyMessage')}</p>
             <button
               onClick={handleNotifyMe}
-              className={`${isMobile ? 'mt-1 py-1.5 px-3 text-sm' : 'mt-2 py-2 px-4'} w-auto bg-[#0868a8] text-white rounded hover:cursor-pointer`}
+              className={`${isMobile ? 'mt-1 py-1.5 px-3 text-sm' : 'mt-2 py-2 px-4'} w-auto bg-[#0a9bf7] text-white rounded hover:cursor-pointer`}
             >
               {t('results.notifyMe')}
             </button>

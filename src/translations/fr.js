@@ -288,6 +288,7 @@ export default {
     lost: 'Objets perdus',
     people: 'Personnes',
     pets: 'Animaux',
+    pet: 'Animaux',
     crime: 'Crime',
     accident: 'Accident',
     other: 'Autre'

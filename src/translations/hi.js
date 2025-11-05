@@ -287,6 +287,7 @@ export default {
     lost: 'खोया और मिला',
     people: 'लोग',
     pets: 'पालतू जानवर',
+    pet: 'पालतू जानवर',
     crime: 'अपराध',
     accident: 'दुर्घटना',
     other: 'अन्य'

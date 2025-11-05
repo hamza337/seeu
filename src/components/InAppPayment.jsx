@@ -111,7 +111,7 @@ export default function InAppPayment() {
     <div className="min-h-screen w-full bg-gray-50 flex flex-col relative">
       {/* Header */}
       <div className="w-full flex justify-center items-center gap-3">
-          <img src={'/brandLogoFinal.png'} alt="Brand Logo" className="3-40 h-20 w-auto" />
+          <img src={'/brandLog.png'} alt="Brand Logo" className="3-40 h-20 w-auto" />
       </div>
 
       {/* Main Form */}

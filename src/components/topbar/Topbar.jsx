@@ -28,7 +28,7 @@ const ProfileImage = ({ src, alt, className, onClick, showArrow = false }) => {
     return (
       <div className={showArrow ? "relative" : ""} onClick={onClick}>
         <div 
-          className={`${className} bg-[#0868A8] text-white flex items-center justify-center font-semibold text-lg cursor-pointer`}
+          className={`${className} bg-[#0a9bf7] text-white flex items-center justify-center font-semibold text-lg cursor-pointer`}
         >
           U
         </div>
@@ -134,6 +134,24 @@ export default function Topbar() {
     lang.name.toLowerCase().includes(searchLanguage.toLowerCase()) ||
     lang.nativeName.toLowerCase().includes(searchLanguage.toLowerCase())
   );
+
+  // Map current language code to corresponding public flag image
+  const getLanguageFlagSrc = (code) => {
+    switch (code) {
+      case 'en':
+        return '/en.png';
+      case 'fr':
+        return '/fr.png';
+      case 'hi':
+        return '/in.png';
+      case 'ja':
+        return '/jp.png';
+      case 'zh':
+        return '/ch.png';
+      default:
+        return '/en.png';
+    }
+  };
 
   // Load profile data when component mounts or user changes
   useEffect(() => {
@@ -321,7 +339,7 @@ export default function Topbar() {
         {/* Brand Logo Overlapping - only on home route */}
         {location.pathname === '/' && (
           <div className="absolute left-1/2 -translate-x-1/2 top-5 z-[90] pointer-events-none">
-            <img src="/brandLogoFinal.png" alt={t('common.logo')} className="w-28 sm:w-32 md:w-36 lg:w-40 object-contain" />
+            <img src="/brandLog.png" alt={t('common.logo')} className="w-32 sm:w-34 md:w-38 lg:w-44 object-contain" />
           </div>
         )}
         {/* Help Icon */}
@@ -594,7 +612,7 @@ export default function Topbar() {
                             <button
                               type="submit"
                               disabled={isUpdatingProfile}
-                              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#0868A8] hover:bg-[#0868A8] disabled:bg-blue-300 rounded-lg transition-colors"
+                              className="flex-1 px-4 py-2 text-sm font-medium text-white bg-[#0a9bf7] hover:bg-[#0a9bf7] disabled:bg-blue-300 rounded-lg transition-colors"
                             >
                               {isUpdatingProfile ? t('common.saving') : t('common.saveChanges')}
                             </button>
@@ -625,10 +643,12 @@ export default function Topbar() {
                           onClick={() => setDropdownView('language')}
                         >
                           <div className="flex items-center space-x-3">
-                            <div className="w-8 h-8 bg-gray-200 rounded-full flex items-center justify-center">
-                              <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                                <path fillRule="evenodd" d="M7 2a1 1 0 011 1v1h3a1 1 0 110 2H9.578a18.87 18.87 0 01-1.724 4.78c.29.354.596.696.914 1.026a1 1 0 11-1.44 1.389c-.188-.196-.373-.396-.554-.6a19.098 19.098 0 01-3.107 3.567 1 1 0 01-1.334-1.49 17.087 17.087 0 003.13-3.733 18.992 18.992 0 01-1.487-2.494 1 1 0 111.79-.89c.234.47.489.928.764 1.372.417-.934.752-1.913.997-2.927H3a1 1 0 110-2h3V3a1 1 0 011-1zm6 6a1 1 0 01.894.553l2.991 5.982a.869.869 0 01.02.037l.99 1.98a1 1 0 11-1.79.895L15.383 16h-4.764l-.724 1.447a1 1 0 11-1.788-.894l.99-1.98.019-.038 2.99-5.982A1 1 0 0113 8zm-1.382 6h2.764L13 11.236 11.618 14z" clipRule="evenodd" />
-                              </svg>
+                            <div className="w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gray-200">
+                              <img
+                                src={getLanguageFlagSrc(currentLanguage)}
+                                alt={t('language.language')}
+                                className="w-full h-full object-cover"
+                              />
                             </div>
                             <span>{t('language.language')}</span>
                           </div>
