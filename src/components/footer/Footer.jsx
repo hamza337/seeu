@@ -10,10 +10,10 @@ export default function Footer() {
   
   return (
     <footer className="w-full bg-transparent py-2">
-      <div className="flex items-center justify-between px-6">
+      <div className="flex items-center justify-end md:justify-between px-6">
         {/* Store buttons (only on home route) */}
         {isHome ? (
-          <div className="ml-48 flex gap-3">
+          <div className="hidden md:flex md:ml-48 gap-3">
             <button
               href="#"
               target="_blank"
@@ -36,11 +36,11 @@ export default function Footer() {
             </a>
           </div>
         ) : (
-          <div />
+          null
         )}
 
         {/* Right-side legal links */}
-        <div className="flex justify-end gap-8 text-sm text-black font-medium">
+        <div className="flex justify-end gap-4 sm:gap-6 md:gap-8 text-sm text-black font-medium">
           <Link to="/privacy-policy" className="hover:underline">{t('footer.privacyPolicy')}</Link>
           <Link to="/user-agreement" className="hover:underline">{t('footer.userAgreement')}</Link>
           <Link to="/contact-us" className="hover:underline">{t('footer.contactUs')}</Link>

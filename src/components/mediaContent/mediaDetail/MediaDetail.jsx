@@ -411,20 +411,22 @@ const EventDetail = ({ eventId, isModal, onClose }) => {
              </div>
           </div>
           <p className="mt-6 text-black">{event.description || 'No description'}</p>
-          <div className="flex gap-3">
-            <button
-               onClick={() => handleBuyNow() && handleClose()}
-               className=" flex-1 bg-[#0a9bf7] text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-[#0a9bf7] transition"
-            >
-               Claim
-            </button>
-            <button
-               onClick={() => openReportModal(event.id)}
-               className="flex-1 bg-red-500 text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-red-600 transition"
-            >
-                  Report
-            </button>
-         </div>
+          {!userOwnsEvent && (
+            <div className="flex gap-3">
+              <button
+                onClick={() => handleBuyNow() && handleClose()}
+                className=" flex-1 bg-[#0a9bf7] text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-[#0a9bf7] transition"
+              >
+                Claim
+              </button>
+              <button
+                onClick={() => openReportModal(event.id)}
+                className="flex-1 bg-red-500 text-white rounded-lg py-3 mt-6 text-xl font-semibold hover:bg-red-600 transition"
+              >
+                Report
+              </button>
+            </div>
+          )}
         </div>
     );
   }

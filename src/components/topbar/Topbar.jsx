@@ -353,22 +353,13 @@ export default function Topbar() {
           </div>
           {showHelp && (
             <div className={`absolute right-0 top-10 ${isMobile ? 'w-64' : 'w-130'} p-4 bg-gray-300 text-black text-sm rounded-lg shadow-lg z-100`}>
-              <p className="text-lg font-semibold mb-2">{t('about.aboutPoing')}</p>
-              <p className="mb-2">
-                {t('about.description')}
-              </p>
-              <p className="mb-2">
-                {t('about.platformDescription')}
-              </p>
-              <p className="mb-2">
-                {t('about.postingDescription')}
-              </p>
-              <p className="mb-2">
-                {t('about.searchingDescription')}
-              </p>
-              <p className="font-semibold">
-                {t('about.tagline')}
-              </p>
+              <p className="text-lg font-semibold mb-2">What is Poing it?</p>
+              <p className="mb-2">Poing It is the smarter way to find or share anything — lost items, events, witnesses, pets, unique moments and missed connections  -  all by location and time.</p>
+              <p className="mb-2">With one global map and one date, you skip the clutter of groups, boards, and endless scrolling.</p>
+              <p className="mb-2">Posting is instant: Choose a category, upload a photo or video, set the location and date, and choose if it’s free, paid, or exclusive.</p>
+              <p className="mb-2">Once it is claimed your contact information will be shared and you can take it from there.</p>
+              <p className="mb-2">Searching is just as easy: pick your categories, set a location and timeframe, and if no matching post exists, you can set a notification alert so others know you're searching — and get instantly notified when a relevant post is created.</p>
+              <p className="font-semibold">Go ahead — just Poing It!</p>
             </div>
           )}
         </div>

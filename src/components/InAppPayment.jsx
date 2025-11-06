@@ -24,15 +24,33 @@ export default function InAppPayment() {
   const [error, setError] = useState("");
   const [summary, setSummary] = useState(null);
   const [success, setSuccess] = useState(false);
-  const [countdown, setCountdown] = useState(3);
+  const [countdown, setCountdown] = useState(4);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [flatFee, setFlatFee] = useState(0);
+  const [eventDetails, setEventDetails] = useState(null);
 
   // Handle countdown + redirect
     useEffect(() =>{
         getFlatFee();
     },[])
+
+  // Prefetch event details to show summary before payment
+  useEffect(() => {
+    const fetchEventDetails = async () => {
+      if (!eventId) return;
+      try {
+        const authToken = localStorage.getItem('token');
+        const res = await axios.get(`${baseUrl}events/event/${eventId}`, {
+          headers: { 'Authorization': authToken ? `Bearer ${authToken}` : '' }
+        });
+        setEventDetails(res.data);
+      } catch (err) {
+        console.error('Failed to fetch event details:', err);
+      }
+    };
+    fetchEventDetails();
+  }, [eventId, baseUrl]);
 
   useEffect(() => {
     if (success) {
@@ -182,26 +200,33 @@ export default function InAppPayment() {
             </div>
           </div>
 
-          {/* Summary */}
-          {summary && (
-            <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm mt-4">
-              <h3 className="text-lg font-semibold text-gray-800 mb-3">
-                Order Summary
-              </h3>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Event Price</span>
-                <span>${summary.breakdown.eventPrice}</span>
-              </div>
-              <div className="flex justify-between text-sm text-gray-600">
-                <span>Flat Fee</span>
-                <span>${summary.breakdown.flatFee}</span>
-              </div>
-              <div className="flex justify-between text-base font-semibold mt-3 text-gray-900 border-t border-gray-200 pt-3">
-                <span>Total</span>
-                <span>${summary.breakdown.total}</span>
-              </div>
-            </div>
-          )}
+          {/* Summary - always visible */}
+          <div className="bg-white border border-gray-200 rounded-lg p-5 shadow-sm mt-4">
+            <h3 className="text-lg font-semibold text-gray-800 mb-3">
+              Event Price Summary
+            </h3>
+            {(() => {
+              const sellerPrice = summary?.breakdown?.eventPrice ?? (eventDetails ? (eventDetails.isFree ? 0 : Number(eventDetails.price) || 0) : 0);
+              const feeAmount = summary?.breakdown?.flatFee ?? (Number(flatFee) || 0);
+              const totalAmount = summary?.breakdown?.total ?? (Number(sellerPrice) + Number(feeAmount));
+              return (
+                <>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Seller's Price</span>
+                    <span>${sellerPrice}</span>
+                  </div>
+                  <div className="flex justify-between text-sm text-gray-600">
+                    <span>Poing it Fee</span>
+                    <span>${feeAmount}</span>
+                  </div>
+                  <div className="flex justify-between text-base font-semibold mt-3 text-gray-900 border-t border-gray-200 pt-3">
+                    <span>Total</span>
+                    <span>${totalAmount}</span>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
 
           <button
             type="submit"

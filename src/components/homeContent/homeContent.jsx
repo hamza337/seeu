@@ -1310,7 +1310,8 @@ const HomeContent = () => {
               style={{
                 top: placeClickInfo.y - 150,
                 left: placeClickInfo.x,
-                minWidth: '240px',
+                // Ensure enough width so action buttons don't get squeezed
+                minWidth: '320px',
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
                 transform: 'translateX(-50%)'
@@ -1340,14 +1341,14 @@ const HomeContent = () => {
               <div className="flex gap-2">
                 <button
                   onClick={handlePoingItClick}
-                  className="flex-1 bg-[#0a9bf7] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[140px] bg-[#0a9bf7] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <Camera className="w-4 h-4" />
                   {t('common.poingIt')}
                 </button>
                 <button
                   onClick={handleSearchClick}
-                  className="flex-1 bg-gradient-to-r bg-[#CE69FF] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2"
+                  className="flex-1 min-w-[140px] bg-gradient-to-r bg-[#CE69FF] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap"
                 >
                   <Search className="w-4 h-4" />
                   {t('common.search')}

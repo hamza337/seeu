@@ -153,8 +153,8 @@ export default function Sidebar() {
           title={t('nav.postAnEvent')} 
           className={`flex items-center mb-36 cursor-pointer`}
         >
-          <span className={activeDrawer === 'location' ? iconHighlight : ''}>
-            <img src="/PoingMarker.png" alt={t('nav.poingAppIcon')} className={`w-6`} />
+          <span className={`w-8 h-8 flex items-center justify-center rounded-full ${activeDrawer === 'location' ? 'border-2 border-black' : 'border-2 border-transparent'} transition`}>
+            <img src="/PoingMarker.png" alt={t('nav.poingAppIcon')} className="w-6 h-6 object-contain" />
           </span>
           {isSidebarExpanded && <span className="text-black font-medium whitespace-nowrap">{t('nav.poingIt')}</span>}
         </button>
