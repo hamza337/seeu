@@ -241,6 +241,29 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
       return;
     }
 
+    // Enforce size limits: images <= 5MB, videos <= 10MB
+    const IMAGE_MAX_BYTES = 5 * 1024 * 1024; // 5MB
+    const VIDEO_MAX_BYTES = 10 * 1024 * 1024; // 10MB
+
+    const tooLargeImages = supportedFiles.filter(
+      (file) => file.type.startsWith('image/') && file.size > IMAGE_MAX_BYTES
+    );
+    const tooLargeVideos = supportedFiles.filter(
+      (file) => file.type.startsWith('video/') && file.size > VIDEO_MAX_BYTES
+    );
+
+    if (tooLargeImages.length > 0 || tooLargeVideos.length > 0) {
+      const errorMessage =
+        tooLargeImages.length > 0 && tooLargeVideos.length > 0
+          ? t('location.errors.mixedTooLarge')
+          : tooLargeImages.length > 0
+          ? t('location.errors.imageTooLarge')
+          : t('location.errors.videoTooLarge');
+      setFileError(errorMessage);
+      e.target.value = null; // Clear the input
+      return;
+    }
+
     setUploads(prevUploads => [...prevUploads, ...supportedFiles]); // Append new files
     e.target.value = null; // Clear the input after processing
   };
@@ -723,7 +746,7 @@ export default function LocationDrawer({ isOpen, onClose, onSwitchDrawer }) {
         {currentCategoryFee && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
             <p className="text-blue-800 text-sm font-medium">
-              Poing charges {currentCategoryFee.platformFee}% on {currentCategoryFee.category} events.
+              Listing Fee is {currentCategoryFee.platformFee}% on {currentCategoryFee.category} events.
             </p>
           </div>
         )}

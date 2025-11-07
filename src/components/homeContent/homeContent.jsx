@@ -1306,12 +1306,13 @@ const HomeContent = () => {
           {/* Place Click Buttons */}
           {showPlaceButtons && placeClickInfo && (
             <div
-              className="absolute z-30 bg-white rounded-xl shadow-2xl border border-gray-100 p-4 backdrop-blur-sm"
+              className="absolute z-30 bg-white rounded-xl shadow-2xl border border-gray-100 p-2.5 sm:p-4 backdrop-blur-sm max-w-[80vw] sm:max-w-[90vw] w-auto"
               style={{
                 top: placeClickInfo.y - 150,
                 left: placeClickInfo.x,
-                // Ensure enough width so action buttons don't get squeezed
-                minWidth: '320px',
+                // Further narrow minimum on small screens so it fits comfortably
+                minWidth: '200px',
+                maxWidth: '78vw',
                 boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                 background: 'linear-gradient(135deg, rgba(255, 255, 255, 0.95) 0%, rgba(248, 250, 252, 0.95) 100%)',
                 transform: 'translateX(-50%)'
@@ -1319,17 +1320,17 @@ const HomeContent = () => {
             >
               {/* Location Icon and Name */}
               <div className="flex items-center mb-3">
-                <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
-                  <MapPin className="w-4 h-4 text-[#0a9bf7]" />
+                <div className="w-6 h-6 sm:w-8 sm:h-8 bg-blue-100 rounded-full flex items-center justify-center mr-3">
+                  <MapPin className="w-3 h-3 sm:w-4 sm:h-4 text-[#0a9bf7]" />
                 </div>
                 <div className="flex-1">
-                  <div className="text-sm font-semibold text-gray-900 leading-tight">
+                  <div className="text-xs sm:text-sm font-semibold text-gray-900 leading-tight">
                     {placeClickInfo.name}
                   </div>
                   {placeClickInfo.address && (
-                    <div className="text-xs text-gray-500 mt-1 truncate">
-                      {placeClickInfo.address.length > 30 
-                        ? placeClickInfo.address.substring(0, 30) + '...' 
+                    <div className="text-[11px] sm:text-xs text-gray-500 mt-1 truncate">
+                      {placeClickInfo.address.length > 24 
+                        ? placeClickInfo.address.substring(0, 24) + '...' 
                         : placeClickInfo.address
                       }
                     </div>
@@ -1338,19 +1339,19 @@ const HomeContent = () => {
               </div>
               
               {/* Action Buttons */}
-              <div className="flex gap-2">
+              <div className="flex flex-col sm:flex-row gap-1.5 sm:gap-2">
                 <button
                   onClick={handlePoingItClick}
-                  className="flex-1 min-w-[140px] bg-[#0a9bf7] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="flex-1 min-w-0 sm:min-w-[140px] bg-[#0a9bf7] text-white text-xs sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap"
                 >
-                  <Camera className="w-4 h-4" />
+                  <Camera className="w-3 h-3 sm:w-4 sm:h-4" />
                   {t('common.poingIt')}
                 </button>
                 <button
                   onClick={handleSearchClick}
-                  className="flex-1 min-w-[140px] bg-gradient-to-r bg-[#CE69FF] text-white text-sm px-4 py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap"
+                  className="flex-1 min-w-0 sm:min-w-[140px] bg-gradient-to-r bg-[#CE69FF] text-white text-xs sm:text-sm px-2.5 sm:px-4 py-1.5 sm:py-2.5 rounded-lg transition-all duration-200 font-medium shadow-md hover:shadow-lg transform hover:scale-105 flex items-center justify-center gap-2 whitespace-nowrap"
                 >
-                  <Search className="w-4 h-4" />
+                  <Search className="w-3 h-3 sm:w-4 sm:h-4" />
                   {t('common.search')}
                 </button>
               </div>

@@ -227,7 +227,10 @@ export default {
       invalidPrice: '请输入有效价格。',
       highPrice: '价格不能超过10,000美元。',
       noContactSharing: '请至少选择一个联系分享选项。',
-      noPhoneNumber: '分享电话联系需要电话号码。'
+      noPhoneNumber: '分享电话联系需要电话号码。',
+      imageTooLarge: '图片大小必须不超过5MB。',
+      videoTooLarge: '视频大小必须不超过10MB。',
+      mixedTooLarge: '部分文件超出大小限制：图片最多5MB，视频最多10MB。'
     },
     messages: {
       creatingEvent: '正在创建事件...',

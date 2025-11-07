@@ -239,7 +239,10 @@ export default {
       invalidPrice: 'Veuillez saisir un prix valide.',
       highPrice: 'Le prix ne peut pas dépasser 10 000$.',
       noContactSharing: 'Veuillez sélectionner au moins une option de partage de contact.',
-      noPhoneNumber: 'Le numéro de téléphone est requis pour partager le contact téléphonique.'
+      noPhoneNumber: 'Le numéro de téléphone est requis pour partager le contact téléphonique.',
+      imageTooLarge: 'Les images doivent faire 5 Mo ou moins.',
+      videoTooLarge: 'Les vidéos doivent faire 10 Mo ou moins.',
+      mixedTooLarge: 'Certains fichiers dépassent les limites : images jusqu’à 5 Mo, vidéos jusqu’à 10 Mo.'
     },
     messages: {
       creatingEvent: 'Création de l\'événement...',

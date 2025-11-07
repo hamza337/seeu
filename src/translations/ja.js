@@ -227,7 +227,10 @@ export default {
       invalidPrice: '有効な価格を入力してください。',
       highPrice: '価格は$10,000を超えることはできません。',
       noContactSharing: '少なくとも1つの連絡先共有オプションを選択してください。',
-      noPhoneNumber: '電話連絡先を共有するには電話番号が必要です。'
+      noPhoneNumber: '電話連絡先を共有するには電話番号が必要です。',
+      imageTooLarge: '画像は5MB以下である必要があります。',
+      videoTooLarge: '動画は10MB以下である必要があります。',
+      mixedTooLarge: '一部のファイルがサイズ上限を超えています：画像は最大5MB、動画は最大10MB。'
     },
     messages: {
       creatingEvent: 'イベントを作成中...',
